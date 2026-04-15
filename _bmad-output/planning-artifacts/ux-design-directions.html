@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星辰科技 ERP - 最终设计方向</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;font-size:14px;background:#F5F7FA;color:#1F1F1F}
+
+/* ===== LAYOUT ===== */
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ===== SIDEBAR ===== */
+.sidebar{
+  width:220px;min-width:220px;
+  background:#fff;
+  border-right:1px solid #e8ecf0;
+  display:flex;flex-direction:column;height:100%;overflow-y:auto;flex-shrink:0;
+}
+.sidebar-logo{padding:18px 20px 14px;border-bottom:1px solid #edf0f5}
+.sidebar-logo .sys-name{color:#1B2A4A;font-size:15px;font-weight:700;letter-spacing:.5px}
+.sidebar-logo .sys-sub{color:#999;font-size:11px;margin-top:2px}
+.nav-group{padding:4px 0}
+.nav-item{display:flex;align-items:center;padding:10px 20px;color:#444;cursor:pointer;transition:all .15s;font-size:14px;gap:10px;font-weight:600}
+.nav-item:hover{color:#1F1F1F}
+.nav-item.open{color:#1F1F1F}
+.nav-item .icon{width:18px;height:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.nav-item .arrow{margin-left:auto;font-size:10px;color:#ccc;transition:transform .2s}
+.nav-item.open .arrow{transform:rotate(90deg);color:#4C6FFF}
+.nav-sub{font-size:13px;padding:7px 20px 7px 48px;color:#888;cursor:pointer;transition:all .15s;position:relative}
+.nav-sub:hover{color:#555;background:#f8f9fc}
+.nav-sub.active{color:#4C6FFF;font-weight:600;background:#EEF2FF}
+.nav-sub.active::before{content:'';position:absolute;left:20px;top:50%;transform:translateY(-50%);width:5px;height:5px;border-radius:50%;background:#4C6FFF}
+
+/* ===== SIDEBAR USER PROFILE ===== */
+.sidebar-user{
+  margin-top:auto;
+  border-top:1px solid #edf0f5;
+  padding:14px 16px;
+  display:flex;align-items:center;gap:10px;
+}
+.user-avatar{
+  width:34px;height:34px;border-radius:50%;
+  background:#4C6FFF;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;
+  box-shadow:0 2px 6px rgba(76,111,255,.3);
+}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600;color:#1F1F1F;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role{font-size:11px;color:#999;margin-top:1px}
+.user-actions{display:flex;gap:8px;flex-shrink:0}
+.user-actions a{color:#bbb;cursor:pointer;transition:color .15s;display:flex;align-items:center}
+.user-actions a:hover{color:#4C6FFF}
+
+/* ===== MAIN AREA ===== */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#F5F7FA}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  background:#fff;border-bottom:1px solid #edf0f7;
+  padding:0 28px;height:56px;
+  display:flex;align-items:center;gap:12px;flex-shrink:0;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:#999}
+.breadcrumb .sep{color:#ccc}
+.topbar-right{margin-left:auto;display:flex;gap:12px;align-items:center}
+.topbar-notif{position:relative;cursor:pointer;color:#666;display:flex;align-items:center}
+.topbar-notif:hover{color:#4C6FFF}
+.notif-badge{
+  position:absolute;top:-4px;right:-5px;
+  background:#FF4D4F;color:#fff;
+  border-radius:10px;padding:0 4px;
+  font-size:10px;font-weight:700;min-width:16px;text-align:center;line-height:16px;height:16px;
+  border:2px solid #fff;
+}
+.topbar-avatar{
+  width:28px;height:28px;border-radius:50%;
+  background:#4C6FFF;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;cursor:pointer;
+  box-shadow:0 2px 6px rgba(76,111,255,.35);
+}
+
+/* ===== STATUS TAGS ===== */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500;white-space:nowrap}
+.tag-blue{background:#e6f0ff;color:#1890FF;border:1px solid #91caff}
+.tag-green{background:#f0fae8;color:#52C41A;border:1px solid #b7eb8f}
+.tag-orange{background:#fff7e6;color:#FAAD14;border:1px solid #ffd591}
+.tag-red{background:#fff1f0;color:#FF4D4F;border:1px solid #ffa39e}
+.tag-gray{background:#f5f5f5;color:#999;border:1px solid #d9d9d9}
+
+/* ===== PILL TAGS ===== */
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.pill-blue{background:#e6f0ff;color:#1890FF}
+.pill-green{background:#f0fae8;color:#52C41A}
+.pill-orange{background:#fff7e6;color:#FAAD14}
+.pill-red{background:#fff1f0;color:#FF4D4F}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* ===== DATA TABLE ===== */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{background:#f8f9fc;padding:10px 14px;text-align:left;font-size:12px;font-weight:600;color:#666;border-bottom:1px solid #e8ecf0;white-space:nowrap}
+.data-table td{padding:10px 14px;border-bottom:1px solid #f0f2f5;font-size:13px;vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#fafbff}
+.sku-code{font-family:'Courier New',monospace;font-size:12px;color:#4C6FFF;background:#f0f4ff;padding:2px 6px;border-radius:3px}
+.num-red{color:#FF4D4F;font-weight:600}
+.num-green{color:#52C41A;font-weight:600}
+.po-link{color:#4C6FFF;text-decoration:none;font-size:12px}
+.po-link:hover{text-decoration:underline}
+
+/* ===== BUTTONS ===== */
+.btn2-primary{padding:9px 20px;background:#4C6FFF;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;box-shadow:0 3px 10px rgba(76,111,255,.3);transition:all .15s}
+.btn2-primary:hover{background:#3a5ce8}
+.btn2-default{padding:9px 20px;background:#fff;color:#1F1F1F;border:2px solid #e0e0e0;border-radius:8px;cursor:pointer;font-size:13px;transition:all .15s}
+.btn2-default:hover{border-color:#4C6FFF;color:#4C6FFF}
+.btn2-warning{padding:9px 20px;background:#FAAD14;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500}
+
+/* ===== CONTENT SCROLL ===== */
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ===== PAGE HEADER ===== */
+.page-title{font-size:20px;font-weight:700;margin-bottom:4px}
+.page-subtitle{color:#666;font-size:13px;margin-bottom:20px}
+
+/* ===== PROGRESS STEPS ===== */
+.progress-card{
+  background:#fff;border-radius:10px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #f0f2f5;
+  padding:20px 28px 18px;margin-bottom:20px;
+}
+.progress-card-label{font-size:11px;color:#aaa;font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:14px}
+.progress-steps{display:flex;align-items:flex-start}
+.p-step{display:flex;flex-direction:column;align-items:center;flex:1;position:relative}
+.p-step::after{
+  content:'';position:absolute;
+  top:18px;left:calc(50% + 16px);right:calc(-50% + 16px);
+  height:2px;background:#e8ecf0;z-index:0;
+}
+.p-step.done::after{background:#52C41A}
+.p-step:last-child::after{display:none}
+.p-step-dot{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;z-index:1;position:relative;
+  transition:all .2s;
+}
+.p-step-dot.done{background:#52C41A;color:#fff;box-shadow:0 2px 8px rgba(82,196,26,.35)}
+.p-step-dot.active{background:#4C6FFF;color:#fff;box-shadow:0 0 0 4px rgba(76,111,255,.2),0 3px 10px rgba(76,111,255,.3)}
+.p-step-dot.pending{background:#f0f2f5;color:#bbb;border:2px solid #e0e3e8}
+.p-step-label{font-size:11px;color:#999;margin-top:7px;white-space:nowrap;text-align:center}
+.p-step-label.active-label{color:#4C6FFF;font-weight:700}
+.p-step-label.done-label{color:#52C41A;font-weight:600}
+
+/* ===== KPI CARDS ===== */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:#fff;border-radius:10px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #f0f2f5}
+.kpi-label{font-size:12px;color:#888;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:700;line-height:1}
+.kpi-sub{font-size:11px;color:#aaa;margin-top:4px}
+.kpi-card.kpi-blue .kpi-value{color:#1890FF}
+.kpi-card.kpi-green .kpi-value{color:#52C41A}
+.kpi-card.kpi-orange .kpi-value{color:#FAAD14}
+.kpi-card.kpi-red .kpi-value{color:#FF4D4F}
+
+/* ===== INFO CARDS ===== */
+.info-card{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #f0f2f5;margin-bottom:16px;overflow:hidden}
+.info-card-header{padding:14px 20px;border-bottom:1px solid #f5f7fa;display:flex;align-items:center;justify-content:space-between}
+.info-card-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.info-card-title .dot{width:8px;height:8px;border-radius:50%;background:#4C6FFF;flex-shrink:0}
+.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:0}
+.meta-item{padding:14px 20px;border-right:1px solid #f5f7fa;border-bottom:1px solid #f5f7fa}
+.meta-item:nth-child(3n){border-right:none}
+.meta-label{font-size:11px;color:#aaa;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.meta-value{font-size:14px;font-weight:500;color:#1F1F1F}
+
+/* ===== SMART BUTTONS ===== */
+.smart-btns{display:flex;gap:10px;padding:14px 20px;border-top:1px solid #f5f7fa}
+.smart-btn2{display:flex;align-items:center;gap:8px;padding:8px 16px;border-radius:8px;border:2px solid #e8ecf0;background:#fff;cursor:pointer;font-size:13px;transition:all .15s}
+.smart-btn2:hover{border-color:#4C6FFF;color:#4C6FFF}
+.smart-btn2 .cnt{background:#4C6FFF;color:#fff;border-radius:12px;padding:1px 8px;font-size:11px;font-weight:700}
+.smart-btn2 .cnt.zero{background:#eee;color:#bbb}
+
+/* ===== ACTION ROW ===== */
+.action-row{display:flex;gap:10px;padding:16px 20px;border-top:1px solid #f5f7fa;background:#fafbff}
+
+/* ===== TIMELINE ===== */
+.status-timeline{padding:18px 20px}
+.tl-item{display:flex;gap:12px;margin-bottom:14px}
+.tl-item:last-child{margin-bottom:0}
+.tl-dot{width:10px;height:10px;border-radius:50%;background:#4C6FFF;margin-top:4px;flex-shrink:0;box-shadow:0 0 0 3px rgba(76,111,255,.15)}
+.tl-dot.gray{background:#d9d9d9;box-shadow:none}
+.tl-content .tl-text{font-size:13px;color:#1F1F1F;line-height:1.5}
+.tl-content .tl-time{font-size:11px;color:#bbb;margin-top:3px}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ===== SIDEBAR ===== -->
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sys-name">星辰科技 ERP</div>
+      <div class="sys-sub">INFITEK ENTERPRISE</div>
+    </div>
+
+    <!-- 销售管理 -->
+    <div class="nav-group">
+      <div class="nav-item open">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M10 2v3h3" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><line x1="5" y1="7" x2="11" y2="7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5" y1="9.5" x2="11" y2="9.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><line x1="5" y1="12" x2="8.5" y2="12" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg></span>
+        销售管理
+        <span class="arrow">&#9654;</span>
+      </div>
+      <div class="nav-sub">销售订单</div>
+      <div class="nav-sub active">发货需求</div>
+      <div class="nav-sub">客户管理</div>
+    </div>
+
+    <!-- 商务管理 -->
+    <div class="nav-group">
+      <div class="nav-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M1 10l2-5h10l2 5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M1 10c0 1.657 1.343 2 3 2s3-.343 3-2" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M7 10c0 1.657 1.343 2 3 2s3-.343 3-2" stroke="currentColor" stroke-width="1.3" fill="none"/></svg></span>
+        商务管理
+        <span class="arrow">&#9654;</span>
+      </div>
+    </div>
+
+    <!-- 采购管理 -->
+    <div class="nav-group">
+      <div class="nav-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M2 5h12l-1.5 8H3.5L2 5z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M5.5 5V4a2.5 2.5 0 015 0v1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/></svg></span>
+        采购管理
+        <span class="arrow">&#9654;</span>
+      </div>
+    </div>
+
+    <!-- 产品管理 -->
+    <div class="nav-group">
+      <div class="nav-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l6 3v6l-6 3-6-3v-6l6-3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M8 1.5v13" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 4.5l6 3 6-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        产品管理
+        <span class="arrow">&#9654;</span>
+      </div>
+    </div>
+
+    <!-- 库存管理 -->
+    <div class="nav-group">
+      <div class="nav-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="7" width="13" height="7.5" rx="1" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M1 7l7-5.5 7 5.5" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><rect x="5.5" y="10" width="5" height="4.5" rx=".5" stroke="currentColor" stroke-width="1.1" fill="none"/></svg></span>
+        库存管理
+        <span class="arrow">&#9654;</span>
+      </div>
+    </div>
+
+    <!-- 财务管理 -->
+    <div class="nav-group">
+      <div class="nav-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 4v8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><path d="M5.5 6C5.5 5 6.5 4.5 8 4.5s2.5.8 2.5 1.8c0 2.4-5 1.8-5 4.2 0 1.1 1.1 1.8 2.5 1.8s2.5-.6 2.5-1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" fill="none"/></svg></span>
+        财务管理
+        <span class="arrow">&#9654;</span>
+      </div>
+    </div>
+
+    <!-- 基础数据 -->
+    <div class="nav-group">
+      <div class="nav-item">
+        <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>
+        基础数据
+        <span class="arrow">&#9654;</span>
+      </div>
+    </div>
+
+    <!-- USER PROFILE -->
+    <div class="sidebar-user">
+      <div class="user-avatar">XW</div>
+      <div class="user-info">
+        <div class="user-name">小王</div>
+        <div class="user-role">商务跟单</div>
+      </div>
+      <div class="user-actions">
+        <!-- Settings gear -->
+        <a title="设置">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="8" cy="8" r="2.2" stroke="currentColor" stroke-width="1.3" fill="none"/>
+            <path d="M8 2v1.1M8 12.9V14M2 8h1.1M12.9 8H14M3.6 3.6l.8.8M11.6 11.6l.8.8M3.6 12.4l.8-.8M11.6 4.4l.8-.8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </a>
+        <!-- Logout icon -->
+        <a title="退出登录">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 2.5H3a1 1 0 00-1 1v9a1 1 0 001 1h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            <path d="M10.5 11l3-3-3-3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="13.5" y1="8" x2="6" y2="8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </div><!-- end sidebar -->
+
+  <!-- ===== MAIN AREA ===== -->
+  <div class="main-area">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <div class="breadcrumb">
+        <span>销售管理</span>
+        <span class="sep">›</span>
+        <span>发货需求</span>
+        <span class="sep">›</span>
+        <span style="color:#1F1F1F;font-weight:600">FH-2026-0412</span>
+      </div>
+      <div class="topbar-right">
+        <span class="pill pill-blue">采购中</span>
+        <button class="btn2-default" style="padding:6px 14px;font-size:12px">← 返回</button>
+        <button class="btn2-primary" style="padding:6px 14px;font-size:12px">编辑</button>
+        <!-- Notification bell -->
+        <div class="topbar-notif">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 2a6 6 0 00-6 6v3l-1.5 2.5h15L16 11V8a6 6 0 00-6-6z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" fill="none"/>
+            <path d="M8 16.5a2 2 0 004 0" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+          <span class="notif-badge">3</span>
+        </div>
+        <!-- User avatar -->
+        <div class="topbar-avatar">XW</div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="content">
+      <div class="page-title">发货需求详情</div>
+      <div class="page-subtitle">单号：FH-2026-0412 &nbsp;·&nbsp; 来源订单：<a class="po-link" style="font-size:13px">SO-2026-0198</a> &nbsp;·&nbsp; 客户：ABC Trade Co., Ltd</div>
+
+      <!-- FLOW PROGRESS BAR -->
+      <div class="progress-card">
+        <div class="progress-card-label">发货流程进度</div>
+        <div class="progress-steps">
+          <div class="p-step done">
+            <div class="p-step-dot done">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="p-step-label done-label">需求创建</div>
+          </div>
+          <div class="p-step done">
+            <div class="p-step-dot done">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="p-step-label done-label">库存检查</div>
+          </div>
+          <div class="p-step">
+            <div class="p-step-dot active">3</div>
+            <div class="p-step-label active-label">采购备货</div>
+          </div>
+          <div class="p-step">
+            <div class="p-step-dot pending">4</div>
+            <div class="p-step-label">库存锁定</div>
+          </div>
+          <div class="p-step">
+            <div class="p-step-dot pending">5</div>
+            <div class="p-step-label">创建物流</div>
+          </div>
+          <div class="p-step">
+            <div class="p-step-dot pending">6</div>
+            <div class="p-step-label">出库发货</div>
+          </div>
+          <div class="p-step">
+            <div class="p-step-dot pending">7</div>
+            <div class="p-step-label">完成</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI ROW -->
+      <div class="kpi-row">
+        <div class="kpi-card kpi-blue">
+          <div class="kpi-label">采购订单</div>
+          <div class="kpi-value">2</div>
+          <div class="kpi-sub">进行中</div>
+        </div>
+        <div class="kpi-card kpi-orange">
+          <div class="kpi-label">物流单</div>
+          <div class="kpi-value">0</div>
+          <div class="kpi-sub">待创建</div>
+        </div>
+        <div class="kpi-card kpi-orange">
+          <div class="kpi-label">出库单</div>
+          <div class="kpi-value">0</div>
+          <div class="kpi-sub">待创建</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">货品就绪率</div>
+          <div class="kpi-value" style="color:#FAAD14">33%</div>
+          <div class="kpi-sub">1/3 SKU 可出货</div>
+        </div>
+      </div>
+
+      <!-- BASIC INFO CARD -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <span class="info-card-title"><span class="dot"></span>基本信息</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="meta-label">发货需求编号</div>
+            <div class="meta-value" style="font-weight:700;color:#4C6FFF">FH-2026-0412</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">当前状态</div>
+            <div class="meta-value"><span class="pill pill-blue">采购中</span></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">来源订单</div>
+            <div class="meta-value"><a class="po-link" style="font-size:14px">SO-2026-0198</a></div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">客户名称</div>
+            <div class="meta-value">ABC Trade Co., Ltd</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">销售员</div>
+            <div class="meta-value">Tom</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">商务跟单</div>
+            <div class="meta-value">小王</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">创建日期</div>
+            <div class="meta-value">2026-04-12</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">期望发货日期</div>
+            <div class="meta-value" style="color:#FAAD14;font-weight:600">2026-05-10</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">备注</div>
+            <div class="meta-value" style="color:#bbb">—</div>
+          </div>
+        </div>
+        <!-- Smart Buttons -->
+        <div class="smart-btns">
+          <button class="smart-btn2">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M10 2v3h3" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            采购订单 <span class="cnt">2</span>
+          </button>
+          <button class="smart-btn2">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M1 10l2-5h10l2 5" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><path d="M1 10c0 1.5 1.3 2 3 2s3-.5 3-2" stroke="currentColor" stroke-width="1.3"/><path d="M7 10c0 1.5 1.3 2 3 2s3-.5 3-2" stroke="currentColor" stroke-width="1.3"/></svg>
+            物流单 <span class="cnt zero">0</span>
+          </button>
+          <button class="smart-btn2">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1" stroke="currentColor" stroke-width="1.4"/><path d="M5 3V2M11 3V2" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M8 7v4M6 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+            出库单 <span class="cnt zero">0</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- PRODUCT TABLE CARD -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <span class="info-card-title"><span class="dot" style="background:#52C41A"></span>产品明细</span>
+          <span style="font-size:12px;color:#aaa">3 项产品 &nbsp;·&nbsp; 2 项缺货</span>
+        </div>
+        <table class="data-table" style="border-top:none">
+          <thead>
+            <tr>
+              <th>SKU编码</th>
+              <th>产品名称</th>
+              <th style="text-align:center">应发数量</th>
+              <th style="text-align:center">可用库存</th>
+              <th style="text-align:center">已锁定</th>
+              <th>采购状态</th>
+              <th>关联采购单</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="sku-code">LED-WL-50W-RGB</span></td>
+              <td style="font-weight:500">LED洗墙灯 50W</td>
+              <td style="text-align:center;font-weight:600">20</td>
+              <td style="text-align:center"><span class="pill pill-red" style="padding:2px 10px;font-size:12px">0</span></td>
+              <td style="text-align:center">0</td>
+              <td><span class="pill pill-blue">采购中</span></td>
+              <td><a class="po-link">PO-2026-0089</a></td>
+            </tr>
+            <tr>
+              <td><span class="sku-code">PWR-AD-100W</span></td>
+              <td style="font-weight:500">电源适配器 100W</td>
+              <td style="text-align:center;font-weight:600">20</td>
+              <td style="text-align:center"><span class="pill pill-green" style="padding:2px 10px;font-size:12px">25</span></td>
+              <td style="text-align:center">20</td>
+              <td><span class="pill" style="background:#f5f5f5;color:#bbb;padding:4px 12px;font-size:12px">充足</span></td>
+              <td style="color:#bbb">—</td>
+            </tr>
+            <tr>
+              <td><span class="sku-code">PKG-BOX-L</span></td>
+              <td style="font-weight:500">大号包装纸箱</td>
+              <td style="text-align:center;font-weight:600">10</td>
+              <td style="text-align:center"><span class="pill pill-red" style="padding:2px 10px;font-size:12px">3</span></td>
+              <td style="text-align:center">0</td>
+              <td><span class="pill pill-blue">采购中</span></td>
+              <td><a class="po-link">PO-2026-0090</a></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="action-row">
+          <button class="btn2-default">锁定库存</button>
+          <button class="btn2-primary">创建采购订单</button>
+          <button class="btn2-default">创建物流单</button>
+        </div>
+      </div>
+
+      <!-- OPERATION TIMELINE CARD -->
+      <div class="info-card">
+        <div class="info-card-header">
+          <span class="info-card-title"><span class="dot" style="background:#FAAD14"></span>操作记录</span>
+        </div>
+        <div class="status-timeline">
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-content">
+              <div class="tl-text">小王 创建了采购订单 <a class="po-link">PO-2026-0089</a>、<a class="po-link">PO-2026-0090</a></div>
+              <div class="tl-time">2026-04-12 15:10</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-content">
+              <div class="tl-text">系统 状态更新：草稿 → <span class="tag tag-blue" style="font-size:11px">采购中</span></div>
+              <div class="tl-time">2026-04-12 15:12</div>
+            </div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot gray"></div>
+            <div class="tl-content">
+              <div class="tl-text">Tom 创建了发货需求（来源：<a class="po-link">SO-2026-0198</a>）</div>
+              <div class="tl-time">2026-04-12 14:32</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end content -->
+  </div><!-- end main-area -->
+</div><!-- end app -->
+
+</body>
+</html>
