@@ -155,7 +155,7 @@ cd api && pnpm add @nestjs/typeorm typeorm mysql2 @nestjs/jwt @nestjs/passport p
 
 # 前端
 cd .. && pnpm create vite web --template react-ts
-cd web && pnpm add antd @ant-design/icons axios @tanstack/react-query react-router-dom
+cd web && pnpm add antd @ant-design/icons @ant-design/pro-components axios @tanstack/react-query react-router-dom
 
 # 共享类型包
 mkdir -p ../packages/shared && cd ../packages/shared && pnpm init
@@ -263,11 +263,66 @@ export class InventoryRecord extends BaseEntity {
 | 路由 | React Router v7 | 7.x | 最新稳定版，支持 loader/action 模式 |
 | 服务端状态 | TanStack Query v5 | 5.x | 接口缓存、loading/error 状态、乐观更新，避免手写 useEffect 请求 |
 | UI 全局状态 | Zustand | 4.x | 轻量，仅管理当前用户信息、侧边栏折叠等全局 UI 状态 |
-| 表单 | Ant Design Form（内置） | Ant Design 5.x | ERP 复杂表单场景 antd Form 已足够，避免引入额外依赖 |
-| 组件组织 | `pages/`（页面）+ `components/`（业务复用）+ `ui/`（基础 UI） | — | 清晰分层，CRUD 复用组件集中在 `components/` |
+| UI Pro 组件层 | `@ant-design/pro-components`（ProTable / ProForm / ProLayout / ProDescriptions） | 与 antd 5.x 配套 | ERP 多模块列表/表单/详情场景直接采用 Pro 组件，避免重复实现分页、搜索栏、表单布局逻辑；UX 规范明确要求使用 ProTable 和 ProForm |
+| 表单 | Ant Design ProForm（`@ant-design/pro-components`） | 与 antd 5.x 配套 | ProForm 是 antd Form 的超集，支持分组 Card、折叠面板、子表格（ProFormList）等 ERP 复杂表单场景 |
+| 组件组织 | `pages/`（页面）+ `components/`（业务复用）+ `ui/`（基础 UI） | — | 清晰分层，CRUD 复用组件集中在 `components/`；UX 规范定义的 7 个自定义组件（FlowProgress、SmartButton、InventoryIndicator 等）放在 `components/business/` |
 | 国际化 | 不引入（中文单语言） | — | Post-MVP 按需添加 |
 
 **影响模块：** `apps/web/src/`
+
+---
+
+### 文件存储（阿里云 OSS）
+
+满足 PRD NFR-F1（文件上传及读取使用阿里云 OSS，服务端不在本地磁盘持久化文件）和 NFR-F2（物理删除）。
+
+| 决策项 | 选定方案 | 理由 |
+|--------|---------|------|
+| 文件存储后端 | 阿里云 OSS（`ali-oss` npm 包） | PRD NFR-F1 明确要求；支持直传（signed URL）和服务端代理上传两种模式 |
+| 上传模式 | **服务端代理上传**：前端 → `POST /api/files/upload`（multipart/form-data）→ NestJS → OSS | 统一鉴权、文件类型/大小校验在服务端执行，避免前端直接持有 OSS 密钥 |
+| 文件大小限制 | 单文件最大 50 MB（multipart 拦截器 `limits.fileSize`） | 满足产品证书 PDF / 产品说明书 PDF 场景 |
+| 允许的 MIME 类型 | `image/jpeg`, `image/png`, `image/webp`, `application/pdf` | 证书（PDF/图片）、资料（PDF）场景 |
+| OSS Bucket 结构 | `/{env}/{module}/{date}/{uuid}.{ext}` | 例：`/prod/certificates/2026-04/uuid.pdf` |
+| 文件删除 | 服务端调用 `ossClient.delete(objectKey)`（物理删除）| 满足 NFR-F2，需二次确认后执行 |
+| 文件下载/访问 | 服务端生成有时效的签名 URL（有效期 1 小时）| 避免文件 URL 永久暴露 |
+
+**后端依赖安装：**
+
+```bash
+cd apps/api && pnpm add ali-oss @types/ali-oss @nestjs/platform-express multer @types/multer
+```
+
+**环境变量（`.env`）：**
+
+```env
+OSS_REGION=oss-cn-shenzhen
+OSS_ACCESS_KEY_ID=your_access_key_id
+OSS_ACCESS_KEY_SECRET=your_access_key_secret
+OSS_BUCKET=infitek-erp-files
+```
+
+**核心服务接口（`apps/api/src/files/files.service.ts`）：**
+
+```typescript
+// 上传：返回 { url, key } 存入数据库
+async upload(file: Express.Multer.File, folder: string): Promise<{ url: string; key: string }>
+
+// 获取签名访问 URL
+async getSignedUrl(key: string, expiresInSeconds = 3600): Promise<string>
+
+// 物理删除
+async delete(key: string): Promise<void>
+```
+
+**API 端点：**
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| POST | `/api/files/upload` | 上传文件；请求体 `multipart/form-data`，字段名 `file`，查询参数 `folder`（certificates / documents）；返回 `{ key, filename, size }` |
+| GET | `/api/files/signed-url?key=xxx` | 获取有时效的签名下载 URL |
+| DELETE | `/api/files` | 删除文件；请求体 `{ key: string }` |
+
+**影响模块：** `apps/api/src/files/`（FilesModule，全局注册供 certificates / documents 模块调用）
 
 ---
 
@@ -897,7 +952,7 @@ cd apps/api && pnpm add @nestjs/typeorm typeorm mysql2 @nestjs/jwt @nestjs/passp
 
 # 3. 前端
 cd ../.. && pnpm create vite apps/web --template react-ts
-cd apps/web && pnpm add antd @ant-design/icons axios @tanstack/react-query react-router-dom zustand dayjs
+cd apps/web && pnpm add antd @ant-design/icons @ant-design/pro-components axios @tanstack/react-query react-router-dom zustand dayjs
 
 # 4. 共享包
 mkdir -p packages/shared && cd packages/shared && pnpm init
