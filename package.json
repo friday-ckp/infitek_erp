@@ -1,0 +1,8 @@
+{
+  "name": "infitek-erp",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter=./apps/* dev",
+    "build": "pnpm --parallel --filter=./apps/* build"
+  }
+}

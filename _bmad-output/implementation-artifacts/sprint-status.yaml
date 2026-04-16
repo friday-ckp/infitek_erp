@@ -1,0 +1,128 @@
+# generated: 2026-04-15
+# last_updated: 2026-04-15
+# project: infitek_erp
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-04-15
+last_updated: 2026-04-15
+project: infitek_erp
+
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # ─────────────────────────────────────────────────
+  # Epic 1: 项目基础设施与用户认证
+  # ─────────────────────────────────────────────────
+  epic-1: in-progress
+  1-1-monorepo-项目初始化与开发环境搭建: review
+  1-2-后端api基础设施: backlog
+  1-3-用户认证: backlog
+  1-4-用户账号管理: backlog
+  1-5-前端全局框架: backlog
+  1-6-阿里云oss文件上传服务集成: backlog
+  epic-1-retrospective: optional
+
+  # ─────────────────────────────────────────────────
+  # Epic 2: 基础参考数据与公司主体管理
+  # ─────────────────────────────────────────────────
+  epic-2: backlog
+  2-1-标准crud组件模板: backlog
+  2-2-基础参考数据管理: backlog
+  2-3-公司主体信息管理: backlog
+  2-4-搜索筛选与分页横切能力: backlog
+  epic-2-retrospective: optional
+
+  # ─────────────────────────────────────────────────
+  # Epic 3: 产品体系管理
+  # ─────────────────────────────────────────────────
+  epic-3: backlog
+  3-1-三级产品分类管理: backlog
+  3-2-spu基础信息管理: backlog
+  3-3-sku变体管理: backlog
+  3-4-产品faq维护: backlog
+  3-5-产品证书库管理: backlog
+  3-6-产品资料库管理: backlog
+  epic-3-retrospective: optional
+
+  # ─────────────────────────────────────────────────
+  # Epic 4: 供应链参考数据管理
+  # ─────────────────────────────────────────────────
+  epic-4: backlog
+  4-1-供应商档案管理: backlog
+  4-2-合同条款范本管理: backlog
+  4-3-港口信息与物流供应商管理: backlog
+  4-4-客户主数据管理: backlog
+  epic-4-retrospective: optional
+
+  # ─────────────────────────────────────────────────
+  # Epic 5: 销售订单与发货需求管理
+  # ─────────────────────────────────────────────────
+  epic-5: backlog
+  5-1-销售订单创建与确认: backlog
+  5-2-销售订单列表与详情: backlog
+  5-3-发货需求列表页: backlog
+  5-4-发货需求枢纽详情页: backlog
+  5-5-发货需求下游入口与完整作废逻辑: backlog
+  epic-5-retrospective: optional
+
+  # ─────────────────────────────────────────────────
+  # Epic 6: 采购订单与收货入库
+  # ─────────────────────────────────────────────────
+  epic-6: backlog
+  6-1-库存双层结构查询接口与期初录入: backlog
+  6-2-库存变动流水: backlog
+  6-3-采购订单创建与确认: backlog
+  6-4-采购订单列表与详情: backlog
+  6-5-收货入库单创建与确认: backlog
+  6-6-收货后自动触发: backlog
+  epic-6-retrospective: optional
+
+  # ─────────────────────────────────────────────────
+  # Epic 7: 物流单与发货出库
+  # ─────────────────────────────────────────────────
+  epic-7: backlog
+  7-1-物流单创建: backlog
+  7-2-物流单列表与详情: backlog
+  7-3-发货出库单创建与确认: backlog
+  7-4-发货出库后状态联动: backlog
+  epic-7-retrospective: optional
+
+  # ─────────────────────────────────────────────────
+  # Epic 8: 发货需求枢纽库存决策
+  # ─────────────────────────────────────────────────
+  epic-8: backlog
+  8-1-发货需求状态自动流转: backlog
+  epic-8-retrospective: optional
