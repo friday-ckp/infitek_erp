@@ -1,21 +1,27 @@
-# Stage 1: Build
-FROM node:20-alpine AS builder
+# Stage 1: Install dependencies
+FROM node:20-alpine AS deps
 
 WORKDIR /app
 
 RUN npm install -g pnpm
 
-COPY package.json pnpm-lock.yaml* ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/web/package.json apps/web/package.json
+COPY packages/shared/package.json packages/shared/package.json
 RUN pnpm install --frozen-lockfile
 
-COPY . .
-RUN pnpm run build
+# Stage 2: Build application
+FROM deps AS builder
 
-# Stage 2: Production (serve with nginx)
+COPY apps/web ./apps/web
+COPY packages/shared ./packages/shared
+RUN pnpm --filter web build
+
+# Stage 3: Production (serve with nginx)
 FROM nginx:alpine AS production
 
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
 
-EXPOSE 5173
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]

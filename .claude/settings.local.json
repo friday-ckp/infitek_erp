@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls /Users/chenkangping/ai_study/infitek_erp/apps/api/.env*)",
+      "Bash(mysql --version)",
+      "Bash(pnpm install:*)",
+      "Bash(npm install:*)",
+      "Bash(pnpm approve-builds:*)"
+    ]
+  }
+}

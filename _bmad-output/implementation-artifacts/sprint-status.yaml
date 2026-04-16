@@ -47,7 +47,7 @@ development_status:
   # Epic 1: 项目基础设施与用户认证
   # ─────────────────────────────────────────────────
   epic-1: in-progress
-  1-1-monorepo-项目初始化与开发环境搭建: review
+  1-1-monorepo-项目初始化与开发环境搭建: done
   1-2-后端api基础设施: backlog
   1-3-用户认证: backlog
   1-4-用户账号管理: backlog
