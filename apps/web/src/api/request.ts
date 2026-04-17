@@ -1,22 +1,38 @@
 import axios from 'axios';
+import { message } from 'antd';
 
-// axios 实例占位
-// 拦截器在 Story 1.2/1.5 中补全
 const request = axios.create({
-  baseURL: '/api',
+  baseURL: '/api/v1',
   timeout: 10000,
 });
 
-// 请求拦截器（Story 1.5 补全）
+// 请求拦截器：自动附加 Authorization token
 request.interceptors.request.use(
-  (config) => config,
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
   (error) => Promise.reject(error),
 );
 
-// 响应拦截器（Story 1.5 补全）
+// 响应拦截器：提取 data 字段 + 统一错误处理
 request.interceptors.response.use(
-  (response) => response,
-  (error) => Promise.reject(error),
+  (response) => response.data.data,
+  (error) => {
+    if (
+      error.response?.status === 401 &&
+      !error.config?.url?.includes('/auth/login')
+    ) {
+      localStorage.removeItem('token');
+      window.location.href = '/login';
+    } else {
+      message.error(error.response?.data?.message ?? '操作失败');
+    }
+    return Promise.reject(error.response?.data);
+  },
 );
 
 export default request;
