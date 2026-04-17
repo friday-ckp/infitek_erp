@@ -1,0 +1,33 @@
+- generic [ref=e3]:
+  - button "arrow-left 返回" [ref=e4] [cursor=pointer]:
+    - img "arrow-left" [ref=e6]:
+      - img [ref=e7]
+    - generic [ref=e9]: 返回
+  - generic "创建用户" [ref=e10]:
+    - generic [ref=e12]:
+      - generic "用户名" [ref=e14]: "* 用户名"
+      - textbox "* 用户名" [active] [ref=e19]:
+        - /placeholder: 请输入用户名
+    - generic [ref=e22]:
+      - generic "姓名" [ref=e24]: "* 姓名"
+      - textbox "* 姓名" [ref=e29]:
+        - /placeholder: 请输入姓名
+    - generic [ref=e32]:
+      - generic "密码" [ref=e34]: "* 密码"
+      - generic [ref=e38]:
+        - textbox "* 密码" [ref=e39]:
+          - /placeholder: 请输入密码
+        - img "eye-invisible" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+    - generic [ref=e46]:
+      - generic "确认密码" [ref=e48]
+      - generic [ref=e52]:
+        - textbox "确认密码" [ref=e53]:
+          - /placeholder: 请再次输入密码
+        - img "eye-invisible" [ref=e55] [cursor=pointer]:
+          - img [ref=e56]
+    - generic [ref=e59]:
+      - button "重 置" [ref=e60] [cursor=pointer]:
+        - generic [ref=e61]: 重 置
+      - button "创 建" [ref=e62] [cursor=pointer]:
+        - generic [ref=e63]: 创 建

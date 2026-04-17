@@ -1,0 +1,49 @@
+- generic [ref=e3]:
+  - generic [ref=e7]:
+    - generic [ref=e10]:
+      - generic "用户名" [ref=e12]: "用户名 :"
+      - textbox "用户名 :" [ref=e17]:
+        - /placeholder: 请输入
+    - generic [ref=e21]:
+      - generic "姓名" [ref=e23]: "姓名 :"
+      - textbox "姓名 :" [ref=e28]:
+        - /placeholder: 请输入
+    - text: ":"
+    - generic [ref=e38]:
+      - generic [ref=e40]:
+        - button "重 置" [ref=e41] [cursor=pointer]:
+          - generic [ref=e42]: 重 置
+        - button "查 询" [ref=e43] [cursor=pointer]:
+          - generic [ref=e44]: 查 询
+      - generic [ref=e46] [cursor=pointer]:
+        - text: 展开
+        - img "down" [ref=e47]:
+          - img [ref=e48]
+  - generic [ref=e51]:
+    - generic [ref=e53]:
+      - generic [ref=e55]: 用户管理
+      - generic [ref=e56]:
+        - button "plus 创建用户" [ref=e58] [cursor=pointer]:
+          - img "plus" [ref=e60]:
+            - img [ref=e61]
+          - generic [ref=e64]: 创建用户
+        - generic [ref=e65]:
+          - img "reload" [ref=e68] [cursor=pointer]:
+            - img [ref=e69]
+          - img "column-height" [ref=e73] [cursor=pointer]:
+            - img [ref=e74]
+          - img "setting" [ref=e77] [cursor=pointer]:
+            - img [ref=e78]
+    - table [ref=e86]:
+      - rowgroup [ref=e87]:
+        - row "用户名 姓名 状态 操作" [ref=e88]:
+          - columnheader "用户名" [ref=e89]
+          - columnheader "姓名" [ref=e90]
+          - columnheader "状态" [ref=e91]
+          - columnheader "操作" [ref=e92]
+      - rowgroup [ref=e93]:
+        - row "No data No data" [ref=e94]:
+          - cell "No data No data" [ref=e95]:
+            - generic [ref=e96]:
+              - img "No data" [ref=e98]
+              - generic [ref=e104]: No data

@@ -1,0 +1,38 @@
+- generic [ref=e5]:
+  - generic [ref=e7]:
+    - generic [ref=e9]: 用户管理
+    - generic [ref=e10]:
+      - generic [ref=e15]:
+        - generic [ref=e23] [cursor=pointer]:
+          - text: 用户名
+          - img "down" [ref=e24]:
+            - img [ref=e25]
+        - generic [ref=e34] [cursor=pointer]:
+          - text: 姓名
+          - img "down" [ref=e35]:
+            - img [ref=e36]
+        - generic [ref=e46] [cursor=pointer]:
+          - text: 状态
+          - img "down" [ref=e47]:
+            - img [ref=e48]
+      - button "plus 创建用户" [ref=e51] [cursor=pointer]:
+        - img "plus" [ref=e53]:
+          - img [ref=e54]
+        - generic [ref=e57]: 创建用户
+      - generic [ref=e58]:
+        - img "reload" [ref=e61] [cursor=pointer]:
+          - img [ref=e62]
+        - img "column-height" [ref=e66] [cursor=pointer]:
+          - img [ref=e67]
+        - img "setting" [ref=e70] [cursor=pointer]:
+          - img [ref=e71]
+  - table [ref=e79]:
+    - rowgroup [ref=e80]:
+      - row "用户名 姓名 状态 操作" [ref=e81]:
+        - columnheader "用户名" [ref=e82]
+        - columnheader "姓名" [ref=e83]
+        - columnheader "状态" [ref=e84]
+        - columnheader "操作" [ref=e85]
+    - rowgroup [ref=e86]:
+      - row [ref=e87]:
+        - cell [ref=e88]

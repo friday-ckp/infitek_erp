@@ -1,0 +1,10 @@
+- generic [ref=e3]:
+  - heading "登录" [level=1] [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e6]:
+      - text: 用户名
+      - textbox [ref=e7]: admin
+    - generic [ref=e8]:
+      - text: 密码
+      - textbox [ref=e9]: admin123
+    - button "登录" [ref=e10] [cursor=pointer]
