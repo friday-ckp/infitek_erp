@@ -1,10 +1,21 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { DataSource } from 'typeorm';
 
 async function bootstrap() {
   try {
     const app = await NestFactory.create(AppModule);
+
+    // 运行数据库迁移
+    const dataSource = app.get(DataSource);
+    if (!dataSource.isInitialized) {
+      await dataSource.initialize();
+    }
+    console.log('🔄 Running database migrations...');
+    await dataSource.runMigrations();
+    console.log('✅ Migrations completed');
 
     // 全局前缀
     app.setGlobalPrefix('api/v1');
@@ -21,6 +32,9 @@ async function bootstrap() {
     });
 
     // 全局拦截器和过滤器通过 AppModule APP_INTERCEPTOR / APP_FILTER 注册
+
+    // 全局 ValidationPipe
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
 
     // Swagger - 环境变量控制是否启用
     if (process.env.NODE_ENV !== 'production') {
