@@ -39,26 +39,10 @@ function App() {
             {/* 受保护路由：包裹在 AppLayout 内 */}
             <Route element={<AppLayout />}>
               <Route path="/" element={<Navigate to="/settings/users" replace />} />
-              <Route
-                path="/settings/users"
-                element={<UsersList />}
-                handle={{ breadcrumb: '用户管理' }}
-              />
-              <Route
-                path="/settings/users/create"
-                element={<UserForm />}
-                handle={{ breadcrumb: '新建用户' }}
-              />
-              <Route
-                path="/settings/users/:id"
-                element={<UserDetail />}
-                handle={{ breadcrumb: '用户详情' }}
-              />
-              <Route
-                path="/settings/users/:id/edit"
-                element={<UserForm />}
-                handle={{ breadcrumb: '编辑用户' }}
-              />
+              <Route path="/settings/users" element={<UsersList />} />
+              <Route path="/settings/users/create" element={<UserForm />} />
+              <Route path="/settings/users/:id" element={<UserDetail />} />
+              <Route path="/settings/users/:id/edit" element={<UserForm />} />
             </Route>
 
             {/* 兜底重定向 */}
