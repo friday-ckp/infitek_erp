@@ -14,11 +14,11 @@ export abstract class BaseEntity {
   @Expose()
   updatedAt: Date;
 
-  @Column({ name: 'created_by', nullable: true })
+  @Column({ name: 'created_by', type: 'varchar', length: 100, nullable: true })
   @Expose()
   createdBy: string;
 
-  @Column({ name: 'updated_by', nullable: true })
+  @Column({ name: 'updated_by', type: 'varchar', length: 100, nullable: true })
   @Expose()
   updatedBy: string;
 }

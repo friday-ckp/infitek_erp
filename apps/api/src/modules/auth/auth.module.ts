@@ -23,9 +23,9 @@ import { UsersModule } from '../users/users.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService): JwtModuleOptions => ({
-        secret: configService.getOrThrow<string>('JWT_SECRET'),
+        secret: configService?.get<string>('JWT_SECRET') || process.env.JWT_SECRET || 'your_jwt_secret',
         signOptions: {
-          expiresIn: configService.get('JWT_EXPIRES_IN', '8h'),
+          expiresIn: configService?.get('JWT_EXPIRES_IN', '8h') || '8h',
         },
       }),
     }),

@@ -3,7 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthService } from '../auth.service';
 import { UsersService } from '../../users/users.service';
-import { User, UserStatus } from '../../users/entities/user.entity';
+import { User } from '../../users/entities/user.entity';
+import { UserStatus } from '@infitek/shared';
 
 // mock bcrypt 整个模块，避免 native addon 不可重定义问题
 jest.mock('bcrypt', () => ({

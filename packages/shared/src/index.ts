@@ -1,8 +1,10 @@
 // Enums
-export * from './enums/sales-order-status.enum';
-export * from './enums/purchase-order-status.enum';
-export * from './enums/shipping-demand-status.enum';
-export * from './enums/logistics-order-status.enum';
+export const UserStatus = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+} as const;
+
+export type UserStatus = typeof UserStatus[keyof typeof UserStatus];
 
 // Types
 export * from './types/api-response.types';

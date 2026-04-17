@@ -18,7 +18,7 @@ async function bootstrap() {
     console.log('✅ Migrations completed');
 
     // 全局前缀
-    app.setGlobalPrefix('api/v1');
+    app.setGlobalPrefix('api');
 
     // CORS - 验证 CORS_ORIGIN 格式
     const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
