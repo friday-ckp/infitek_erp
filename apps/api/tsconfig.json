@@ -22,7 +22,7 @@
     "strictBindCallApply": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
-      "@infitek/shared": ["../shared/src"]
+      "@infitek/shared": ["../../packages/shared/src"]
     }
   }
 }
