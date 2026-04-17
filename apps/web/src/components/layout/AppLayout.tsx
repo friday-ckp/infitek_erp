@@ -59,14 +59,14 @@ export default function AppLayout() {
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sidebar />
-      <Layout style={{ background: '#F5F7FA' }}>
+      <Layout style={{ background: '#F9FAFB' }}>
         {breadcrumbItems.length > 0 && (
-          <div style={{ padding: '12px 24px 0', background: '#F5F7FA' }}>
+          <div style={{ padding: '12px 28px 0', background: '#F9FAFB' }}>
             <Breadcrumb
               items={breadcrumbItems.map((item, idx) => ({
                 title: item.title,
                 onClick: idx < breadcrumbItems.length - 1 ? () => navigate(item.path) : undefined,
-                style: idx < breadcrumbItems.length - 1 ? { cursor: 'pointer' } : { color: '#666' },
+                style: idx < breadcrumbItems.length - 1 ? { cursor: 'pointer' } : { color: '#6B7280' },
               }))}
             />
           </div>
@@ -74,7 +74,9 @@ export default function AppLayout() {
         <Content
           style={{
             padding: 24,
-            background: '#F5F7FA',
+            paddingLeft: 28,
+            paddingRight: 28,
+            background: '#F9FAFB',
             minHeight: 'calc(100vh - 56px)',
           }}
         >

@@ -22,12 +22,12 @@ function App() {
         locale={zhCN}
         theme={{
           token: {
-            colorPrimary: '#4C6FFF',
-            colorBgLayout: '#F5F7FA',
+            colorPrimary: '#4F46E5',
+            colorBgLayout: '#F9FAFB',
             borderRadius: 8,
             colorBgContainer: '#FFFFFF',
-            colorBorder: '#E8E8E8',
-            colorTextBase: '#1F1F1F',
+            colorBorder: '#E5E7EB',
+            colorTextBase: '#111827',
           },
         }}
       >
