@@ -200,15 +200,16 @@ export default function Sidebar() {
               </div>
               <div style={{ fontSize: 12, color: '#666' }}>管理员</div>
             </div>
-            <Tooltip title="退出登录">
-              <Button
-                type="text"
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                size="small"
-                style={{ color: '#666', flexShrink: 0 }}
-              />
-            </Tooltip>
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
+              onClick={handleLogout}
+              size="small"
+              danger
+              style={{ flexShrink: 0 }}
+            >
+              退出
+            </Button>
           </div>
         )}
 
