@@ -22,30 +22,12 @@ export interface UpdateUserRequest {
   password?: string;
 }
 
-export interface UsersListResponse {
-  success: boolean;
-  data: {
-    items: User[];
-    total: number;
-    page: number;
-    pageSize: number;
-  };
-  message: string;
-  code: string;
-}
-
-export interface UserDetailResponse {
-  success: boolean;
-  data: User;
-  message: string;
-  code: string;
-}
-
-export interface UserActionResponse {
-  success: boolean;
-  data: User;
-  message: string;
-  code: string;
+// 拦截器已提取 response.data.data，以下类型为 data 字段内容
+export interface UsersListData {
+  items: User[];
+  total: number;
+  page: number;
+  pageSize: number;
 }
 
 /**
@@ -55,38 +37,38 @@ export const getUsers = (
   page: number = 1,
   pageSize: number = 20,
   search?: string,
-  status?: 'ACTIVE' | 'INACTIVE'
-): Promise<UsersListResponse> => {
-  const params: Record<string, any> = { page, pageSize };
+  status?: 'ACTIVE' | 'INACTIVE',
+): Promise<UsersListData> => {
+  const params: Record<string, unknown> = { page, pageSize };
   if (search) params.search = search;
   if (status) params.status = status;
-  return request.get('/v1/users', { params });
+  return request.get('/users', { params });
 };
 
 /**
  * 获取用户详情
  */
-export const getUserById = (id: string): Promise<UserDetailResponse> => {
-  return request.get(`/v1/users/${id}`);
+export const getUserById = (id: string): Promise<User> => {
+  return request.get(`/users/${id}`);
 };
 
 /**
  * 创建用户
  */
-export const createUser = (data: CreateUserRequest): Promise<UserActionResponse> => {
-  return request.post('/v1/users', data);
+export const createUser = (data: CreateUserRequest): Promise<User> => {
+  return request.post('/users', data);
 };
 
 /**
  * 编辑用户
  */
-export const updateUser = (id: string, data: UpdateUserRequest): Promise<UserActionResponse> => {
-  return request.patch(`/v1/users/${id}`, data);
+export const updateUser = (id: string, data: UpdateUserRequest): Promise<User> => {
+  return request.patch(`/users/${id}`, data);
 };
 
 /**
  * 停用用户
  */
-export const deactivateUser = (id: string): Promise<UserActionResponse> => {
-  return request.post(`/v1/users/${id}/deactivate`);
+export const deactivateUser = (id: string): Promise<User> => {
+  return request.post(`/users/${id}/deactivate`);
 };

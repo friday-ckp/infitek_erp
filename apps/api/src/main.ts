@@ -20,15 +20,11 @@ async function bootstrap() {
     // 全局前缀
     app.setGlobalPrefix('api');
 
-    // CORS - 验证 CORS_ORIGIN 格式
+    // CORS - 开发环境允许所有 localhost，生产环境严格校验
     const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
-    try {
-      new URL(corsOrigin);
-    } catch {
-      throw new Error(`Invalid CORS_ORIGIN: ${corsOrigin}`);
-    }
+    const isDev = process.env.NODE_ENV !== 'production';
     app.enableCors({
-      origin: corsOrigin,
+      origin: isDev ? /^http:\/\/localhost:\d+$/ : corsOrigin,
     });
 
     // 全局拦截器和过滤器通过 AppModule APP_INTERCEPTOR / APP_FILTER 注册
