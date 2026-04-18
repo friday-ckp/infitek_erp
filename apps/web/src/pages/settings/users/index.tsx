@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button, Space, Tag, Popconfirm, Input, Select, Table, message } from 'antd';
-import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, deactivateUser } from '../../../api/users.api';
 import type { User } from '../../../api/users.api';
@@ -28,6 +28,8 @@ export default function UsersList() {
     search: '',
     statusFilter: '',
   });
+  const [searchInput, setSearchInput] = useState('');
+  const [statusInput, setStatusInput] = useState('');
 
   const fetchUsers = async (page: number = 1, search: string = '', status: string = '') => {
     setState((prev) => ({ ...prev, loading: true }));
@@ -40,7 +42,7 @@ export default function UsersList() {
       );
       setState((prev) => ({
         ...prev,
-        data: data.items,
+        data: data.list,
         total: data.total,
         page: data.page,
         loading: false,
@@ -54,14 +56,16 @@ export default function UsersList() {
     fetchUsers();
   }, []);
 
-  const handleSearch = (value: string) => {
-    setState((prev) => ({ ...prev, search: value, page: 1 }));
-    fetchUsers(1, value, state.statusFilter);
+  const handleQuery = () => {
+    setState((prev) => ({ ...prev, search: searchInput, statusFilter: statusInput, page: 1 }));
+    fetchUsers(1, searchInput, statusInput);
   };
 
-  const handleStatusFilter = (status: string) => {
-    setState((prev) => ({ ...prev, statusFilter: status, page: 1 }));
-    fetchUsers(1, state.search, status);
+  const handleReset = () => {
+    setSearchInput('');
+    setStatusInput('');
+    setState((prev) => ({ ...prev, search: '', statusFilter: '', page: 1 }));
+    fetchUsers(1, '', '');
   };
 
   const handleDeactivate = async (id: string) => {
@@ -129,22 +133,30 @@ export default function UsersList() {
         <Input
           placeholder="搜索用户名或姓名"
           prefix={<SearchOutlined />}
-          value={state.search}
-          onChange={(e) => handleSearch(e.target.value)}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          onPressEnter={handleQuery}
           style={{ width: 240 }}
           allowClear
+          onClear={() => setSearchInput('')}
         />
         <Select
-          value={state.statusFilter || undefined}
+          value={statusInput || undefined}
           placeholder="全部状态"
-          onChange={handleStatusFilter}
+          onChange={(v) => setStatusInput(v ?? '')}
           style={{ width: 120 }}
           allowClear
-          onClear={() => handleStatusFilter('')}
+          onClear={() => setStatusInput('')}
         >
           <Option value="ACTIVE">活跃</Option>
           <Option value="INACTIVE">停用</Option>
         </Select>
+        <Button type="primary" icon={<SearchOutlined />} onClick={handleQuery}>
+          查询
+        </Button>
+        <Button icon={<ReloadOutlined />} onClick={handleReset}>
+          重置
+        </Button>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden' }}>

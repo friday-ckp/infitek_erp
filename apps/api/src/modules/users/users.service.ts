@@ -21,7 +21,7 @@ export class UsersService {
   async findAll(page: number = 1, pageSize: number = 10, search?: string, status?: string) {
     const [users, total] = await this.usersRepository.findAll(page, pageSize, search, status);
     return {
-      data: users,
+      list: users,
       total,
       page,
       pageSize,

@@ -24,7 +24,7 @@ export interface UpdateUserRequest {
 
 // 拦截器已提取 response.data.data，以下类型为 data 字段内容
 export interface UsersListData {
-  items: User[];
+  list: User[];
   total: number;
   page: number;
   pageSize: number;
