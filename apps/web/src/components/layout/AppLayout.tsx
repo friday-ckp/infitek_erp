@@ -1,6 +1,7 @@
 import { Layout, Breadcrumb } from 'antd';
 import { Outlet, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { BellOutlined } from '@ant-design/icons';
+import DOMPurify from 'dompurify';
 import { useAuthStore } from '../../store/auth.store';
 import Sidebar from './Sidebar';
 
@@ -11,7 +12,13 @@ const BREADCRUMB_MAP: Record<string, { label: string; parent?: string; parentLab
   '/settings/users/create': { label: '新建用户', parent: '/settings/users', parentLabel: '用户管理' },
 };
 
+function isValidToken(token: string | null): boolean {
+  if (!token || typeof token !== 'string' || token.trim() === '') return false;
+  return token.length > 0 && /^[A-Za-z0-9\-_.~+/]+=*$/.test(token);
+}
+
 function getBreadcrumbItems(pathname: string): { title: string; path: string }[] {
+  if (!pathname || typeof pathname !== 'string') return [];
   if (BREADCRUMB_MAP[pathname]) {
     const entry = BREADCRUMB_MAP[pathname];
     const items: { title: string; path: string }[] = [];
@@ -21,13 +28,13 @@ function getBreadcrumbItems(pathname: string): { title: string; path: string }[]
     items.push({ title: entry.label, path: pathname });
     return items;
   }
-  const editMatch = pathname.match(/^\/settings\/users\/([^/]+)\/edit$/);
+  const editMatch = pathname.match(/^\/settings\/users\/([a-zA-Z0-9\-_]+)\/edit$/);
   if (editMatch) return [
     { title: '基础数据', path: '/master-data' },
     { title: '用户管理', path: '/settings/users' },
     { title: '编辑用户', path: pathname },
   ];
-  const detailMatch = pathname.match(/^\/settings\/users\/([^/]+)$/);
+  const detailMatch = pathname.match(/^\/settings\/users\/([a-zA-Z0-9\-_]+)$/);
   if (detailMatch) return [
     { title: '基础数据', path: '/master-data' },
     { title: '用户管理', path: '/settings/users' },
@@ -40,15 +47,19 @@ function getInitials(name: string) {
   return name ? name.slice(0, 2).toUpperCase() : 'U';
 }
 
+function sanitizeText(text: string): string {
+  return DOMPurify.sanitize(text, { ALLOWED_TAGS: [] });
+}
+
 export default function AppLayout() {
   const { token, user } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!token) return <Navigate to="/login" replace />;
+  if (!isValidToken(token)) return <Navigate to="/login" replace />;
 
   const breadcrumbItems = getBreadcrumbItems(location.pathname);
-  const displayName = user?.name || '用户';
+  const displayName = sanitizeText(user?.name || '用户');
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#F9FAFB' }}>
