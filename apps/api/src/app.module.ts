@@ -11,6 +11,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
+import { FilesModule } from './files/files.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -29,6 +30,7 @@ import databaseConfig from './config/database.config';
     HealthModule,
     AuthModule,
     UsersModule,
+    FilesModule,
   ],
   controllers: [AppController],
   providers: [
