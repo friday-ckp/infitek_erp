@@ -22,20 +22,19 @@ const ALLOWED_FOLDERS = new Set(['certificates', 'documents', 'general']);
 @Injectable()
 export class FilesService {
   private readonly logger = new Logger(FilesService.name);
-  private readonly ossClient: OSS;
+  private _ossClient: any;
 
-  constructor(private readonly configService: ConfigService) {
-    const region = this.getRequiredConfig('OSS_REGION');
-    const accessKeyId = this.getRequiredConfig('OSS_ACCESS_KEY_ID');
-    const accessKeySecret = this.getRequiredConfig('OSS_ACCESS_KEY_SECRET');
-    const bucket = this.getRequiredConfig('OSS_BUCKET');
+  constructor(private readonly configService: ConfigService) {}
 
-    this.ossClient = new OSS({
-      region,
-      accessKeyId,
-      accessKeySecret,
-      bucket,
-    });
+  private get ossClient(): any {
+    if (!this._ossClient) {
+      const region = this.getRequiredConfig('OSS_REGION');
+      const accessKeyId = this.getRequiredConfig('OSS_ACCESS_KEY_ID');
+      const accessKeySecret = this.getRequiredConfig('OSS_ACCESS_KEY_SECRET');
+      const bucket = this.getRequiredConfig('OSS_BUCKET');
+      this._ossClient = new OSS({ region, accessKeyId, accessKeySecret, bucket });
+    }
+    return this._ossClient;
   }
 
   async upload(
