@@ -14,7 +14,8 @@ const BREADCRUMB_MAP: Record<string, { label: string; parent?: string; parentLab
 
 function isValidToken(token: string | null): boolean {
   if (!token || typeof token !== 'string' || token.trim() === '') return false;
-  return token.length > 0 && /^[A-Za-z0-9\-_.~+/]+=*$/.test(token);
+  if (token.length < 10 || token.length > 2048) return false;
+  return /^[A-Za-z0-9\-_.~+/]+=*$/.test(token);
 }
 
 function getBreadcrumbItems(pathname: string): { title: string; path: string }[] {
@@ -29,13 +30,13 @@ function getBreadcrumbItems(pathname: string): { title: string; path: string }[]
     return items;
   }
   const editMatch = pathname.match(/^\/settings\/users\/([a-zA-Z0-9\-_]+)\/edit$/);
-  if (editMatch) return [
+  if (editMatch && editMatch[1]) return [
     { title: '基础数据', path: '/master-data' },
     { title: '用户管理', path: '/settings/users' },
     { title: '编辑用户', path: pathname },
   ];
   const detailMatch = pathname.match(/^\/settings\/users\/([a-zA-Z0-9\-_]+)$/);
-  if (detailMatch) return [
+  if (detailMatch && detailMatch[1]) return [
     { title: '基础数据', path: '/master-data' },
     { title: '用户管理', path: '/settings/users' },
     { title: '用户详情', path: pathname },
@@ -79,11 +80,15 @@ export default function AppLayout() {
           {/* 面包屑 */}
           <Breadcrumb
             separator={<span style={{ color: '#D1D5DB' }}>›</span>}
-            items={breadcrumbItems.map((item, idx) => ({
-              title: idx < breadcrumbItems.length - 1
-                ? <span style={{ color: '#6B7280', cursor: 'pointer' }} onClick={() => navigate(item.path)}>{item.title}</span>
-                : <span style={{ color: '#111827', fontWeight: 600 }}>{item.title}</span>,
-            }))}
+            items={breadcrumbItems.map((item, idx) => {
+              const isLast = idx === breadcrumbItems.length - 1;
+              const isValidPath = /^\/[a-zA-Z0-9\-_/]*$/.test(item.path);
+              return {
+                title: isLast
+                  ? <span style={{ color: '#111827', fontWeight: 600 }}>{item.title}</span>
+                  : <span style={{ color: '#6B7280', cursor: 'pointer' }} onClick={() => isValidPath && navigate(item.path)}>{item.title}</span>,
+              };
+            })}
           />
 
           {/* 右侧操作区 */}
