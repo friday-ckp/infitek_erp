@@ -54,6 +54,10 @@ export class FilesService {
       throw new BadRequestException({ code: 'FILE_TOO_LARGE', message: '文件大小不能超过 50MB' });
     }
 
+    if (!file.buffer || file.buffer.length === 0) {
+      throw new BadRequestException({ code: 'FILE_EMPTY', message: '文件内容为空' });
+    }
+
     const normalizedFolder = this.normalizeFolder(folder);
     const env = this.normalizeEnv(this.configService.get<string>('NODE_ENV'));
     const date = new Date().toISOString().slice(0, 7);
@@ -79,8 +83,10 @@ export class FilesService {
       throw new BadRequestException({ code: 'FILE_KEY_REQUIRED', message: '文件 key 不能为空' });
     }
 
+    const clampedExpires = Math.min(Math.max(expiresInSeconds, 60), 86400);
+
     try {
-      return this.ossClient.signatureUrl(key.trim(), { expires: expiresInSeconds });
+      return this.ossClient.signatureUrl(key.trim(), { expires: clampedExpires });
     } catch (error) {
       this.logger.error(`OSS signed url failed: ${key}`, error instanceof Error ? error.stack : String(error));
       throw new InternalServerErrorException({

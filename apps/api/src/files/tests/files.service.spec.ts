@@ -65,6 +65,21 @@ describe('FilesService', () => {
       expect(mockPut).toHaveBeenCalledWith(expect.stringMatching(/^prod\/certificates\//), file.buffer);
     });
 
+    it('应拒绝 buffer 为空的文件', async () => {
+      const file = {
+        originalname: 'empty.pdf',
+        mimetype: 'application/pdf',
+        size: 0,
+        buffer: Buffer.alloc(0),
+      } as Express.Multer.File;
+
+      await expect(service.upload(file, 'documents')).rejects.toThrow(
+        expect.objectContaining({
+          response: { code: 'FILE_EMPTY', message: '文件内容为空' },
+        }),
+      );
+    });
+
     it('应拒绝不支持的 MIME 类型', async () => {
       const file = {
         originalname: 'evil.exe',
