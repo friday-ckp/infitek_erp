@@ -32,6 +32,9 @@ export class FilesController {
     if (!file) {
       throw new BadRequestException({ code: 'FILE_REQUIRED', message: '请选择上传文件' });
     }
+    if (file.size > 50 * 1024 * 1024) {
+      throw new BadRequestException({ code: 'FILE_TOO_LARGE', message: '文件大小不能超过 50MB' });
+    }
     return this.filesService.upload(file, folder);
   }
 

@@ -32,7 +32,12 @@ export class FilesService {
       const accessKeyId = this.getRequiredConfig('OSS_ACCESS_KEY_ID');
       const accessKeySecret = this.getRequiredConfig('OSS_ACCESS_KEY_SECRET');
       const bucket = this.getRequiredConfig('OSS_BUCKET');
-      this._ossClient = new OSS({ region, accessKeyId, accessKeySecret, bucket });
+      try {
+        this._ossClient = new OSS({ region, accessKeyId, accessKeySecret, bucket });
+      } catch (error) {
+        this.logger.error('Failed to initialize OSS client', error instanceof Error ? error.stack : String(error));
+        throw new InternalServerErrorException({ code: 'OSS_INIT_FAILED', message: 'OSS 客户端初始化失败' });
+      }
     }
     return this._ossClient;
   }
@@ -82,6 +87,10 @@ export class FilesService {
       throw new BadRequestException({ code: 'FILE_KEY_REQUIRED', message: '文件 key 不能为空' });
     }
 
+    if (typeof expiresInSeconds !== 'number' || isNaN(expiresInSeconds)) {
+      throw new BadRequestException({ code: 'INVALID_EXPIRES', message: '过期时间必须是有效的数字' });
+    }
+
     const clampedExpires = Math.min(Math.max(expiresInSeconds, 60), 86400);
 
     try {
@@ -100,10 +109,15 @@ export class FilesService {
       throw new BadRequestException({ code: 'FILE_KEY_REQUIRED', message: '文件 key 不能为空' });
     }
 
+    const trimmedKey = key.trim();
+    if (!this.isValidKeyFormat(trimmedKey)) {
+      throw new BadRequestException({ code: 'INVALID_KEY_FORMAT', message: '文件 key 格式无效' });
+    }
+
     try {
-      await this.ossClient.delete(key.trim());
+      await this.ossClient.delete(trimmedKey);
     } catch (error) {
-      this.logger.error(`OSS delete failed: ${key}`, error instanceof Error ? error.stack : String(error));
+      this.logger.error(`OSS delete failed: ${trimmedKey}`, error instanceof Error ? error.stack : String(error));
       throw new InternalServerErrorException({ code: 'OSS_DELETE_FAILED', message: '文件删除失败' });
     }
   }
@@ -117,6 +131,9 @@ export class FilesService {
 
   private normalizeFolder(folder?: string): string {
     const normalized = (folder || 'general').trim().toLowerCase();
+    if (normalized.includes('..') || normalized.includes('/') || normalized.includes('\\')) {
+      throw new BadRequestException({ code: 'INVALID_FOLDER', message: '不支持的文件夹类型' });
+    }
     if (!ALLOWED_FOLDERS.has(normalized)) {
       throw new BadRequestException({ code: 'INVALID_FOLDER', message: '不支持的文件夹类型' });
     }
@@ -134,7 +151,7 @@ export class FilesService {
       case 'application/pdf':
         return '.pdf';
       default:
-        return '';
+        return '.bin';
     }
   }
 
@@ -144,5 +161,10 @@ export class FilesService {
       throw new Error(`Missing required config: ${key}`);
     }
     return value;
+  }
+
+  private isValidKeyFormat(key: string): boolean {
+    const keyPattern = /^(prod|dev)\/(certificates|documents|general)\/\d{4}-\d{2}\/[0-9a-f-]+\.(jpg|png|webp|pdf|bin)$/i;
+    return keyPattern.test(key);
   }
 }
