@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { FilesModule } from './files/files.module';
+import { UnitsModule } from './modules/master-data/units/units.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -30,6 +31,7 @@ import databaseConfig from './config/database.config';
     HealthModule,
     AuthModule,
     UsersModule,
+    UnitsModule,
     FilesModule,
   ],
   controllers: [AppController],

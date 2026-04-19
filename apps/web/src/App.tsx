@@ -8,6 +8,9 @@ import AppLayout from './components/layout/AppLayout';
 import UsersList from './pages/settings/users/index';
 import UserDetail from './pages/settings/users/detail';
 import UserForm from './pages/settings/users/form';
+import UnitsListPage from './pages/master-data/units/index';
+import UnitDetailPage from './pages/master-data/units/detail';
+import UnitFormPage from './pages/master-data/units/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -80,6 +83,10 @@ function App() {
                 <Route path="/settings/users/create" element={<UserForm />} />
                 <Route path="/settings/users/:id" element={<UserDetail />} />
                 <Route path="/settings/users/:id/edit" element={<UserForm />} />
+                <Route path="/master-data/units" element={<UnitsListPage />} />
+                <Route path="/master-data/units/create" element={<UnitFormPage />} />
+                <Route path="/master-data/units/:id" element={<UnitDetailPage />} />
+                <Route path="/master-data/units/:id/edit" element={<UnitFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}
