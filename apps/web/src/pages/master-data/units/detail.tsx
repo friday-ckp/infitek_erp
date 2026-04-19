@@ -1,4 +1,4 @@
-import { Button, Card, Flex, Space, Tag, Typography } from 'antd';
+import { Breadcrumb, Button, Card, Flex, Space, Tag, Typography } from 'antd';
 import { ProDescriptions } from '@ant-design/pro-components';
 import type { ProDescriptionsItemProps } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -76,11 +76,13 @@ export default function UnitDetailPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Flex justify="space-between" align="center">
-        <Space>
-          <Button type="link" onClick={() => navigate('/master-data/units')}>
-            基础数据 / 单位管理
-          </Button>
-        </Space>
+        <Breadcrumb
+          items={[
+            { title: <Button type="link" onClick={() => navigate('/master-data/units')}>基础数据</Button> },
+            { title: '单位管理' },
+            { title: '详情' },
+          ]}
+        />
         <Button onClick={() => navigate(`/master-data/units/${id}/edit`)}>编辑</Button>
       </Flex>
 

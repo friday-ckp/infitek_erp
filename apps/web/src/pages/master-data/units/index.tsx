@@ -153,7 +153,7 @@ export default function UnitsListPage() {
     </Empty>
   ) : (
     <Empty description="暂无数据">
-      <Button onClick={() => navigate('/master-data/units/create')}>
+      <Button type="primary" onClick={() => navigate('/master-data/units/create')}>
         新建单位
       </Button>
     </Empty>
