@@ -5,7 +5,11 @@
       "Bash(mysql --version)",
       "Bash(pnpm install:*)",
       "Bash(npm install:*)",
-      "Bash(pnpm approve-builds:*)"
+      "Bash(pnpm approve-builds:*)",
+      "Bash(grep -E \"\\\\.\\(ts|tsx|js|jsx\\)$\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
