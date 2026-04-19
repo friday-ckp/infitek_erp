@@ -54,15 +54,15 @@ export default function UserDetail() {
           <Descriptions.Item label="用户名">{user.username}</Descriptions.Item>
           <Descriptions.Item label="姓名">{user.name}</Descriptions.Item>
           <Descriptions.Item label="账号状态">
-            <Tag color={user.status === 'ACTIVE' ? 'green' : 'default'}>
-              {user.status === 'ACTIVE' ? '活跃' : '停用'}
+            <Tag color={user.status === 'active' ? 'green' : 'red'}>
+              {user.status === 'active' ? '活跃' : '停用'}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="创建时间">
-            {new Date(user.created_at).toLocaleString()}
+            {new Date(user.createdAt).toLocaleString()}
           </Descriptions.Item>
           <Descriptions.Item label="更新时间">
-            {new Date(user.updated_at).toLocaleString()}
+            {new Date(user.updatedAt).toLocaleString()}
           </Descriptions.Item>
         </Descriptions>
       </div>
@@ -70,8 +70,8 @@ export default function UserDetail() {
       <div style={{ background: '#fff', borderRadius: 8, padding: 24 }}>
         <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 600 }}>操作审计</h3>
         <Descriptions column={2} bordered size="small">
-          <Descriptions.Item label="创建人">{user.created_by}</Descriptions.Item>
-          <Descriptions.Item label="更新人">{user.updated_by}</Descriptions.Item>
+          <Descriptions.Item label="创建人">{user.createdBy}</Descriptions.Item>
+          <Descriptions.Item label="更新人">{user.updatedBy}</Descriptions.Item>
         </Descriptions>
       </div>
     </div>

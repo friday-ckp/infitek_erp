@@ -4,11 +4,11 @@ export interface User {
   id: string;
   username: string;
   name: string;
-  status: 'ACTIVE' | 'INACTIVE';
-  created_at: string;
-  updated_at: string;
-  created_by: string;
-  updated_by: string;
+  status: 'active' | 'inactive';
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
 }
 
 export interface CreateUserRequest {
