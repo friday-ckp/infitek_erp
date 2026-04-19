@@ -1,4 +1,4 @@
-import { Button, Card, Skeleton, Space } from 'antd';
+import { Button, Card, Result, Skeleton, Space } from 'antd';
 import {
   ProForm,
   ProFormSelect,
@@ -24,13 +24,14 @@ export default function UnitFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id } = useParams();
+  const unitId = id ? Number(id) : undefined;
 
   const isEdit = Boolean(id);
 
   const detailQuery = useQuery({
-    queryKey: ['unit-detail', id],
-    queryFn: () => getUnitById(id as string),
-    enabled: isEdit,
+    queryKey: ['unit-detail', unitId],
+    queryFn: () => getUnitById(unitId as number),
+    enabled: Boolean(isEdit && unitId && Number.isInteger(unitId) && unitId > 0),
   });
 
   const createMutation = useMutation({
@@ -42,16 +43,48 @@ export default function UnitFormPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (payload: UpdateUnitPayload) => updateUnit(id as string, payload),
+    mutationFn: (payload: UpdateUnitPayload) => updateUnit(unitId as number, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['units'] });
-      queryClient.invalidateQueries({ queryKey: ['unit-detail', id] });
+      queryClient.invalidateQueries({ queryKey: ['unit-detail', unitId] });
       navigate('/master-data/units');
     },
   });
 
+  if (isEdit && (!unitId || !Number.isInteger(unitId) || unitId <= 0)) {
+    return (
+      <Result
+        status="404"
+        title="单位不存在"
+        extra={
+          <Button type="primary" onClick={() => navigate('/master-data/units')}>
+            返回列表
+          </Button>
+        }
+      />
+    );
+  }
+
   if (isEdit && detailQuery.isLoading) {
     return <Skeleton active />;
+  }
+
+  if (isEdit && detailQuery.isError && !detailQuery.data) {
+    return (
+      <Result
+        status="error"
+        title="单位详情加载失败"
+        subTitle="请检查网络或稍后重试"
+        extra={[
+          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>
+            重试
+          </Button>,
+          <Button key="back" onClick={() => navigate('/master-data/units')}>
+            返回列表
+          </Button>,
+        ]}
+      />
+    );
   }
 
   return (
@@ -110,13 +143,19 @@ export default function UnitFormPage() {
           name="name"
           label="单位名称"
           placeholder="请输入单位名称"
-          rules={[{ required: true, message: '请输入单位名称' }]}
+          rules={[
+            { required: true, message: '请输入单位名称' },
+            { max: 100, message: '单位名称最多 100 个字符' },
+          ]}
         />
         <ProFormText
           name="code"
           label="单位编码"
           placeholder="请输入单位编码"
-          rules={[{ required: true, message: '请输入单位编码' }]}
+          rules={[
+            { required: true, message: '请输入单位编码' },
+            { max: 50, message: '单位编码最多 50 个字符' },
+          ]}
         />
         {isEdit ? (
           <ProFormSelect

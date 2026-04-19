@@ -1,11 +1,11 @@
-import { Column, DeleteDateColumn, Entity, Index } from 'typeorm';
+import { Column, DeleteDateColumn, Entity, Index, Unique } from 'typeorm';
 import { Expose } from 'class-transformer';
 import { UnitStatus } from '@infitek/shared';
 import { BaseEntity } from '../../../../common/entities/base.entity';
 
 @Entity('units')
+@Unique('idx_units_code', ['code'])
 export class Unit extends BaseEntity {
-  @Index('idx_units_code', { unique: true })
   @Column({ name: 'code', type: 'varchar', length: 50 })
   @Expose()
   code: string;

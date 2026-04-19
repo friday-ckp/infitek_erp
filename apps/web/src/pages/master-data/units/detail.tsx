@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Card, Flex, Space, Tag, Typography } from 'antd';
+import { Breadcrumb, Button, Card, Flex, Result, Space, Tag, Typography } from 'antd';
 import { ProDescriptions } from '@ant-design/pro-components';
 import type { ProDescriptionsItemProps } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -20,12 +20,45 @@ const statusColor: Record<UnitStatus, string> = {
 export default function UnitDetailPage() {
   const navigate = useNavigate();
   const { id = '' } = useParams();
+  const unitId = Number(id);
 
   const query = useQuery({
-    queryKey: ['unit-detail', id],
-    queryFn: () => getUnitById(id),
-    enabled: Boolean(id),
+    queryKey: ['unit-detail', unitId],
+    queryFn: () => getUnitById(unitId),
+    enabled: Number.isInteger(unitId) && unitId > 0,
   });
+
+  if (!Number.isInteger(unitId) || unitId <= 0) {
+    return (
+      <Result
+        status="404"
+        title="单位不存在"
+        extra={
+          <Button type="primary" onClick={() => navigate('/master-data/units')}>
+            返回列表
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (query.isError && !query.data) {
+    return (
+      <Result
+        status="error"
+        title="单位详情加载失败"
+        subTitle="请检查网络或稍后重试"
+        extra={[
+          <Button key="retry" type="primary" onClick={() => query.refetch()}>
+            重试
+          </Button>,
+          <Button key="back" onClick={() => navigate('/master-data/units')}>
+            返回列表
+          </Button>,
+        ]}
+      />
+    );
+  }
 
   const columns: ProDescriptionsItemProps<Unit>[] = [
     {

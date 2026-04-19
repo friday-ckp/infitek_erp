@@ -6,6 +6,7 @@ import {
   Empty,
   Flex,
   Input,
+  Result,
   Select,
   Skeleton,
   Space,
@@ -55,6 +56,10 @@ export default function UnitsListPage() {
   const keyword = useDebouncedValue(keywordInput, 300).trim();
   const hasFilters = Boolean(keyword || status);
 
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, status]);
+
   const query = useQuery({
     queryKey: ['units', keyword, status, page, pageSize],
     placeholderData: (previousData) => previousData,
@@ -66,6 +71,21 @@ export default function UnitsListPage() {
         pageSize,
       }),
   });
+
+  if (query.isError && !query.data) {
+    return (
+      <Result
+        status="error"
+        title="加载单位列表失败"
+        subTitle="请检查网络或稍后重试"
+        extra={
+          <Button type="primary" onClick={() => query.refetch()}>
+            重试
+          </Button>
+        }
+      />
+    );
+  }
 
   const columns: ProColumns<Unit>[] = useMemo(
     () => [

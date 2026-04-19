@@ -2,7 +2,7 @@ import type { UnitStatus } from '@infitek/shared';
 import request from './request';
 
 export interface Unit {
-  id: string;
+  id: number;
   code: string;
   name: string;
   status: UnitStatus;
@@ -38,18 +38,25 @@ export interface UpdateUnitPayload {
   status?: UnitStatus;
 }
 
+function normalizeApiError(error: unknown): never {
+  if (typeof error === 'object' && error !== null) {
+    throw error;
+  }
+  throw { message: '请求失败，请稍后重试' };
+}
+
 export const getUnits = (params: UnitsListParams): Promise<UnitsListData> => {
-  return request.get('/units', { params });
+  return request.get<any, UnitsListData>('/units', { params }).catch(normalizeApiError);
 };
 
-export const getUnitById = (id: string): Promise<Unit> => {
-  return request.get(`/units/${id}`);
+export const getUnitById = (id: number): Promise<Unit> => {
+  return request.get<any, Unit>(`/units/${id}`).catch(normalizeApiError);
 };
 
 export const createUnit = (payload: CreateUnitPayload): Promise<Unit> => {
-  return request.post('/units', payload);
+  return request.post<any, Unit>('/units', payload).catch(normalizeApiError);
 };
 
-export const updateUnit = (id: string, payload: UpdateUnitPayload): Promise<Unit> => {
-  return request.patch(`/units/${id}`, payload);
+export const updateUnit = (id: number, payload: UpdateUnitPayload): Promise<Unit> => {
+  return request.patch<any, Unit>(`/units/${id}`, payload).catch(normalizeApiError);
 };
