@@ -42,8 +42,9 @@ export class UsersRepository {
     return this.repo.save(user);
   }
 
-  update(id: number, user: Partial<User>): Promise<User> {
-    return this.repo.save({ id, ...user });
+  async update(id: number, user: Partial<User>): Promise<User> {
+    await this.repo.update(id, user);
+    return this.repo.findOneOrFail({ where: { id } });
   }
 
   softDelete(id: number): Promise<void> {

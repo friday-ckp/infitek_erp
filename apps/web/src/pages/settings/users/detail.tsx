@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Tag, Spin, Descriptions } from 'antd';
+import { Button, Tag, Spin, Descriptions, Timeline } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getUserById } from '../../../api/users.api';
@@ -54,25 +54,51 @@ export default function UserDetail() {
           <Descriptions.Item label="用户名">{user.username}</Descriptions.Item>
           <Descriptions.Item label="姓名">{user.name}</Descriptions.Item>
           <Descriptions.Item label="账号状态">
-            <Tag color={user.status === 'ACTIVE' ? 'green' : 'default'}>
-              {user.status === 'ACTIVE' ? '活跃' : '停用'}
+            <Tag color={user.status === 'active' ? 'green' : 'red'}>
+              {user.status === 'active' ? '活跃' : '停用'}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="创建时间">
-            {new Date(user.created_at).toLocaleString()}
+            {new Date(user.createdAt).toLocaleString()}
           </Descriptions.Item>
           <Descriptions.Item label="更新时间">
-            {new Date(user.updated_at).toLocaleString()}
+            {new Date(user.updatedAt).toLocaleString()}
           </Descriptions.Item>
         </Descriptions>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 8, padding: 24 }}>
-        <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 600 }}>操作审计</h3>
-        <Descriptions column={2} bordered size="small">
-          <Descriptions.Item label="创建人">{user.created_by}</Descriptions.Item>
-          <Descriptions.Item label="更新人">{user.updated_by}</Descriptions.Item>
-        </Descriptions>
+        <h3 style={{ marginBottom: 16, fontSize: 16, fontWeight: 600 }}>操作记录</h3>
+        <Timeline
+          items={[
+            {
+              color: '#1890FF',
+              children: (
+                <div>
+                  <div style={{ fontSize: 14, color: '#1F1F1F' }}>
+                    <span style={{ fontWeight: 500 }}>{user.updatedBy}</span> 更新了用户信息
+                  </div>
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                    {new Date(user.updatedAt).toLocaleString()}
+                  </div>
+                </div>
+              ),
+            },
+            {
+              color: '#D9D9D9',
+              children: (
+                <div>
+                  <div style={{ fontSize: 14, color: '#1F1F1F' }}>
+                    <span style={{ fontWeight: 500 }}>{user.createdBy}</span> 创建了用户
+                  </div>
+                  <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                    {new Date(user.createdAt).toLocaleString()}
+                  </div>
+                </div>
+              ),
+            },
+          ]}
+        />
       </div>
     </div>
   );

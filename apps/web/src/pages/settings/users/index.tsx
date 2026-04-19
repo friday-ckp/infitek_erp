@@ -86,16 +86,22 @@ export default function UsersList() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag color={status === 'ACTIVE' ? 'green' : 'default'}>
-          {status === 'ACTIVE' ? '活跃' : '停用'}
+        <Tag color={status === 'active' ? 'green' : 'red'}>
+          {status === 'active' ? '活跃' : '停用'}
         </Tag>
       ),
     },
     {
       title: '创建时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (v: string) => new Date(v).toLocaleDateString(),
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      render: (v: string) => new Date(v).toLocaleString(),
+    },
+    {
+      title: '更新时间',
+      dataIndex: 'updatedAt',
+      key: 'updatedAt',
+      render: (v: string) => new Date(v).toLocaleString(),
     },
     {
       title: '操作',
@@ -104,7 +110,7 @@ export default function UsersList() {
         <Space>
           <a onClick={() => navigate(`/settings/users/${record.id}`)}>查看</a>
           <a onClick={() => navigate(`/settings/users/${record.id}/edit`)}>编辑</a>
-          {record.status === 'ACTIVE' && (
+          {record.status === 'active' && (
             <Popconfirm
               title="停用用户"
               description="确定要停用此用户吗？停用后该账号将无法登录。"
