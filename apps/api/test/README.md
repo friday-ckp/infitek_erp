@@ -1,5 +1,37 @@
 # 后端测试指南
 
+## 重要：运行环境要求
+
+### 必须使用原生 Node.js（禁止 bun wrapper）
+
+Jest 30 与 bun 的 node 包装器（bun wrapper）存在兼容性问题。
+如果系统的 `node` 命令指向 bun 包装器，运行测试时会出现 `Attempted to assign to readonly property` 等错误，导致测试误报失败。
+
+**验证当前 node 环境：**
+
+```bash
+node --version        # 应显示 v20.x 或 v22.x
+which node            # 确认路径不含 bun
+node -e "process.versions.bun && console.log('WARNING: bun detected')"
+```
+
+**解决方法：**
+
+```bash
+# 方法 1：通过 nvm 使用原生 Node
+nvm use 20
+
+# 方法 2：直接指定 node 路径
+/usr/local/bin/node node_modules/.bin/jest
+
+# 方法 3：在 CI 中固定 Node 版本（见下方 CI/CD 章节）
+```
+
+> **CI 配置要求**：GitHub Actions 中必须显式使用 `actions/setup-node` 并指定 `node-version: '20'`，
+> 禁止将 `node` 解析为 bun wrapper。详见下方 CI/CD 章节。
+
+---
+
 ## 快速开始
 
 ### 运行测试
@@ -307,15 +339,33 @@ pnpm test -- --testNamePattern="should create"
 
 ### GitHub Actions
 
-```yaml
-- name: Run unit tests
-  run: cd apps/api && pnpm test:cov
+**重要**：必须在 job 开头使用 `actions/setup-node` 固定原生 Node 版本，
+防止 bun wrapper 干扰 Jest 30 执行（见上方"运行环境要求"章节）。
 
-- name: Upload coverage
-  uses: codecov/codecov-action@v3
-  with:
-    files: ./coverage/apps/api/coverage-final.json
-    flags: backend
+```yaml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 必须固定原生 Node 版本，禁止 bun 替代 node
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run unit tests
+        run: cd apps/api && pnpm test:cov
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage/apps/api/coverage-final.json
+          flags: backend
 ```
 
 ---
