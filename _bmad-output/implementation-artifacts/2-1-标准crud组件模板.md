@@ -1,6 +1,6 @@
 # Story 2.1: 标准 CRUD 组件模板（前后端）
 
-Status: review
+Status: done
 
 ## Story
 
