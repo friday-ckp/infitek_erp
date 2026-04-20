@@ -23,6 +23,8 @@ import CountryFormPage from './pages/master-data/countries/form';
 import CompaniesListPage from './pages/master-data/companies/index';
 import CompanyDetailPage from './pages/master-data/companies/detail';
 import CompanyFormPage from './pages/master-data/companies/form';
+import ProductCategoriesPage from './pages/master-data/product-categories/index';
+import ProductCategoryFormPage from './pages/master-data/product-categories/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -116,6 +118,9 @@ function App() {
                 <Route path="/master-data/companies/create" element={<CompanyFormPage />} />
                 <Route path="/master-data/companies/:id" element={<CompanyDetailPage />} />
                 <Route path="/master-data/companies/:id/edit" element={<CompanyFormPage />} />
+                <Route path="/master-data/product-categories" element={<ProductCategoriesPage />} />
+                <Route path="/master-data/product-categories/create" element={<ProductCategoryFormPage />} />
+                <Route path="/master-data/product-categories/:id/edit" element={<ProductCategoryFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}
