@@ -1,0 +1,146 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=e5]:
+      - generic [ref=e9]:
+        - generic [ref=e12]:
+          - link "Paperclip home page light logo" [ref=e14] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e15]: Paperclip home page
+            - img "light logo" [ref=e16]
+          - button "Open search" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]:
+              - img [ref=e20]
+              - generic [ref=e23]: Search...
+            - generic [ref=e24]: ⌘K
+          - generic [ref=e25]:
+            - navigation:
+              - list
+            - button "Toggle dark mode" [ref=e27] [cursor=pointer]:
+              - img [ref=e28]
+        - generic [ref=e36]:
+          - link "Get Started" [ref=e37] [cursor=pointer]:
+            - /url: /start/what-is-paperclip
+            - text: Get Started
+          - link "Guides" [ref=e39] [cursor=pointer]:
+            - /url: /guides/board-operator/dashboard
+            - text: Guides
+          - link "Deploy" [ref=e41] [cursor=pointer]:
+            - /url: /deploy/overview
+            - text: Deploy
+          - link "Adapters" [ref=e43] [cursor=pointer]:
+            - /url: /adapters/overview
+            - text: Adapters
+          - link "API Reference" [ref=e45] [cursor=pointer]:
+            - /url: /api/overview
+            - text: API Reference
+          - link "CLI" [ref=e47] [cursor=pointer]:
+            - /url: /cli/overview
+            - text: CLI
+      - generic [ref=e49]:
+        - generic [ref=e54]:
+          - heading "Introduction" [level=5] [ref=e56]
+          - list [ref=e57]:
+            - listitem [ref=e58]:
+              - link "What is Paperclip?" [ref=e59] [cursor=pointer]:
+                - /url: /start/what-is-paperclip
+                - generic [ref=e62]: What is Paperclip?
+            - listitem [ref=e63]:
+              - link "Quickstart" [ref=e64] [cursor=pointer]:
+                - /url: /start/quickstart
+                - generic [ref=e67]: Quickstart
+            - listitem [ref=e68]:
+              - link "Core Concepts" [ref=e69] [cursor=pointer]:
+                - /url: /start/core-concepts
+                - generic [ref=e72]: Core Concepts
+            - listitem [ref=e73]:
+              - link "Architecture" [ref=e74] [cursor=pointer]:
+                - /url: /start/architecture
+                - generic [ref=e77]: Architecture
+        - generic [ref=e80]:
+          - banner [ref=e81]:
+            - generic [ref=e82]:
+              - generic [ref=e83]: Introduction
+              - heading "Quickstart" [level=1] [ref=e85]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Get Paperclip running locally in under 5 minutes.
+            - heading "Navigate to header Quick Start (Recommended)" [level=2] [ref=e88]:
+              - link "Navigate to header" [ref=e89] [cursor=pointer]:
+                - /url: "#quick-start-recommended"
+                - img [ref=e91]
+              - generic [ref=e93] [cursor=pointer]: Quick Start (Recommended)
+            - generic [ref=e94]:
+              - button "Copy the contents from the code block" [ref=e97] [cursor=pointer]:
+                - img [ref=e98]
+              - code [ref=e104]:
+                - generic [ref=e105]: npx paperclipai onboard --yes
+            - generic [ref=e106]: This walks you through setup, configures your environment, and gets Paperclip running.
+            - heading "Navigate to header Local Development" [level=2] [ref=e107]:
+              - link "Navigate to header" [ref=e108] [cursor=pointer]:
+                - /url: "#local-development"
+                - img [ref=e110]
+              - generic [ref=e112] [cursor=pointer]: Local Development
+            - generic [ref=e113]: "Prerequisites: Node.js 20+ and pnpm 9+."
+            - generic [ref=e114]:
+              - button "Copy the contents from the code block" [ref=e117] [cursor=pointer]:
+                - img [ref=e118]
+              - code [ref=e124]:
+                - generic [ref=e125]: pnpm install
+                - generic [ref=e126]: pnpm dev
+            - generic [ref=e127]:
+              - text: This starts the API server and UI at
+              - link "http://localhost:3100" [ref=e128] [cursor=pointer]:
+                - /url: http://localhost:3100
+              - text: .
+            - generic [ref=e129]: No external database required — Paperclip uses an embedded PostgreSQL instance by default.
+            - heading "Navigate to header One-Command Bootstrap" [level=2] [ref=e130]:
+              - link "Navigate to header" [ref=e131] [cursor=pointer]:
+                - /url: "#one-command-bootstrap"
+                - img [ref=e133]
+              - generic [ref=e135] [cursor=pointer]: One-Command Bootstrap
+            - generic [ref=e136]:
+              - button "Copy the contents from the code block" [ref=e139] [cursor=pointer]:
+                - img [ref=e140]
+              - code [ref=e146]:
+                - generic [ref=e147]: pnpm paperclipai run
+            - generic [ref=e148]: This auto-onboards if config is missing, runs health checks with auto-repair, and starts the server.
+            - heading "Navigate to header What’s Next" [level=2] [ref=e149]:
+              - link "Navigate to header" [ref=e150] [cursor=pointer]:
+                - /url: "#what’s-next"
+                - img [ref=e152]
+              - generic [ref=e154] [cursor=pointer]: What’s Next
+            - generic [ref=e155]: "Once Paperclip is running:"
+            - list [ref=e156]:
+              - listitem [ref=e157]: Create your first company in the web UI
+              - listitem [ref=e158]: Define a company goal
+              - listitem [ref=e159]: Create a CEO agent and configure its adapter
+              - listitem [ref=e160]: Build out the org chart with more agents
+              - listitem [ref=e161]: Set budgets and assign initial tasks
+              - listitem [ref=e162]: Hit go — agents start their heartbeats and the company runs
+            - link [ref=e163] [cursor=pointer]:
+              - link [ref=e165]:
+                - /url: /start/core-concepts
+                - generic [ref=e166]:
+                  - heading [level=2] [ref=e167]: Core Concepts
+                  - generic [ref=e169]: Learn the key concepts behind Paperclip
+          - link "Suggest edits" [ref=e174] [cursor=pointer]:
+            - /url: https://github.com/paperclipai/docs/edit/main/start/quickstart.mdx
+            - img [ref=e175]
+            - generic [ref=e177]: Suggest edits
+          - generic [ref=e178]:
+            - link "What is Paperclip?" [ref=e179] [cursor=pointer]:
+              - /url: /start/what-is-paperclip
+              - img [ref=e180]
+              - generic [ref=e182]: What is Paperclip?
+            - link "Core Concepts" [ref=e183] [cursor=pointer]:
+              - /url: /start/core-concepts
+              - generic [ref=e184]: Core Concepts
+              - img [ref=e185]
+          - contentinfo [ref=e187]:
+            - link "Powered by This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=e190] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=paperclip-e9417b58
+              - generic [ref=e191]: Powered by
+              - img [ref=e192]
+              - generic [ref=e201]: This documentation is built and hosted on Mintlify, a developer documentation platform
+  - alert [ref=e202]

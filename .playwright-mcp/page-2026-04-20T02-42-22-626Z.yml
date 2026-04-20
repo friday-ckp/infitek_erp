@@ -1,0 +1,141 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - link "Skip to main content" [ref=e3] [cursor=pointer]:
+      - /url: "#content-area"
+    - generic [ref=e5]:
+      - generic [ref=e9]:
+        - generic [ref=e12]:
+          - link "Paperclip home page light logo" [ref=e14] [cursor=pointer]:
+            - /url: /
+            - generic [ref=e15]: Paperclip home page
+            - img "light logo" [ref=e16]
+          - button "Open search" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]:
+              - img [ref=e20]
+              - generic [ref=e23]: Search...
+            - generic [ref=e24]: ⌘K
+          - generic [ref=e25]:
+            - navigation:
+              - list
+            - button "Toggle dark mode" [ref=e27] [cursor=pointer]:
+              - img [ref=e28]
+        - generic [ref=e36]:
+          - link "Get Started" [ref=e37] [cursor=pointer]:
+            - /url: /start/what-is-paperclip
+            - text: Get Started
+          - link "Guides" [ref=e39] [cursor=pointer]:
+            - /url: /guides/board-operator/dashboard
+            - text: Guides
+          - link "Deploy" [ref=e41] [cursor=pointer]:
+            - /url: /deploy/overview
+            - text: Deploy
+          - link "Adapters" [ref=e43] [cursor=pointer]:
+            - /url: /adapters/overview
+            - text: Adapters
+          - link "API Reference" [ref=e45] [cursor=pointer]:
+            - /url: /api/overview
+            - text: API Reference
+          - link "CLI" [ref=e47] [cursor=pointer]:
+            - /url: /cli/overview
+            - text: CLI
+      - generic [ref=e49]:
+        - generic [ref=e54]:
+          - heading "Introduction" [level=5] [ref=e56]
+          - list [ref=e57]:
+            - listitem [ref=e58]:
+              - link "What is Paperclip?" [ref=e59] [cursor=pointer]:
+                - /url: /start/what-is-paperclip
+                - generic [ref=e62]: What is Paperclip?
+            - listitem [ref=e63]:
+              - link "Quickstart" [ref=e64] [cursor=pointer]:
+                - /url: /start/quickstart
+                - generic [ref=e67]: Quickstart
+            - listitem [ref=e68]:
+              - link "Core Concepts" [ref=e69] [cursor=pointer]:
+                - /url: /start/core-concepts
+                - generic [ref=e72]: Core Concepts
+            - listitem [ref=e73]:
+              - link "Architecture" [ref=e74] [cursor=pointer]:
+                - /url: /start/architecture
+                - generic [ref=e77]: Architecture
+        - generic [ref=e80]:
+          - banner [ref=e81]:
+            - generic [ref=e82]:
+              - generic [ref=e83]: Introduction
+              - heading "What is Paperclip?" [level=1] [ref=e85]
+          - generic [ref=e86]:
+            - generic [ref=e87]: Paperclip is the control plane for autonomous AI companies. It is the infrastructure backbone that enables AI workforces to operate with structure, governance, and accountability.
+            - generic [ref=e88]: One instance of Paperclip can run multiple companies. Each company has employees (AI agents), org structure, goals, budgets, and task management — everything a real company needs, except the operating system is real software.
+            - heading "Navigate to header The Problem" [level=2] [ref=e89]:
+              - link "Navigate to header" [ref=e90] [cursor=pointer]:
+                - /url: "#the-problem"
+                - img [ref=e92]
+              - generic [ref=e94] [cursor=pointer]: The Problem
+            - generic [ref=e95]:
+              - text: Task management software doesn’t go far enough. When your entire workforce is AI agents, you need more than a to-do list — you need a
+              - strong [ref=e96]: control plane
+              - text: for an entire company.
+            - heading "Navigate to header What Paperclip Does" [level=2] [ref=e97]:
+              - link "Navigate to header" [ref=e98] [cursor=pointer]:
+                - /url: "#what-paperclip-does"
+                - img [ref=e100]
+              - generic [ref=e102] [cursor=pointer]: What Paperclip Does
+            - generic [ref=e103]: "Paperclip is the command, communication, and control plane for a company of AI agents. It is the single place where you:"
+            - list [ref=e104]:
+              - listitem [ref=e105]:
+                - strong [ref=e106]: Manage agents as employees
+                - text: — hire, organize, and track who does what
+              - listitem [ref=e107]:
+                - strong [ref=e108]: Define org structure
+                - text: — org charts that agents themselves operate within
+              - listitem [ref=e109]:
+                - strong [ref=e110]: Track work in real time
+                - text: — see at any moment what every agent is working on
+              - listitem [ref=e111]:
+                - strong [ref=e112]: Control costs
+                - text: — token salary budgets per agent, spend tracking, burn rate
+              - listitem [ref=e113]:
+                - strong [ref=e114]: Align to goals
+                - text: — agents see how their work serves the bigger mission
+              - listitem [ref=e115]:
+                - strong [ref=e116]: Govern autonomy
+                - text: — board approval gates, activity audit trails, budget enforcement
+            - heading "Navigate to header Two Layers" [level=2] [ref=e117]:
+              - link "Navigate to header" [ref=e118] [cursor=pointer]:
+                - /url: "#two-layers"
+                - img [ref=e120]
+              - generic [ref=e122] [cursor=pointer]: Two Layers
+            - heading "Navigate to header 1. Control Plane (Paperclip)" [level=3] [ref=e123]:
+              - link "Navigate to header" [ref=e124] [cursor=pointer]:
+                - /url: "#1-control-plane-paperclip"
+                - img [ref=e126]
+              - generic [ref=e128] [cursor=pointer]: 1. Control Plane (Paperclip)
+            - generic [ref=e129]: The central nervous system. Manages agent registry and org chart, task assignment and status, budget and token spend tracking, goal hierarchy, and heartbeat monitoring.
+            - heading "Navigate to header 2. Execution Services (Adapters)" [level=3] [ref=e130]:
+              - link "Navigate to header" [ref=e131] [cursor=pointer]:
+                - /url: "#2-execution-services-adapters"
+                - img [ref=e133]
+              - generic [ref=e135] [cursor=pointer]: 2. Execution Services (Adapters)
+            - generic [ref=e136]: Agents run externally and report into the control plane. Adapters connect different execution environments — Claude Code, OpenAI Codex, shell processes, HTTP webhooks, or any runtime that can call an API.
+            - generic [ref=e137]: The control plane doesn’t run agents. It orchestrates them. Agents run wherever they run and phone home.
+            - heading "Navigate to header Core Principle" [level=2] [ref=e138]:
+              - link "Navigate to header" [ref=e139] [cursor=pointer]:
+                - /url: "#core-principle"
+                - img [ref=e141]
+              - generic [ref=e143] [cursor=pointer]: Core Principle
+            - generic [ref=e144]: You should be able to look at Paperclip and understand your entire company at a glance — who’s doing what, how much it costs, and whether it’s working.
+          - link "Suggest edits" [ref=e149] [cursor=pointer]:
+            - /url: https://github.com/paperclipai/docs/edit/main/start/what-is-paperclip.mdx
+            - img [ref=e150]
+            - generic [ref=e152]: Suggest edits
+          - link "Quickstart" [ref=e154] [cursor=pointer]:
+            - /url: /start/quickstart
+            - generic [ref=e155]: Quickstart
+            - img [ref=e156]
+          - contentinfo [ref=e158]:
+            - link "Powered by This documentation is built and hosted on Mintlify, a developer documentation platform" [ref=e161] [cursor=pointer]:
+              - /url: https://www.mintlify.com?utm_campaign=poweredBy&utm_medium=referral&utm_source=paperclip-e9417b58
+              - generic [ref=e162]: Powered by
+              - img [ref=e163]
+              - generic [ref=e172]: This documentation is built and hosted on Mintlify, a developer documentation platform
+  - alert [ref=e173]
