@@ -19,18 +19,21 @@ import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { UnitStatus } from '@infitek/shared';
+import type { UnitStatus } from '@infitek/shared';
 import { getUnits, type Unit } from '../../../api/units.api';
 
+const UNIT_STATUS_ACTIVE = 'active' as UnitStatus;
+const UNIT_STATUS_INACTIVE = 'inactive' as UnitStatus;
+
 const statusOptions: Array<{ label: string; value: UnitStatus }> = [
-  { label: '启用', value: UnitStatus.ACTIVE },
-  { label: '禁用', value: UnitStatus.INACTIVE },
+  { label: '启用', value: UNIT_STATUS_ACTIVE },
+  { label: '禁用', value: UNIT_STATUS_INACTIVE },
 ];
 
-const statusTagMap: Record<UnitStatus, { status: 'success' | 'default'; text: string }> = {
-  [UnitStatus.ACTIVE]: { status: 'success', text: '启用' },
-  [UnitStatus.INACTIVE]: { status: 'default', text: '禁用' },
-};
+const statusTagMap = {
+  active: { status: 'success', text: '启用' },
+  inactive: { status: 'default', text: '禁用' },
+} satisfies Record<UnitStatus, { status: 'success' | 'default'; text: string }>;
 
 function useDebouncedValue(input: string, delay = 300) {
   const [value, setValue] = useState(input);
