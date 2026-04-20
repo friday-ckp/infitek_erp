@@ -44,13 +44,13 @@ function normalizeApiError(error: unknown): never {
 }
 
 export const getCurrencies = (params: CurrenciesListParams): Promise<CurrenciesListData> =>
-  request.get<any, CurrenciesListData>('/currencies', { params }).catch(normalizeApiError);
+  request.get<unknown, CurrenciesListData>('/currencies', { params }).catch(normalizeApiError);
 
 export const getCurrencyById = (id: number): Promise<Currency> =>
-  request.get<any, Currency>(`/currencies/${id}`).catch(normalizeApiError);
+  request.get<unknown, Currency>(`/currencies/${id}`).catch(normalizeApiError);
 
 export const createCurrency = (payload: CreateCurrencyPayload): Promise<Currency> =>
-  request.post<any, Currency>('/currencies', payload).catch(normalizeApiError);
+  request.post<unknown, Currency>('/currencies', payload).catch(normalizeApiError);
 
 export const updateCurrency = (id: number, payload: UpdateCurrencyPayload): Promise<Currency> =>
-  request.patch<any, Currency>(`/currencies/${id}`, payload).catch(normalizeApiError);
+  request.patch<unknown, Currency>(`/currencies/${id}`, payload).catch(normalizeApiError);

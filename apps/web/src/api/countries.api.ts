@@ -40,13 +40,13 @@ function normalizeApiError(error: unknown): never {
 }
 
 export const getCountries = (params: CountriesListParams): Promise<CountriesListData> =>
-  request.get<any, CountriesListData>('/countries', { params }).catch(normalizeApiError);
+  request.get<unknown, CountriesListData>('/countries', { params }).catch(normalizeApiError);
 
 export const getCountryById = (id: number): Promise<Country> =>
-  request.get<any, Country>(`/countries/${id}`).catch(normalizeApiError);
+  request.get<unknown, Country>(`/countries/${id}`).catch(normalizeApiError);
 
 export const createCountry = (payload: CreateCountryPayload): Promise<Country> =>
-  request.post<any, Country>('/countries', payload).catch(normalizeApiError);
+  request.post<unknown, Country>('/countries', payload).catch(normalizeApiError);
 
 export const updateCountry = (id: number, payload: UpdateCountryPayload): Promise<Country> =>
-  request.patch<any, Country>(`/countries/${id}`, payload).catch(normalizeApiError);
+  request.patch<unknown, Country>(`/countries/${id}`, payload).catch(normalizeApiError);

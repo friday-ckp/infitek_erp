@@ -44,13 +44,13 @@ function normalizeApiError(error: unknown): never {
 }
 
 export const getWarehouses = (params: WarehousesListParams): Promise<WarehousesListData> =>
-  request.get<any, WarehousesListData>('/warehouses', { params }).catch(normalizeApiError);
+  request.get<unknown, WarehousesListData>('/warehouses', { params }).catch(normalizeApiError);
 
 export const getWarehouseById = (id: number): Promise<Warehouse> =>
-  request.get<any, Warehouse>(`/warehouses/${id}`).catch(normalizeApiError);
+  request.get<unknown, Warehouse>(`/warehouses/${id}`).catch(normalizeApiError);
 
 export const createWarehouse = (payload: CreateWarehousePayload): Promise<Warehouse> =>
-  request.post<any, Warehouse>('/warehouses', payload).catch(normalizeApiError);
+  request.post<unknown, Warehouse>('/warehouses', payload).catch(normalizeApiError);
 
 export const updateWarehouse = (id: number, payload: UpdateWarehousePayload): Promise<Warehouse> =>
-  request.patch<any, Warehouse>(`/warehouses/${id}`, payload).catch(normalizeApiError);
+  request.patch<unknown, Warehouse>(`/warehouses/${id}`, payload).catch(normalizeApiError);

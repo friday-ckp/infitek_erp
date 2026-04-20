@@ -34,8 +34,9 @@ queryClient.setDefaultOptions({
     staleTime: 30_000,
   },
   mutations: {
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message || '操作失败，请重试';
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      const msg = err?.response?.data?.message ?? '操作失败，请重试';
       message.error(msg);
     },
   },

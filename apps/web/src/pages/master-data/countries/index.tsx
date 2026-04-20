@@ -40,10 +40,6 @@ export default function CountriesListPage() {
   const keyword = useDebouncedValue(keywordInput, 300).trim();
   const hasFilters = Boolean(keyword);
 
-  useEffect(() => {
-    setPage(1);
-  }, [keyword]);
-
   const query = useQuery({
     queryKey: ['countries', keyword, page, pageSize],
     placeholderData: (previousData) => previousData,
@@ -54,21 +50,6 @@ export default function CountriesListPage() {
         pageSize,
       }),
   });
-
-  if (query.isError && !query.data) {
-    return (
-      <Result
-        status="error"
-        title="加载国家/地区列表失败"
-        subTitle="请检查网络或稍后重试"
-        extra={
-          <Button type="primary" onClick={() => query.refetch()}>
-            重试
-          </Button>
-        }
-      />
-    );
-  }
 
   const columns: ProColumns<Country>[] = useMemo(
     () => [
@@ -121,6 +102,21 @@ export default function CountriesListPage() {
     ],
     [navigate, token.colorLink],
   );
+
+  if (query.isError && !query.data) {
+    return (
+      <Result
+        status="error"
+        title="加载国家/地区列表失败"
+        subTitle="请检查网络或稍后重试"
+        extra={
+          <Button type="primary" onClick={() => query.refetch()}>
+            重试
+          </Button>
+        }
+      />
+    );
+  }
 
   const emptyText = hasFilters ? (
     <Empty description="未找到匹配记录">

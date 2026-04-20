@@ -60,18 +60,18 @@ describe('UsersController - Story 1-4 自动化测试', () => {
       ];
 
       mockUsersService.findAll.mockResolvedValue({
-        data: mockUsers,
+        list: mockUsers,
         total: 2,
         page: 1,
         pageSize: 20,
+        totalPages: 1,
       });
 
       const result = await controller.findAll('1', '20', undefined);
 
-      expect(result.success).toBe(true);
-      expect(result.data.data).toHaveLength(2);
-      expect(result.data.total).toBe(2);
-      expect(mockUsersService.findAll).toHaveBeenCalledWith(1, 20, undefined);
+      expect(result.list).toHaveLength(2);
+      expect(result.total).toBe(2);
+      expect(mockUsersService.findAll).toHaveBeenCalledWith(1, 20, undefined, undefined);
     });
 
     it('P1: 应该支持按用户名搜索', async () => {
@@ -89,17 +89,18 @@ describe('UsersController - Story 1-4 自动化测试', () => {
       ];
 
       mockUsersService.findAll.mockResolvedValue({
-        data: mockUsers,
+        list: mockUsers,
         total: 1,
         page: 1,
         pageSize: 20,
+        totalPages: 1,
       });
 
       const result = await controller.findAll('1', '20', 'admin');
 
-      expect(result.data.data).toHaveLength(1);
-      expect(result.data.data[0].username).toBe('admin');
-      expect(mockUsersService.findAll).toHaveBeenCalledWith(1, 20, 'admin');
+      expect(result.list).toHaveLength(1);
+      expect(result.list[0].username).toBe('admin');
+      expect(mockUsersService.findAll).toHaveBeenCalledWith(1, 20, 'admin', undefined);
     });
 
     it('P1: 应该支持分页', async () => {
@@ -115,18 +116,19 @@ describe('UsersController - Story 1-4 自动化测试', () => {
       }));
 
       mockUsersService.findAll.mockResolvedValue({
-        data: mockUsers,
+        list: mockUsers,
         total: 100,
         page: 1,
         pageSize: 20,
+        totalPages: 5,
       });
 
       const result = await controller.findAll('1', '20', undefined);
 
-      expect(result.data.data).toHaveLength(20);
-      expect(result.data.total).toBe(100);
-      expect(result.data.page).toBe(1);
-      expect(result.data.pageSize).toBe(20);
+      expect(result.list).toHaveLength(20);
+      expect(result.total).toBe(100);
+      expect(result.page).toBe(1);
+      expect(result.pageSize).toBe(20);
     });
   });
 
@@ -147,20 +149,19 @@ describe('UsersController - Story 1-4 自动化测试', () => {
 
       const result = await controller.findById(1);
 
-      expect(result.success).toBe(true);
-      expect(result.data.id).toBe(1);
-      expect(result.data.username).toBe('admin');
-      expect(result.data.createdBy).toBe('system');
-      expect(result.data.updatedBy).toBe('system');
+      expect(result).not.toBeNull();
+      expect(result!.id).toBe(1);
+      expect(result!.username).toBe('admin');
+      expect(result!.createdBy).toBe('system');
+      expect(result!.updatedBy).toBe('system');
     });
 
-    it('P1: 应该返回 404 当用户不存在', async () => {
+    it('P1: 应该返回 null 当用户不存在', async () => {
       mockUsersService.findById.mockResolvedValue(null);
 
       const result = await controller.findById(999);
 
-      expect(result.success).toBe(false);
-      expect(result.code).toBe('USER_NOT_FOUND');
+      expect(result).toBeNull();
     });
   });
 
@@ -187,10 +188,9 @@ describe('UsersController - Story 1-4 自动化测试', () => {
 
       const result = await controller.create(createUserDto, { username: 'admin' });
 
-      expect(result.success).toBe(true);
-      expect(result.data.username).toBe('newuser');
-      expect(result.data.status).toBe(UserStatus.ACTIVE);
-      expect(result.data.createdBy).toBe('admin');
+      expect(result.username).toBe('newuser');
+      expect(result.status).toBe(UserStatus.ACTIVE);
+      expect(result.createdBy).toBe('admin');
     });
   });
 
@@ -217,24 +217,20 @@ describe('UsersController - Story 1-4 自动化测试', () => {
 
       const result = await controller.update(1, updateUserDto, { username: 'admin' });
 
-      expect(result.success).toBe(true);
-      expect(result.data.name).toBe('Updated Name');
-      expect(result.data.updatedBy).toBe('admin');
+      expect(result.name).toBe('Updated Name');
+      expect(result.updatedBy).toBe('admin');
     });
 
-    it('P1: 应该返回 404 当用户不存在', async () => {
+    it('P1: 应该抛出 NotFoundException 当用户不存在', async () => {
       const updateUserDto: UpdateUserDto = {
         name: 'Updated Name',
       };
 
       mockUsersService.update.mockRejectedValue(new NotFoundException('用户不存在'));
 
-      try {
-        await controller.update(999, updateUserDto, { username: 'admin' });
-        fail('Should have thrown NotFoundException');
-      } catch (error) {
-        expect(error).toBeInstanceOf(NotFoundException);
-      }
+      await expect(controller.update(999, updateUserDto, { username: 'admin' })).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 
@@ -255,8 +251,7 @@ describe('UsersController - Story 1-4 自动化测试', () => {
 
       const result = await controller.deactivate(1, { username: 'admin' });
 
-      expect(result.success).toBe(true);
-      expect(result.data.status).toBe(UserStatus.INACTIVE);
+      expect(result.status).toBe(UserStatus.INACTIVE);
     });
   });
 });

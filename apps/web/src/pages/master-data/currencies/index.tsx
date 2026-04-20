@@ -61,10 +61,6 @@ export default function CurrenciesListPage() {
   const keyword = useDebouncedValue(keywordInput, 300).trim();
   const hasFilters = Boolean(keyword || status);
 
-  useEffect(() => {
-    setPage(1);
-  }, [keyword, status]);
-
   const query = useQuery({
     queryKey: ['currencies', keyword, status, page, pageSize],
     placeholderData: (previousData) => previousData,
@@ -85,21 +81,6 @@ export default function CurrenciesListPage() {
       message.success('操作成功');
     },
   });
-
-  if (query.isError && !query.data) {
-    return (
-      <Result
-        status="error"
-        title="加载币种列表失败"
-        subTitle="请检查网络或稍后重试"
-        extra={
-          <Button type="primary" onClick={() => query.refetch()}>
-            重试
-          </Button>
-        }
-      />
-    );
-  }
 
   const columns: ProColumns<Currency>[] = useMemo(
     () => [
@@ -178,6 +159,21 @@ export default function CurrenciesListPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [navigate, token.colorLink],
   );
+
+  if (query.isError && !query.data) {
+    return (
+      <Result
+        status="error"
+        title="加载币种列表失败"
+        subTitle="请检查网络或稍后重试"
+        extra={
+          <Button type="primary" onClick={() => query.refetch()}>
+            重试
+          </Button>
+        }
+      />
+    );
+  }
 
   const emptyText = hasFilters ? (
     <Empty description="未找到匹配记录">
