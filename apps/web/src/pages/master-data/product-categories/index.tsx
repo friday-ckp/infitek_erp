@@ -20,26 +20,26 @@ import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/p
 function buildTreeData(nodes: ProductCategoryNode[]): DataNode[] {
   return nodes.map((node) => ({
     title: node.name,
-    key: node.id,
+    key: String(node.id),
     children: node.children.length > 0 ? buildTreeData(node.children) : undefined,
   }));
 }
 
-function findNodeById(nodes: ProductCategoryNode[], id: number): ProductCategoryNode | null {
+function findNodeById(nodes: ProductCategoryNode[], id: string): ProductCategoryNode | null {
   for (const node of nodes) {
-    if (node.id === id) return node;
+    if (String(node.id) === id) return node;
     const found = findNodeById(node.children, id);
     if (found) return found;
   }
   return null;
 }
 
-function buildBreadcrumb(nodes: ProductCategoryNode[], id: number): string {
+function buildBreadcrumb(nodes: ProductCategoryNode[], id: string): string {
   const path: string[] = [];
 
-  function traverse(items: ProductCategoryNode[], targetId: number): boolean {
+  function traverse(items: ProductCategoryNode[], targetId: string): boolean {
     for (const item of items) {
-      if (item.id === targetId) {
+      if (String(item.id) === targetId) {
         path.push(item.name);
         return true;
       }
@@ -58,7 +58,7 @@ function buildBreadcrumb(nodes: ProductCategoryNode[], id: number): string {
 export default function ProductCategoriesPage() {
   const navigate = useNavigate();
   const { token } = theme.useToken();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: ['product-categories', 'tree'],
@@ -122,7 +122,7 @@ export default function ProductCategoriesPage() {
                 selectedKeys={selectedId ? [selectedId] : []}
                 onSelect={(keys) => {
                   if (keys.length > 0) {
-                    setSelectedId(Number(keys[0]));
+                    setSelectedId(String(keys[0]));
                   } else {
                     setSelectedId(null);
                   }
