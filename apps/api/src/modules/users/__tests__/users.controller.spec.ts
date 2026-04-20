@@ -8,7 +8,6 @@ import { NotFoundException } from '@nestjs/common';
 
 describe('UsersController - Story 1-4 自动化测试', () => {
   let controller: UsersController;
-  let service: UsersService;
 
   const mockUsersService = {
     findAll: jest.fn(),
@@ -30,7 +29,6 @@ describe('UsersController - Story 1-4 自动化测试', () => {
     }).compile();
 
     controller = module.get<UsersController>(UsersController);
-    service = module.get<UsersService>(UsersService);
     jest.clearAllMocks();
   });
 

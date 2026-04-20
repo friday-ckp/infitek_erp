@@ -9,7 +9,6 @@ jest.mock('bcrypt');
 
 describe('UsersService - Story 1-4 自动化测试', () => {
   let service: UsersService;
-  let repository: UsersRepository;
 
   const mockRepository = {
     findByUsername: jest.fn(),
@@ -32,7 +31,6 @@ describe('UsersService - Story 1-4 自动化测试', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    repository = module.get<UsersRepository>(UsersRepository);
     jest.clearAllMocks();
   });
 
