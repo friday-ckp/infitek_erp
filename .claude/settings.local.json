@@ -9,7 +9,9 @@
       "Bash(grep -E \"\\\\.\\(ts|tsx|js|jsx\\)$\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(git pull *)",
+      "Bash(git stash *)"
     ]
   }
 }
