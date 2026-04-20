@@ -11,6 +11,15 @@ import UserForm from './pages/settings/users/form';
 import UnitsListPage from './pages/master-data/units/index';
 import UnitDetailPage from './pages/master-data/units/detail';
 import UnitFormPage from './pages/master-data/units/form';
+import WarehousesListPage from './pages/master-data/warehouses/index';
+import WarehouseDetailPage from './pages/master-data/warehouses/detail';
+import WarehouseFormPage from './pages/master-data/warehouses/form';
+import CurrenciesListPage from './pages/master-data/currencies/index';
+import CurrencyDetailPage from './pages/master-data/currencies/detail';
+import CurrencyFormPage from './pages/master-data/currencies/form';
+import CountriesListPage from './pages/master-data/countries/index';
+import CountryDetailPage from './pages/master-data/countries/detail';
+import CountryFormPage from './pages/master-data/countries/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -25,8 +34,9 @@ queryClient.setDefaultOptions({
     staleTime: 30_000,
   },
   mutations: {
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message || '操作失败，请重试';
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      const msg = err?.response?.data?.message ?? '操作失败，请重试';
       message.error(msg);
     },
   },
@@ -87,6 +97,18 @@ function App() {
                 <Route path="/master-data/units/create" element={<UnitFormPage />} />
                 <Route path="/master-data/units/:id" element={<UnitDetailPage />} />
                 <Route path="/master-data/units/:id/edit" element={<UnitFormPage />} />
+                <Route path="/master-data/warehouses" element={<WarehousesListPage />} />
+                <Route path="/master-data/warehouses/create" element={<WarehouseFormPage />} />
+                <Route path="/master-data/warehouses/:id" element={<WarehouseDetailPage />} />
+                <Route path="/master-data/warehouses/:id/edit" element={<WarehouseFormPage />} />
+                <Route path="/master-data/currencies" element={<CurrenciesListPage />} />
+                <Route path="/master-data/currencies/create" element={<CurrencyFormPage />} />
+                <Route path="/master-data/currencies/:id" element={<CurrencyDetailPage />} />
+                <Route path="/master-data/currencies/:id/edit" element={<CurrencyFormPage />} />
+                <Route path="/master-data/countries" element={<CountriesListPage />} />
+                <Route path="/master-data/countries/create" element={<CountryFormPage />} />
+                <Route path="/master-data/countries/:id" element={<CountryDetailPage />} />
+                <Route path="/master-data/countries/:id/edit" element={<CountryFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule, type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ClassSerializerInterceptor } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -13,6 +13,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { FilesModule } from './files/files.module';
 import { UnitsModule } from './modules/master-data/units/units.module';
+import { WarehousesModule } from './modules/master-data/warehouses/warehouses.module';
+import { CurrenciesModule } from './modules/master-data/currencies/currencies.module';
+import { CountriesModule } from './modules/master-data/countries/countries.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -24,14 +27,16 @@ import databaseConfig from './config/database.config';
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        ...configService.get('database'),
-      }),
+      useFactory: (configService: ConfigService): TypeOrmModuleOptions =>
+        configService.get<TypeOrmModuleOptions>('database')!,
     }),
     HealthModule,
     AuthModule,
     UsersModule,
     UnitsModule,
+    WarehousesModule,
+    CurrenciesModule,
+    CountriesModule,
     FilesModule,
   ],
   controllers: [AppController],

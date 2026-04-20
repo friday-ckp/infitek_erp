@@ -9,7 +9,6 @@ jest.mock('bcrypt');
 
 describe('UsersService - Story 1-4 自动化测试', () => {
   let service: UsersService;
-  let repository: UsersRepository;
 
   const mockRepository = {
     findByUsername: jest.fn(),
@@ -32,7 +31,6 @@ describe('UsersService - Story 1-4 自动化测试', () => {
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    repository = module.get<UsersRepository>(UsersRepository);
     jest.clearAllMocks();
   });
 
@@ -129,7 +127,7 @@ describe('UsersService - Story 1-4 自动化测试', () => {
 
       const result = await service.findAll(1, 20);
 
-      expect(result.data).toHaveLength(2);
+      expect(result.list).toHaveLength(2);
       expect(result.total).toBe(2);
       expect(result.page).toBe(1);
       expect(result.pageSize).toBe(20);
@@ -153,8 +151,8 @@ describe('UsersService - Story 1-4 自动化测试', () => {
 
       const result = await service.findAll(1, 20, 'admin');
 
-      expect(result.data).toHaveLength(1);
-      expect(result.data[0].username).toBe('admin');
+      expect(result.list).toHaveLength(1);
+      expect(result.list[0].username).toBe('admin');
     });
 
     it('P1: 应该支持按状态筛选', async () => {
@@ -175,7 +173,7 @@ describe('UsersService - Story 1-4 自动化测试', () => {
 
       const result = await service.findAll(1, 20);
 
-      expect(result.data[0].status).toBe(UserStatus.ACTIVE);
+      expect(result.list[0].status).toBe(UserStatus.ACTIVE);
     });
 
     it('P1: 应该支持分页', async () => {
@@ -194,7 +192,7 @@ describe('UsersService - Story 1-4 自动化测试', () => {
 
       const result = await service.findAll(1, 20);
 
-      expect(result.data).toHaveLength(20);
+      expect(result.list).toHaveLength(20);
       expect(result.total).toBe(100);
     });
   });
