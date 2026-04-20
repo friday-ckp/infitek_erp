@@ -121,6 +121,7 @@ function App() {
                 <Route path="/master-data/product-categories" element={<ProductCategoriesPage />} />
                 <Route path="/master-data/product-categories/create" element={<ProductCategoryFormPage />} />
                 <Route path="/master-data/product-categories/:id/edit" element={<ProductCategoryFormPage />} />
+                <Route path="/products/categories" element={<Navigate to="/master-data/product-categories" replace />} />
               </Route>
 
               {/* 兜底重定向 */}

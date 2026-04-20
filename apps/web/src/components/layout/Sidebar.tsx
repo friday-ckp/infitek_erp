@@ -51,7 +51,7 @@ const menuItems = [
       </svg>
     ),
     children: [
-      { key: '/products/categories', label: '产品分类' },
+      { key: '/master-data/product-categories', label: '产品分类' },
       { key: '/products/spus', label: 'SPU 管理' },
       { key: '/products/skus', label: 'SKU 管理' },
     ],
