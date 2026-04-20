@@ -13,6 +13,9 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { FilesModule } from './files/files.module';
 import { UnitsModule } from './modules/master-data/units/units.module';
+import { WarehousesModule } from './modules/master-data/warehouses/warehouses.module';
+import { CurrenciesModule } from './modules/master-data/currencies/currencies.module';
+import { CountriesModule } from './modules/master-data/countries/countries.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -32,6 +35,9 @@ import databaseConfig from './config/database.config';
     AuthModule,
     UsersModule,
     UnitsModule,
+    WarehousesModule,
+    CurrenciesModule,
+    CountriesModule,
     FilesModule,
   ],
   controllers: [AppController],
