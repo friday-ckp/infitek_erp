@@ -10,6 +10,14 @@ export class ProductCategory extends BaseEntity {
   @Expose()
   name: string;
 
+  @Column({ name: 'name_en', type: 'varchar', length: 100, nullable: true })
+  @Expose()
+  nameEn: string | null;
+
+  @Column({ name: 'code', type: 'varchar', length: 20, nullable: true })
+  @Expose()
+  code: string | null;
+
   @Column({ name: 'parent_id', type: 'bigint', unsigned: true, nullable: true })
   @Expose()
   parentId: number | null;
@@ -21,4 +29,12 @@ export class ProductCategory extends BaseEntity {
   @Column({ name: 'sort_order', type: 'int', default: 0 })
   @Expose()
   sortOrder: number;
+
+  @Column({ name: 'purchase_owner', type: 'varchar', length: 100, nullable: true })
+  @Expose()
+  purchaseOwner: string | null;
+
+  @Column({ name: 'product_owner', type: 'varchar', length: 100, nullable: true })
+  @Expose()
+  productOwner: string | null;
 }
