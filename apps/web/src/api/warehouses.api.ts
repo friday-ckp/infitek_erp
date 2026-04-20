@@ -1,4 +1,4 @@
-import type { WarehouseStatus } from '@infitek/shared';
+import type { WarehouseOwnership, WarehouseStatus, WarehouseType } from '@infitek/shared';
 import request from './request';
 
 export interface Warehouse {
@@ -6,6 +6,14 @@ export interface Warehouse {
   name: string;
   address: string | null;
   status: WarehouseStatus;
+  warehouseCode?: string | null;
+  warehouseType?: WarehouseType | null;
+  supplierId?: number | null;
+  supplierName?: string | null;
+  defaultShipProvince?: string | null;
+  defaultShipCity?: string | null;
+  ownership?: WarehouseOwnership;
+  isVirtual?: number;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -30,12 +38,28 @@ export interface WarehousesListData {
 export interface CreateWarehousePayload {
   name: string;
   address?: string;
+  warehouseCode?: string;
+  warehouseType?: WarehouseType;
+  supplierId?: number;
+  supplierName?: string;
+  defaultShipProvince?: string;
+  defaultShipCity?: string;
+  ownership?: WarehouseOwnership;
+  isVirtual?: number;
 }
 
 export interface UpdateWarehousePayload {
   name?: string;
   address?: string;
   status?: WarehouseStatus;
+  warehouseCode?: string;
+  warehouseType?: WarehouseType;
+  supplierId?: number;
+  supplierName?: string;
+  defaultShipProvince?: string;
+  defaultShipCity?: string;
+  ownership?: WarehouseOwnership;
+  isVirtual?: number;
 }
 
 function normalizeApiError(error: unknown): never {
