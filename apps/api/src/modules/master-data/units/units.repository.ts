@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
+import { applyKeywordFilter, applyPagination } from '../../../common/utils/query-builder.util';
 import { QueryUnitDto } from './dto/query-unit.dto';
 import { Unit } from './entities/unit.entity';
 
@@ -22,25 +23,20 @@ export class UnitsRepository {
   async findAll(query: QueryUnitDto) {
     const { keyword, page = 1, pageSize = 20, status } = query;
 
-    const qb = this.repo
+    let qb = this.repo
       .createQueryBuilder('unit')
       .where('unit.deleted_at IS NULL');
 
-    if (keyword) {
-      qb.andWhere('(unit.name LIKE :kw OR unit.code LIKE :kw)', {
-        kw: `%${keyword}%`,
-      });
-    }
+    qb = applyKeywordFilter(qb, 'unit', ['name', 'code'], keyword);
 
     if (status) {
-      qb.andWhere('unit.status = :status', { status });
+      qb = qb.andWhere('unit.status = :status', { status });
     }
 
-    const [list, total] = await qb
-      .orderBy('unit.created_at', 'DESC')
-      .skip((page - 1) * pageSize)
-      .take(pageSize)
-      .getManyAndCount();
+    qb = qb.orderBy('unit.created_at', 'DESC');
+    qb = applyPagination(qb, page, pageSize);
+
+    const [list, total] = await qb.getManyAndCount();
 
     return {
       list,
@@ -59,5 +55,4 @@ export class UnitsRepository {
     await this.repo.update(id, data);
     return this.repo.findOneOrFail({ where: { id, deletedAt: IsNull() } });
   }
-
 }
