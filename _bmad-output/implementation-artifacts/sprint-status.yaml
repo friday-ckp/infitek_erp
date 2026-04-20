@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-15
-last_updated: 2026-04-20 (story-2.3-done)
+last_updated: 2026-04-20 (story-2.4-done)
 project: infitek_erp
 
 project_key: NOKEY
@@ -62,7 +62,7 @@ development_status:
   2-1-标准crud组件模板: done
   2-2-基础参考数据管理: done
   2-3-公司主体信息管理: done
-  2-4-搜索筛选与分页横切能力: backlog
+  2-4-搜索筛选与分页横切能力: done
   epic-2-retrospective: optional
 
   # ─────────────────────────────────────────────────
