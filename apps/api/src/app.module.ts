@@ -16,6 +16,7 @@ import { UnitsModule } from './modules/master-data/units/units.module';
 import { WarehousesModule } from './modules/master-data/warehouses/warehouses.module';
 import { CurrenciesModule } from './modules/master-data/currencies/currencies.module';
 import { CountriesModule } from './modules/master-data/countries/countries.module';
+import { CompaniesModule } from './modules/master-data/companies/companies.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -37,6 +38,7 @@ import databaseConfig from './config/database.config';
     WarehousesModule,
     CurrenciesModule,
     CountriesModule,
+    CompaniesModule,
     FilesModule,
   ],
   controllers: [AppController],

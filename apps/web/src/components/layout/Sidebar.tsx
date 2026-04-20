@@ -91,6 +91,7 @@ const menuItems = [
     ),
     children: [
       { key: '/master-data/units', label: '单位管理' },
+      { key: '/master-data/companies', label: '公司主体' },
       { key: '/settings/users', label: '用户管理' },
       { key: '/master-data/warehouses', label: '仓库管理' },
       { key: '/master-data/currencies', label: '币种管理' },

@@ -20,6 +20,9 @@ import CurrencyFormPage from './pages/master-data/currencies/form';
 import CountriesListPage from './pages/master-data/countries/index';
 import CountryDetailPage from './pages/master-data/countries/detail';
 import CountryFormPage from './pages/master-data/countries/form';
+import CompaniesListPage from './pages/master-data/companies/index';
+import CompanyDetailPage from './pages/master-data/companies/detail';
+import CompanyFormPage from './pages/master-data/companies/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -109,6 +112,10 @@ function App() {
                 <Route path="/master-data/countries/create" element={<CountryFormPage />} />
                 <Route path="/master-data/countries/:id" element={<CountryDetailPage />} />
                 <Route path="/master-data/countries/:id/edit" element={<CountryFormPage />} />
+                <Route path="/master-data/companies" element={<CompaniesListPage />} />
+                <Route path="/master-data/companies/create" element={<CompanyFormPage />} />
+                <Route path="/master-data/companies/:id" element={<CompanyDetailPage />} />
+                <Route path="/master-data/companies/:id/edit" element={<CompanyFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}
