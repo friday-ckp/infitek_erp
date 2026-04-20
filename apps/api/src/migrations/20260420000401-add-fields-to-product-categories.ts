@@ -5,10 +5,10 @@ export class AddFieldsToProductCategories20260420000401 implements MigrationInte
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.addColumns('product_categories', [
-      new TableColumn({ name: 'name_en', type: 'varchar', length: '100', isNullable: true, after: 'name' }),
-      new TableColumn({ name: 'code', type: 'varchar', length: '20', isNullable: true, after: 'name_en' }),
-      new TableColumn({ name: 'purchase_owner', type: 'varchar', length: '100', isNullable: true, after: 'sort_order' }),
-      new TableColumn({ name: 'product_owner', type: 'varchar', length: '100', isNullable: true, after: 'purchase_owner' }),
+      new TableColumn({ name: 'name_en', type: 'varchar', length: '100', isNullable: true }),
+      new TableColumn({ name: 'code', type: 'varchar', length: '20', isNullable: true }),
+      new TableColumn({ name: 'purchase_owner', type: 'varchar', length: '100', isNullable: true }),
+      new TableColumn({ name: 'product_owner', type: 'varchar', length: '100', isNullable: true }),
     ]);
   }
 
