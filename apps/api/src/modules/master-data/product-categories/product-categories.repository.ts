@@ -60,6 +60,22 @@ export class ProductCategoriesRepository {
     return this.repo.findOne({ where: { name } });
   }
 
+  async generateCode(): Promise<string> {
+    const result = await this.repo
+      .createQueryBuilder('pc')
+      .select('MAX(pc.code)', 'maxCode')
+      .where('pc.code LIKE :prefix', { prefix: 'CPDL%' })
+      .getRawOne<{ maxCode: string | null }>();
+
+    const maxCode = result?.maxCode;
+    let nextSeq = 1;
+    if (maxCode) {
+      const num = parseInt(maxCode.replace('CPDL', ''), 10);
+      if (!isNaN(num)) nextSeq = num + 1;
+    }
+    return `CPDL${String(nextSeq).padStart(3, '0')}`;
+  }
+
   create(data: Partial<ProductCategory>): Promise<ProductCategory> {
     return this.repo.save(data);
   }
