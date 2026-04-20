@@ -1,0 +1,42 @@
+- generic [ref=e3]:
+  - generic:
+    - generic: ⚡
+    - generic: 销售
+    - generic: 采购
+    - generic: 仓储
+    - generic: 财务
+    - generic: 物流
+    - generic: 产品
+  - generic [ref=e6]:
+    - generic [ref=e7]: 一体化企业资源管理
+    - generic [ref=e8]:
+      - text: 覆盖销售、供应链、产品、用户管理全流程，
+      - text: 助力企业高效运营。
+  - generic [ref=e13]:
+    - generic [ref=e14]:
+      - generic [ref=e15]: I
+      - generic [ref=e16]: Infitek ERP
+    - heading "Welcome Back" [level=2] [ref=e17]
+    - generic [ref=e18]: 登录您的企业管理平台
+    - generic [ref=e19]:
+      - generic [ref=e21]:
+        - generic "用户名" [ref=e23]: "* 用户名"
+        - generic [ref=e27]:
+          - img "user" [ref=e29]:
+            - img [ref=e30]
+          - textbox "* 用户名" [ref=e32]:
+            - /placeholder: 请输入用户名
+            - text: admin
+      - generic [ref=e34]:
+        - generic "密码" [ref=e36]: "* 密码"
+        - generic [ref=e40]:
+          - img "lock" [ref=e42]:
+            - img [ref=e43]
+          - textbox "* 密码" [ref=e45]:
+            - /placeholder: 请输入密码
+            - text: Admin@123
+          - img "eye-invisible" [ref=e47] [cursor=pointer]:
+            - img [ref=e48]
+      - button "登 录" [ref=e56] [cursor=pointer]:
+        - generic [ref=e57]: 登 录
+    - generic [ref=e58]: © 2026 Infitek. All rights reserved.
