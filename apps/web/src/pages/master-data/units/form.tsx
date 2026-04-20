@@ -6,7 +6,7 @@ import {
 } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import type { UnitStatus } from '@infitek/shared';
+import { UnitStatus } from '@infitek/shared';
 import {
   createUnit,
   getUnitById,
@@ -16,8 +16,8 @@ import {
 } from '../../../api/units.api';
 
 const statusOptions: Array<{ label: string; value: UnitStatus }> = [
-  { label: '启用', value: 'active' },
-  { label: '禁用', value: 'inactive' },
+  { label: '启用', value: UnitStatus.ACTIVE },
+  { label: '禁用', value: UnitStatus.INACTIVE },
 ];
 
 export default function UnitFormPage() {
@@ -120,7 +120,7 @@ export default function UnitFormPage() {
                 name: detailQuery.data.name,
                 status: detailQuery.data.status,
               }
-            : { status: 'active' }
+            : { status: UnitStatus.ACTIVE }
         }
         onFinish={async (values) => {
           if (isEdit) {
