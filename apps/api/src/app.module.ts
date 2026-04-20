@@ -17,6 +17,7 @@ import { WarehousesModule } from './modules/master-data/warehouses/warehouses.mo
 import { CurrenciesModule } from './modules/master-data/currencies/currencies.module';
 import { CountriesModule } from './modules/master-data/countries/countries.module';
 import { CompaniesModule } from './modules/master-data/companies/companies.module';
+import { ProductCategoriesModule } from './modules/master-data/product-categories/product-categories.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -39,6 +40,7 @@ import databaseConfig from './config/database.config';
     CurrenciesModule,
     CountriesModule,
     CompaniesModule,
+    ProductCategoriesModule,
     FilesModule,
   ],
   controllers: [AppController],
