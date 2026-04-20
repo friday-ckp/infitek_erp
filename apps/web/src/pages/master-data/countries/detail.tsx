@@ -52,6 +52,8 @@ export default function CountryDetailPage() {
   const columns: ProDescriptionsItemProps<Country>[] = [
     { title: '国家/地区代码', dataIndex: 'code', span: 1 },
     { title: '国家/地区名称', dataIndex: 'name', span: 1 },
+    { title: '英文名称', dataIndex: 'nameEn', span: 1, renderText: (v: string | null | undefined) => v || '-' },
+    { title: '简称', dataIndex: 'abbreviation', span: 1, renderText: (v: string | null | undefined) => v || '-' },
     {
       title: '创建时间',
       dataIndex: 'createdAt',

@@ -16,6 +16,11 @@
 - 编辑表单加载的是快照数据，无并发冲突检测 — 无乐观锁需求，超出本 Story 范围
 - 货币选项直接在 form.tsx 内调用 request，未经 companies.api.ts — 货币数据属跨模块依赖，request 包装器已使用，spirit 满足
 
+## Deferred from: code review of 2-2c-国家字段补全-cc补丁 (2026-04-20)
+
+- `UpdateCountryPayload.nameEn/abbreviation` 类型为 `string?` 而非 `string | null`，无法通过 payload 显式清空字段 — 清空功能超出本 Story 范围，如需支持清空应在后续 Story 中统一处理
+- Migration `down()` 缺少 `IF EXISTS` 保护，在全新未执行 `up()` 的环境上执行 `down()` 会报错 — 符合项目现有 Migration 编写惯例，不影响正常部署流程
+
 ## Deferred from: code review of 2-4-搜索筛选与分页横切能力 (2026-04-20)
 
 - `PaginatedResponse<T>` 与 `PaginationResult<T>` 重复：前者新增 totalPages 字段，应在后续重构中整合为单一标准类型并迁移消费方。

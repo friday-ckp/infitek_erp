@@ -13,6 +13,14 @@ export class Country extends BaseEntity {
   @Expose()
   code: string;
 
+  @Column({ name: 'name_en', type: 'varchar', length: 100, nullable: true })
+  @Expose()
+  nameEn: string | null;
+
+  @Column({ name: 'abbreviation', type: 'varchar', length: 20, nullable: true })
+  @Expose()
+  abbreviation: string | null;
+
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date | null;
 }
