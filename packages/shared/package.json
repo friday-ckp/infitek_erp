@@ -2,6 +2,9 @@
   "name": "@infitek/shared",
   "version": "0.0.1",
   "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
@@ -9,6 +12,19 @@
       "require": "./dist/index.js",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./enums/*": {
+      "require": "./dist/enums/*.js",
+      "import": "./dist/enums/*.js",
+      "types": "./dist/enums/*.d.ts"
+    },
+    "./types/*": {
+      "require": "./dist/types/*.js",
+      "import": "./dist/types/*.js",
+      "types": "./dist/types/*.d.ts"
     }
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

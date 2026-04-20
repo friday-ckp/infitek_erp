@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "pnpm --filter @infitek/shared build",
     "dev": "vite",
+    "prebuild": "pnpm --filter @infitek/shared build",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",

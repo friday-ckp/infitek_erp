@@ -10,6 +10,8 @@ const { Content } = Layout;
 const BREADCRUMB_MAP: Record<string, { label: string; parent?: string; parentLabel?: string }> = {
   '/settings/users': { label: '用户管理', parent: '/master-data', parentLabel: '基础数据' },
   '/settings/users/create': { label: '新建用户', parent: '/settings/users', parentLabel: '用户管理' },
+  '/master-data/units': { label: '单位管理', parent: '/master-data', parentLabel: '基础数据' },
+  '/master-data/units/create': { label: '新建单位', parent: '/master-data/units', parentLabel: '单位管理' },
 };
 
 function isValidToken(token: string | null): boolean {
@@ -40,6 +42,18 @@ function getBreadcrumbItems(pathname: string): { title: string; path: string }[]
     { title: '基础数据', path: '/master-data' },
     { title: '用户管理', path: '/settings/users' },
     { title: '用户详情', path: pathname },
+  ];
+  const unitEditMatch = pathname.match(/^\/master-data\/units\/([a-zA-Z0-9\-_]+)\/edit$/);
+  if (unitEditMatch && unitEditMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '单位管理', path: '/master-data/units' },
+    { title: '编辑单位', path: pathname },
+  ];
+  const unitDetailMatch = pathname.match(/^\/master-data\/units\/([a-zA-Z0-9\-_]+)$/);
+  if (unitDetailMatch && unitDetailMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '单位管理', path: '/master-data/units' },
+    { title: '单位详情', path: pathname },
   ];
   return [];
 }
