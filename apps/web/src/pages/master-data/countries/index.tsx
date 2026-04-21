@@ -70,6 +70,14 @@ export default function CountriesListPage() {
         ellipsis: true,
       },
       {
+        title: '英文名称',
+        dataIndex: 'nameEn',
+        width: 180,
+        ellipsis: true,
+        hideInTable: true,
+        renderText: (v: string | null | undefined) => v || '-',
+      },
+      {
         title: '创建时间',
         dataIndex: 'createdAt',
         width: 140,
@@ -199,7 +207,7 @@ export default function CountriesListPage() {
       <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
         <ProTable<Country>
           search={false}
-          options={false}
+          options={{ density: false, setting: true }}
           toolBarRender={false}
           rowKey="id"
           loading={query.isFetching}

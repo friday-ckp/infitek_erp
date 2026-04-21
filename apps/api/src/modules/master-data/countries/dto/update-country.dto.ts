@@ -10,4 +10,14 @@ export class UpdateCountryDto {
   @IsOptional()
   @MaxLength(10)
   code?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  nameEn?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  abbreviation?: string;
 }

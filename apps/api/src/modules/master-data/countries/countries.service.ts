@@ -29,6 +29,8 @@ export class CountriesService {
     return this.countriesRepository.create({
       name: dto.name,
       code: dto.code,
+      nameEn: dto.nameEn ?? null,
+      abbreviation: dto.abbreviation ?? null,
       createdBy: operator,
       updatedBy: operator,
     });

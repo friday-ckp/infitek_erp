@@ -4,6 +4,8 @@ export interface Country {
   id: number;
   code: string;
   name: string;
+  nameEn?: string | null;
+  abbreviation?: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -27,11 +29,15 @@ export interface CountriesListData {
 export interface CreateCountryPayload {
   code: string;
   name: string;
+  nameEn?: string;
+  abbreviation?: string;
 }
 
 export interface UpdateCountryPayload {
   code?: string;
   name?: string;
+  nameEn?: string;
+  abbreviation?: string;
 }
 
 function normalizeApiError(error: unknown): never {

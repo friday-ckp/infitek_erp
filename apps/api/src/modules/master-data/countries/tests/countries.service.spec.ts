@@ -10,6 +10,8 @@ const mockCountry: Country = {
   id: 1,
   name: '中国',
   code: 'CN',
+  nameEn: null,
+  abbreviation: null,
   deletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -72,6 +74,20 @@ describe('CountriesService', () => {
       await service.create(dto, 'admin');
       expect(mockRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ name: '美国', code: 'US', createdBy: 'admin' }),
+      );
+    });
+
+    it('应创建国家（含英文名称和简称）', async () => {
+      const dto: CreateCountryDto = { name: '美国', code: 'US', nameEn: 'United States', abbreviation: '美' };
+      mockRepo.findByCode.mockResolvedValue(null);
+      mockRepo.create.mockResolvedValue({ ...mockCountry, ...dto });
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          nameEn: 'United States',
+          abbreviation: '美',
+        }),
       );
     });
 
