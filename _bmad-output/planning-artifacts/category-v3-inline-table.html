@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>产品分类方案三：内联展开表格</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #F9FAFB; min-height: 100vh; padding: 24px 32px; color: #111827; }
+
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-title { font-size: 20px; font-weight: 700; color: #111827; }
+.page-title-sub { font-size: 12.5px; color: #9CA3AF; margin-top: 3px; }
+.btn { padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+.btn-primary { background: #4F46E5; color: #fff; }
+.btn-primary:hover { background: #4338CA; }
+.btn-default { background: #fff; color: #374151; border: 1px solid #D1D5DB; }
+.btn-default:hover { border-color: #A5B4FC; color: #4F46E5; }
+.btn-dashed { background: #fff; color: #6366F1; border: 1.5px dashed #C7D2FE; }
+.btn-dashed:hover { background: #EEF2FF; }
+.btn-sm { padding: 5px 11px; font-size: 12px; }
+.btn-xs { padding: 3px 9px; font-size: 11.5px; border-radius: 5px; }
+
+/* TABLE CARD */
+.table-card {
+  background: #fff; border-radius: 12px; border: 1px solid #E5E7EB;
+  overflow: hidden;
+}
+.table-toolbar {
+  padding: 14px 18px; border-bottom: 1px solid #F3F4F6;
+  display: flex; align-items: center; gap: 10px;
+}
+.search-box {
+  display: flex; align-items: center;
+  border: 1px solid #E5E7EB; border-radius: 7px;
+  padding: 6px 10px 6px 8px; gap: 6px; background: #FAFAFA;
+  transition: border-color .15s, background .15s;
+}
+.search-box:focus-within { border-color: #818CF8; background: #fff; }
+.search-box input { border: none; outline: none; font-size: 12.5px; color: #374151; background: transparent; width: 180px; }
+.search-box input::placeholder { color: #C4C4C4; }
+
+/* TABLE */
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: #F9FAFB; border-bottom: 1px solid #F0F0F0; }
+thead th {
+  padding: 10px 16px; text-align: left;
+  font-size: 11.5px; font-weight: 600; color: #6B7280;
+  white-space: nowrap;
+}
+thead th.right { text-align: right; }
+thead th.center { text-align: center; }
+
+/* ROWS */
+.row-l1 { background: #fff; }
+.row-l1:hover { background: #FAFBFF; }
+.row-l1 td { padding: 11px 16px; border-bottom: 1px solid #F3F4F6; font-size: 13.5px; vertical-align: middle; }
+
+.row-l2 { background: #FAFAFF; }
+.row-l2:hover { background: #F5F3FF; }
+.row-l2 td { padding: 9px 16px; border-bottom: 1px solid #F3F4F6; font-size: 13px; vertical-align: middle; }
+
+.row-l3 { background: #F8FAFF; }
+.row-l3:hover { background: #EEF2FF; }
+.row-l3 td { padding: 8px 16px; border-bottom: 1px solid #F3F4F6; font-size: 12.5px; vertical-align: middle; }
+
+.row-l2-expand { display: none; }
+.row-l3-expand { display: none; }
+.row-l2-expand.open { display: table-row; }
+.row-l3-expand.open { display: table-row; }
+
+/* ROW CELLS */
+.expand-btn {
+  width: 20px; height: 20px; border-radius: 5px; border: 1px solid #E5E7EB;
+  background: #fff; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #9CA3AF; transition: all .15s; flex-shrink: 0;
+}
+.expand-btn:hover { border-color: #818CF8; color: #6366F1; background: #EEF2FF; }
+.expand-btn.open { background: #EEF2FF; border-color: #C7D2FE; color: #4F46E5; }
+.expand-btn svg { transition: transform .18s; }
+.expand-btn.open svg { transform: rotate(90deg); }
+.expand-btn.leaf { opacity: 0; pointer-events: none; }
+
+.row-indent-1 { padding-left: 36px !important; }
+.row-indent-2 { padding-left: 60px !important; }
+
+/* Level badge */
+.lvl {
+  display: inline-block; font-size: 10px; font-weight: 700;
+  padding: 1.5px 5px; border-radius: 4px; margin-right: 6px;
+  vertical-align: middle; flex-shrink: 0;
+}
+.lvl-1 { background: #EDE9FE; color: #7C3AED; }
+.lvl-2 { background: #DBEAFE; color: #2563EB; }
+.lvl-3 { background: #D1FAE5; color: #059669; }
+
+/* Name cell */
+.name-cell { display: flex; align-items: center; gap: 8px; }
+.cat-name { font-weight: 600; color: #111827; }
+.row-l2 .cat-name { font-weight: 500; color: #374151; }
+.row-l3 .cat-name { font-weight: 400; color: #4B5563; }
+.cat-code { font-size: 11px; color: #9CA3AF; margin-left: 4px; }
+
+/* Status tag */
+.tag { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: 11.5px; font-weight: 500; }
+.tag-active { background: #D1FAE5; color: #059669; }
+.tag-empty { background: #F3F4F6; color: #9CA3AF; }
+
+/* Owner chips */
+.owner-chip { font-size: 11.5px; color: #6B7280; white-space: nowrap; }
+
+/* Numbers */
+.num { font-size: 13px; font-weight: 600; color: #374151; font-variant-numeric: tabular-nums; }
+.num.zero { color: #D1D5DB; }
+
+/* Action buttons (show on hover via group) */
+.actions { display: flex; gap: 4px; justify-content: flex-end; opacity: 0; transition: opacity .12s; white-space: nowrap; }
+tr:hover .actions { opacity: 1; }
+
+/* Inline "add row" */
+.add-row td {
+  padding: 8px 16px; border-bottom: 1px dashed #EEF2FF; background: #FAFBFF;
+}
+.add-row-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; color: #9CA3AF; cursor: pointer;
+  padding: 4px 8px; border-radius: 6px;
+  transition: background .12s, color .12s;
+}
+.add-row-btn:hover { background: #EEF2FF; color: #6366F1; }
+
+/* SUMMARY ROW */
+.summary-row td { padding: 10px 16px; background: #F9FAFB; font-size: 12px; color: #9CA3AF; border-top: 1px solid #E5E7EB; }
+
+/* LABEL */
+.design-label {
+  position: fixed; top: 16px; right: 16px;
+  background: #4F46E5; color: #fff;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  box-shadow: 0 2px 8px rgba(79,70,229,.35);
+  z-index: 100;
+}
+</style>
+</head>
+<body>
+
+<div class="design-label">分类方案三：内联展开表格</div>
+
+<div class="page-header">
+  <div>
+    <div class="page-title">产品分类管理</div>
+    <div class="page-title-sub">点击 ▶ 展开子分类，操作按钮悬停显示，支持全局搜索</div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-default">导出</button>
+    <button class="btn btn-primary">+ 新建一级分类</button>
+  </div>
+</div>
+
+<div class="table-card">
+
+  <!-- Toolbar -->
+  <div class="table-toolbar">
+    <div class="search-box">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="color:#C4C4C4;flex-shrink:0"><path d="M14 14l-4-4m0 0A5 5 0 102 7a5 5 0 008 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+      <input type="text" placeholder="搜索分类名称 / 编号...">
+    </div>
+    <div style="flex:1"></div>
+    <span style="font-size:12px;color:#9CA3AF">共 3 个一级分类，11 个子分类</span>
+  </div>
+
+  <!-- TABLE -->
+  <table>
+    <thead>
+      <tr>
+        <th style="width:32px"></th>
+        <th>分类名称</th>
+        <th>分类编号</th>
+        <th class="center">层级</th>
+        <th class="center">子分类数</th>
+        <th class="center">关联 SPU</th>
+        <th>采购 / 产品负责人</th>
+        <th class="right" style="padding-right:20px">操作</th>
+      </tr>
+    </thead>
+    <tbody>
+
+      <!-- ===== L1: 实验室仪器 ===== -->
+      <tr class="row-l1">
+        <td style="padding-left:14px">
+          <button class="expand-btn open" id="btn-1" onclick="toggleRow('l1-1', 'btn-1')">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+        </td>
+        <td>
+          <div class="name-cell">
+            <span class="lvl lvl-1">L1</span>
+            <span class="cat-name">实验室仪器</span>
+            <span class="cat-code">CAT-001</span>
+          </div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-001</td>
+        <td class="center"><span class="tag tag-active">一级</span></td>
+        <td class="center"><span class="num">4</span></td>
+        <td class="center"><span class="num">86</span></td>
+        <td><span class="owner-chip">张三 / 李四</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs" onclick="alert('编辑')">编辑</button>
+            <button class="btn btn-dashed btn-xs" onclick="alert('新建子分类')">+ 子分类</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- L2: 分析仪器 -->
+      <tr class="row-l2 row-l2-expand open" id="l1-1-l2-1">
+        <td style="padding-left:36px">
+          <button class="expand-btn open" id="btn-1-1" onclick="toggleRow('l2-1', 'btn-1-1')">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+        </td>
+        <td class="row-indent-1">
+          <div class="name-cell">
+            <span class="lvl lvl-2">L2</span>
+            <span class="cat-name">分析仪器</span>
+          </div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-001-001</td>
+        <td class="center"><span class="tag tag-active">二级</span></td>
+        <td class="center"><span class="num">3</span></td>
+        <td class="center"><span class="num">28</span></td>
+        <td><span class="owner-chip">张三 / 李四</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs" onclick="alert('编辑')">编辑</button>
+            <button class="btn btn-dashed btn-xs" onclick="alert('新建子分类')">+ 子分类</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- L3: 色谱仪 -->
+      <tr class="row-l3 row-l3-expand open" id="l2-1-l3-1">
+        <td><button class="expand-btn leaf"></button></td>
+        <td class="row-indent-2">
+          <div class="name-cell">
+            <span class="lvl lvl-3">L3</span>
+            <span class="cat-name">色谱仪</span>
+          </div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-001-001-001</td>
+        <td class="center"><span class="tag tag-active">三级</span></td>
+        <td class="center"><span class="num zero">—</span></td>
+        <td class="center"><span class="num">12</span></td>
+        <td><span class="owner-chip">张三</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs" onclick="alert('编辑')">编辑</button>
+            <button class="btn btn-default btn-xs" style="color:#9CA3AF;cursor:not-allowed;opacity:.5" disabled>+ 子分类</button>
+          </div>
+        </td>
+      </tr>
+      <!-- L3: 质谱仪 -->
+      <tr class="row-l3 row-l3-expand open" id="l2-1-l3-2">
+        <td><button class="expand-btn leaf"></button></td>
+        <td class="row-indent-2">
+          <div class="name-cell"><span class="lvl lvl-3">L3</span><span class="cat-name">质谱仪</span></div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-001-001-002</td>
+        <td class="center"><span class="tag tag-active">三级</span></td>
+        <td class="center"><span class="num zero">—</span></td>
+        <td class="center"><span class="num">8</span></td>
+        <td><span class="owner-chip">李四</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs" onclick="alert('编辑')">编辑</button>
+          </div>
+        </td>
+      </tr>
+      <!-- L3: 核磁仪 -->
+      <tr class="row-l3 row-l3-expand open" id="l2-1-l3-3">
+        <td><button class="expand-btn leaf"></button></td>
+        <td class="row-indent-2">
+          <div class="name-cell"><span class="lvl lvl-3">L3</span><span class="cat-name">核磁仪</span></div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-001-001-003</td>
+        <td class="center"><span class="tag tag-active">三级</span></td>
+        <td class="center"><span class="num zero">—</span></td>
+        <td class="center"><span class="num">8</span></td>
+        <td><span class="owner-chip">张三</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs" onclick="alert('编辑')">编辑</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- Inline add L3 -->
+      <tr class="add-row row-l3-expand open" id="l2-1-add">
+        <td colspan="8">
+          <div class="row-indent-2" style="display:inline-block">
+            <span class="add-row-btn" onclick="alert('新建子分类：分析仪器下')">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+              在"分析仪器"下新建子分类
+            </span>
+          </div>
+        </td>
+      </tr>
+
+      <!-- L2: 光谱仪器 -->
+      <tr class="row-l2 row-l2-expand open" id="l1-1-l2-2">
+        <td style="padding-left:36px">
+          <button class="expand-btn leaf"></button>
+        </td>
+        <td class="row-indent-1">
+          <div class="name-cell"><span class="lvl lvl-2">L2</span><span class="cat-name">光谱仪器</span></div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-001-002</td>
+        <td class="center"><span class="tag tag-active">二级</span></td>
+        <td class="center"><span class="num zero">0</span></td>
+        <td class="center"><span class="num">35</span></td>
+        <td><span class="owner-chip">李四</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs">编辑</button>
+            <button class="btn btn-dashed btn-xs">+ 子分类</button>
+          </div>
+        </td>
+      </tr>
+      <tr class="row-l2 row-l2-expand open" id="l1-1-l2-3">
+        <td style="padding-left:36px"><button class="expand-btn leaf"></button></td>
+        <td class="row-indent-1">
+          <div class="name-cell"><span class="lvl lvl-2">L2</span><span class="cat-name">显微镜</span></div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-001-003</td>
+        <td class="center"><span class="tag tag-active">二级</span></td>
+        <td class="center"><span class="num zero">0</span></td>
+        <td class="center"><span class="num">23</span></td>
+        <td><span class="owner-chip">王五 / 李四</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs">编辑</button>
+            <button class="btn btn-dashed btn-xs">+ 子分类</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- Inline add L2 -->
+      <tr class="add-row row-l2-expand open" id="l1-1-add">
+        <td colspan="8">
+          <div style="padding-left:36px">
+            <span class="add-row-btn" onclick="alert('新建子分类：实验室仪器下')">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+              在"实验室仪器"下新建子分类
+            </span>
+          </div>
+        </td>
+      </tr>
+
+      <!-- ===== L1: 工业检测设备 ===== -->
+      <tr class="row-l1">
+        <td style="padding-left:14px">
+          <button class="expand-btn" id="btn-2" onclick="toggleRow('l1-2', 'btn-2')">
+            <svg width="9" height="9" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+        </td>
+        <td>
+          <div class="name-cell">
+            <span class="lvl lvl-1">L1</span>
+            <span class="cat-name">工业检测设备</span>
+            <span class="cat-code">CAT-002</span>
+          </div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-002</td>
+        <td class="center"><span class="tag tag-active">一级</span></td>
+        <td class="center"><span class="num">3</span></td>
+        <td class="center"><span class="num">64</span></td>
+        <td><span class="owner-chip">王五 / 赵六</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs" onclick="alert('编辑')">编辑</button>
+            <button class="btn btn-dashed btn-xs">+ 子分类</button>
+          </div>
+        </td>
+      </tr>
+      <tr class="row-l2 row-l2-expand" id="l1-2-l2-1">
+        <td style="padding-left:36px"><button class="expand-btn leaf"></button></td>
+        <td class="row-indent-1"><div class="name-cell"><span class="lvl lvl-2">L2</span><span class="cat-name">无损检测</span></div></td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-002-001</td>
+        <td class="center"><span class="tag tag-active">二级</span></td>
+        <td class="center"><span class="num zero">0</span></td>
+        <td class="center"><span class="num">12</span></td>
+        <td><span class="owner-chip">王五</span></td>
+        <td><div class="actions"><button class="btn btn-default btn-xs">编辑</button><button class="btn btn-dashed btn-xs">+ 子分类</button></div></td>
+      </tr>
+      <tr class="add-row row-l2-expand" id="l1-2-add">
+        <td colspan="8">
+          <div style="padding-left:36px">
+            <span class="add-row-btn">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"/></svg>
+              在"工业检测设备"下新建子分类
+            </span>
+          </div>
+        </td>
+      </tr>
+
+      <!-- ===== L1: 传感器 ===== -->
+      <tr class="row-l1">
+        <td style="padding-left:14px"><button class="expand-btn leaf"></button></td>
+        <td>
+          <div class="name-cell">
+            <span class="lvl lvl-1">L1</span>
+            <span class="cat-name">传感器</span>
+            <span class="cat-code">CAT-003</span>
+          </div>
+        </td>
+        <td style="color:#9CA3AF;font-size:12px">CAT-003</td>
+        <td class="center"><span class="tag tag-active">一级</span></td>
+        <td class="center"><span class="num zero">0</span></td>
+        <td class="center"><span class="num">36</span></td>
+        <td><span class="owner-chip">孙七</span></td>
+        <td>
+          <div class="actions">
+            <button class="btn btn-default btn-xs">编辑</button>
+            <button class="btn btn-dashed btn-xs">+ 子分类</button>
+          </div>
+        </td>
+      </tr>
+
+      <!-- Summary row -->
+      <tr class="summary-row">
+        <td colspan="8">共 3 个一级分类，11 个子分类，186 个关联 SPU，1,024 个有效 SKU</td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+<script>
+// Toggle all children rows for a given parent id prefix
+function toggleRow(groupId, btnId) {
+  const btn = document.getElementById(btnId);
+  const isOpen = btn.classList.contains('open');
+  btn.classList.toggle('open', !isOpen);
+
+  // Toggle direct children
+  const prefix = 'l1-1'; // simplified for demo
+  if (groupId === 'l1-1') {
+    const ids = ['l1-1-l2-1','l1-1-l2-2','l1-1-l2-3','l1-1-add'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('open', !isOpen);
+    });
+    // Also toggle L3 rows if opening
+    if (!isOpen) {
+      ['l2-1-l3-1','l2-1-l3-2','l2-1-l3-3','l2-1-add'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('open');
+      });
+    } else {
+      ['l2-1-l3-1','l2-1-l3-2','l2-1-l3-3','l2-1-add'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('open');
+      });
+    }
+  } else if (groupId === 'l2-1') {
+    const ids = ['l2-1-l3-1','l2-1-l3-2','l2-1-l3-3','l2-1-add'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('open', !isOpen);
+    });
+  } else if (groupId === 'l1-2') {
+    const ids = ['l1-2-l2-1','l1-2-add'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('open', !isOpen);
+    });
+  }
+}
+</script>
+</body>
+</html>

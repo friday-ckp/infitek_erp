@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 inputDocuments:
   - _bmad-output/planning-artifacts/product-brief-infitek_erp.md
   - _bmad-output/planning-artifacts/prd.md
@@ -1225,3 +1225,269 @@ xxl: column={3}
 5. **ARIA 标注**：所有自定义组件（FlowProgress、SmartButton、InventoryIndicator 等）添加合适的 `role` 和 `aria-label`
 6. **键盘支持**：所有可点击的非 `<button>/<a>` 元素添加 `tabIndex={0}` 和键盘事件处理
 7. **焦点样式**：不使用 `outline: none` 移除默认焦点样式，使用自定义 focus-visible 样式替代
+
+---
+
+## 已定稿页面设计规范
+
+> **版本说明**：本节为 Step 15，基于可交互 HTML 原型评审后锁定的实现规范。
+> 参考原型文件：
+> - 侧边栏：`_bmad-output/planning-artifacts/sidebar-final-light-pill.html`
+> - 产品分类页：`_bmad-output/planning-artifacts/category-v1-tree-card.html`
+
+---
+
+### 一、全局侧边栏（Sidebar）定稿规范
+
+**定稿方案：浅色胶囊激活版**
+
+#### 1.1 整体结构
+
+```
+Sidebar (224px 固定宽)
+├── Logo 区域（顶部，含渐变图标）
+├── 导航区域（flex: 1，可滚动）
+│   ├── SECTION LABEL（业务模块）
+│   ├── 可展开菜单组 × N
+│   ├── 分隔线
+│   ├── SECTION LABEL（系统功能）
+│   └── 可展开菜单组 × M
+└── 用户信息区（底部固定）
+```
+
+#### 1.2 视觉规格
+
+| 元素 | 规格 |
+|------|------|
+| 侧边栏背景 | `#FFFFFF` |
+| 右侧边框 | `1px solid #E5E7EB` |
+| 宽度 | `224px`（固定，不可折叠，MVP） |
+| 滚动条 | 宽 4px，颜色 `#E5E7EB` |
+
+**Logo 区域：**
+
+| 元素 | 规格 |
+|------|------|
+| 内边距 | `20px 16px 16px` |
+| 底部边框 | `1px solid #F3F4F6` |
+| 图标容器 | 32×32px，圆角 9px，渐变背景 `linear-gradient(135deg, #4F46E5, #7C3AED)`，投影 `0 2px 6px rgba(79,70,229,.25)` |
+| 图标内容 | 白色星形 SVG |
+| 主标题 | `14.5px / 800 / #111827 / letter-spacing: -0.3px` |
+| 副标题 | `9px / 600 / #9CA3AF / letter-spacing: 0.4px` |
+
+**Section Label：**
+
+| 属性 | 值 |
+|------|----|
+| 字号 / 字重 | `10px / 700` |
+| 颜色 | `#9CA3AF` |
+| 内边距 | `10px 8px 5px` |
+| 字间距 | `0.8px` |
+| 变换 | `uppercase` |
+
+**一级菜单项（nav-parent）：**
+
+| 状态 | 背景 | 文字颜色 | 图标颜色 |
+|------|------|---------|---------|
+| 默认 | 透明 | `#6B7280` | `#C4C4C4` |
+| Hover | `#F5F3FF` | `#374151` | `#818CF8` |
+| 有激活子项（has-active） | 透明 | `#1F2937` / `font-weight: 600` | `#6366F1` |
+| 展开箭头颜色（has-active） | — | — | `#A5B4FC` |
+
+- 内边距：`8px 10px`
+- 圆角：`8px`
+- 行间距（gap）：`9px`
+- 箭头：SVG chevron，展开时旋转 90°，过渡 `0.22s cubic-bezier(.4,0,.2,1)`
+
+**二级菜单项（nav-child）：**
+
+| 状态 | 背景 | 文字颜色 |
+|------|------|---------|
+| 默认 | 透明 | `#9CA3AF` |
+| Hover | `#F5F3FF` | `#4B5563` |
+| **激活（active）** | **`#4F46E5`（胶囊蓝）** | **`#FFFFFF` / `font-weight: 600`** |
+
+- 内边距：`7px 10px 7px 36px`（左侧 36px 形成缩进）
+- 圆角：`8px`
+- 字号：`13px`
+- 展开动画：`max-height` 从 0 → 500px，过渡 `0.25s cubic-bezier(.4,0,.2,1)`
+
+**财务管理（待上线）处理：**
+- 整行 `opacity: 0.5` + `pointer-events: none`
+- 右侧显示徽标：背景 `#F5F3FF`，文字 `#A78BFA`，边框 `1px solid #DDD6FE`，文字"即将上线"
+
+#### 1.3 底部用户区
+
+| 元素 | 规格 |
+|------|------|
+| 顶部边框 | `1px solid #F3F4F6` |
+| 内边距 | `11px 12px` |
+| 头像 | 32×32px，圆角 8px，渐变 `linear-gradient(135deg, #4F46E5, #7C3AED)`，白色文字（名字首两字） |
+| 姓名 | `12.5px / 600 / #1F2937` |
+| 角色 | `10.5px / #9CA3AF` |
+| 操作按钮（设置/退出） | 26×26px，圆角 7px，颜色 `#C4C4C4`，Hover 背景 `#F5F3FF` / 颜色 `#6366F1` |
+
+#### 1.4 交互行为规范
+
+1. **展开 / 收起**：点击一级菜单触发，同一时间可多组同时展开（非手风琴模式）
+2. **激活联动**：点击子菜单项后，该项变为胶囊激活态；其父级一级菜单自动获得 `has-active` 状态（图标紫色，文字加粗）
+3. **面包屑同步**：激活切换同步更新顶栏面包屑文字
+4. **初始状态**：当前路由所在父级默认展开，对应子项激活
+
+---
+
+### 二、产品分类管理页（ProductCategoriesPage）定稿规范
+
+**定稿方案：左侧树形 + 右侧卡片详情**
+
+#### 2.1 页面整体结构
+
+```
+ProductCategoriesPage
+├── 页头（Page Header）
+│   ├── 左：页面标题 + 总数副标题
+│   └── 右：「+ 新建一级分类」按钮（Primary）
+└── 主体布局（flex，min-height: 600px）
+    ├── 左侧：树形面板（TreePanel，固定 280px）
+    └── 右侧：详情面板（DetailPanel，flex: 1）
+```
+
+#### 2.2 页头规格
+
+| 元素 | 规格 |
+|------|------|
+| 标题 | `20px / 700 / #111827` |
+| 副标题 | `12.5px / #9CA3AF`，内容：「共 X 个一级分类，Y 个子分类」 |
+| 新建按钮 | Primary，`#4F46E5`，悬停 `#4338CA` |
+
+#### 2.3 左侧树形面板（TreePanel）
+
+**容器：**
+- 宽度：`280px`（固定）
+- 背景：`#FFFFFF`，圆角 `12px`，边框 `1px solid #E5E7EB`
+- 内部分为：面板头部、搜索框、树形主体（overflow: auto）
+
+**面板头部：**
+- 内边距：`14px 16px`，底部边框 `1px solid #F3F4F6`
+- 左：`「分类树」`，`13px / 600 / #374151`
+- 右：计数 badge（背景 `#F3F4F6`，文字 `#9CA3AF`），如「3 / 11 条」
+
+**搜索框：**
+- 外边距：`10px 12px`
+- 输入框：左侧搜索图标，`padding: 7px 10px 7px 32px`，边框 `1px solid #E5E7EB`，圆角 `7px`，背景 `#FAFAFA`
+- 聚焦态：边框 `#818CF8`，背景 `#FFFFFF`
+
+**树节点行（tree-node-row）：**
+
+| 状态 | 背景 | 文字颜色 |
+|------|------|---------|
+| 默认 | 透明 | `#374151` |
+| Hover | `#F3F4F6` | `#374151` |
+| 激活（selected） | `#EEF2FF` | `#4F46E5 / font-weight: 600` |
+
+- 内边距：`6px 8px`，圆角 `7px`，字号 `13px`
+- 行内元素（从左到右）：展开箭头（16×16px）、层级徽标、分类图标、分类名称、子分类计数 badge
+
+**层级徽标（Level Badge）：**
+
+| 层级 | 背景 | 文字颜色 | 内容 |
+|------|------|---------|------|
+| L1（一级） | `#EDE9FE` | `#7C3AED` | `L1` |
+| L2（二级） | `#DBEAFE` | `#2563EB` | `L2` |
+| L3（三级） | `#D1FAE5` | `#059669` | `L3` |
+
+- 字号 `9.5px / 700`，内边距 `1px 5px`，圆角 `4px`
+
+**子分类计数 badge：**
+- 默认：背景 `#F3F4F6`，文字 `#9CA3AF`
+- 激活节点：背景 `#C7D2FE`，文字 `#4F46E5`
+
+**展开箭头：**
+- SVG chevron（10×10px），展开时旋转 90°，过渡 `0.18s`
+- 叶子节点（无子项）：`opacity: 0; pointer-events: none`
+
+**子节点缩进：** `padding-left: 20px`
+
+#### 2.4 右侧详情面板（DetailPanel）
+
+**未选中状态（空态）：**
+- 居中显示图标 + 文案「请在左侧选择分类」
+- 图标容器：56×56px，圆角 `14px`，背景 `#F9FAFB`
+
+**选中状态布局（从上到下）：**
+
+```
+DetailPanel（flex column，gap: 14px）
+├── 详情头部卡片（DetailHeader）
+├── 统计数据行（StatRow）
+└── 基本信息卡片（InfoCard）
+```
+
+**详情头部卡片（DetailHeader）：**
+- 背景白色，圆角 `12px`，边框 `1px solid #E5E7EB`，内边距 `16px 20px`
+- 左侧：
+  - 分类图标容器：44×44px，圆角 `11px`，背景 `linear-gradient(135deg, #EDE9FE, #C7D2FE)`
+  - 分类名称：`18px / 700 / #111827`
+  - 元信息行（层级徽标 + 分类编号）：徽标同树形面板规格，编号 `11.5px / #6B7280`
+  - 路径面包屑：`11.5px`，各层级 `#6B7280`，当前节点 `#4F46E5 / 600`，分隔符 `›`，`color: #D1D5DB`
+- 右侧操作按钮组：
+  - 「编辑」：Default 按钮（`btn-sm`）
+  - 「+ 子分类」：Dashed 按钮（`btn-sm`）；已是第 3 级时禁用（`opacity: 0.4; cursor: not-allowed`）
+
+**统计数据行（StatRow）：**
+- 3 个 StatCard 横向排列（`flex: 1`，`gap: 12px`）
+- 每个 StatCard：白色背景，圆角 `10px`，边框 `1px solid #E5E7EB`，内边距 `14px 16px`
+- 标签：`11.5px / #9CA3AF`
+- 数值：`22px / 700`，颜色按语义：蓝 `#4F46E5` / 绿 `#059669` / 橙 `#D97706`
+- 副标题：`11px / #9CA3AF`
+
+**三个固定统计项：**
+
+| 位置 | 标签 | 颜色 | 内容说明 |
+|------|------|------|---------|
+| 第 1 项 | 关联 SPU 数 | 蓝 `#4F46E5` | 该分类下 SPU 总数 |
+| 第 2 项 | 有效 SKU 数 | 绿 `#059669` | 活跃 SKU 数量 |
+| 第 3 项 | 同级分类数 | 橙 `#D97706` | 同父级下的分类数量 |
+
+**基本信息卡片（InfoCard）：**
+- 白色背景，圆角 `12px`，边框 `1px solid #E5E7EB`
+- 卡片标题：`12.5px / 600 / #6B7280`，内边距 `12px 18px`，底部边框 `1px solid #F3F4F6`，带信息图标
+- 内容区：2 列网格（`grid-template-columns: 1fr 1fr`）
+- 每个字段项：内边距 `12px 18px`，奇数列右侧分割线 `1px solid #F9FAFB`
+
+**字段展示规格：**
+- 字段标签：`11px / 500 / #9CA3AF`，下边距 `3px`
+- 字段值：`13.5px / 500 / #111827`
+- 空值：`12px / italic / #D1D5DB`，显示「—」
+
+**固定展示字段（6项 × 2列）：**
+
+| 字段 | 来源 |
+|------|------|
+| 中文名称 | `node.name` |
+| 英文名称 | `node.nameEn`（空则显示「—」） |
+| 采购负责人 | `node.purchaseOwner`（空则显示「—」） |
+| 产品负责人 | `node.productOwner`（空则显示「—」） |
+| 父级分类 | 从路径推导（根节点显示「—」） |
+| 创建时间 | `node.createdAt`（格式 `YYYY-MM-DD`） |
+
+#### 2.5 交互行为规范
+
+1. **树节点选中**：点击任意节点行整行可触发选中，激活高亮，右侧详情联动更新
+2. **展开 / 收起**：点击展开箭头按钮（16×16px）触发，箭头旋转动画；点击节点行不触发展开收起
+3. **默认展开**：所有节点默认全展开（`defaultExpandAll`）
+4. **创建下钻**：
+   - 点击「+ 新建一级分类」→ 导航到 `/master-data/product-categories/create`
+   - 点击「新建子分类」→ 导航到 `/master-data/product-categories/create?parentId={id}`
+   - 第 3 级节点的「新建子分类」按钮禁用，Tooltip 说明「已达最大层级（3级）」
+5. **编辑**：点击「编辑」→ 导航到 `/master-data/product-categories/{id}/edit`
+6. **空状态**：数据加载中显示 Skeleton；无任何分类时左侧树显示空状态 + 「新建一级分类」引导按钮
+
+---
+
+### 三、定稿参考文件索引
+
+| 页面 | 原型文件 | 定稿时间 |
+|------|---------|---------|
+| 全局侧边栏 | `_bmad-output/planning-artifacts/sidebar-final-light-pill.html` | 2026-04-21 |
+| 产品分类管理页 | `_bmad-output/planning-artifacts/category-v1-tree-card.html` | 2026-04-21 |

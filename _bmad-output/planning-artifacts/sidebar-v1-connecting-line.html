@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>侧边栏方案一：层级连接线</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; display: flex; height: 100vh; background: #F9FAFB; }
+
+/* ========= SIDEBAR ========= */
+.sidebar {
+  width: 224px; min-width: 224px;
+  background: #fff;
+  border-right: 1px solid #E5E7EB;
+  display: flex; flex-direction: column;
+  height: 100vh; overflow-y: auto;
+  flex-shrink: 0;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
+
+.logo {
+  padding: 20px 18px 16px;
+  border-bottom: 1px solid #F3F4F6;
+}
+.logo-title { font-size: 15px; font-weight: 800; color: #111827; letter-spacing: -0.3px; }
+.logo-sub { font-size: 9px; color: #9CA3AF; font-weight: 600; margin-top: 1px; letter-spacing: 0.5px; }
+
+.nav { flex: 1; padding: 8px 0; }
+
+/* 一级菜单项 */
+.nav-group { margin-bottom: 2px; }
+.nav-parent {
+  display: flex; align-items: center;
+  padding: 9px 16px;
+  cursor: pointer;
+  font-size: 13.5px; font-weight: 600;
+  color: #374151;
+  border-radius: 6px;
+  margin: 0 8px;
+  gap: 9px;
+  transition: background 0.15s, color 0.15s;
+  position: relative;
+}
+.nav-parent:hover { background: #F9FAFB; color: #111827; }
+.nav-parent.has-active { color: #111827; background: #F0F1FF; }
+.nav-parent .icon {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: #9CA3AF;
+  transition: color 0.15s;
+}
+.nav-parent.has-active .icon { color: #4F46E5; }
+.nav-parent:hover .icon { color: #6B7280; }
+.nav-parent .label { flex: 1; }
+.nav-parent .chevron {
+  width: 14px; height: 14px;
+  display: flex; align-items: center; justify-content: center;
+  color: #9CA3AF;
+  transition: transform 0.2s cubic-bezier(.4,0,.2,1);
+  flex-shrink: 0;
+}
+.nav-parent.open .chevron { transform: rotate(90deg); }
+
+/* 子菜单容器：连接线效果 */
+.nav-children {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.25s cubic-bezier(.4,0,.2,1);
+}
+.nav-children.open { max-height: 400px; }
+.nav-children-inner {
+  padding: 4px 0 8px 0;
+  position: relative;
+  margin-left: 35px; /* icon宽度18 + gap9 + margin16 - 8 */
+}
+
+/* 左侧竖线 */
+.nav-children-inner::before {
+  content: '';
+  position: absolute;
+  left: 8px; /* 文字居中对齐 */
+  top: 0; bottom: 8px;
+  width: 1.5px;
+  background: linear-gradient(to bottom, #E5E7EB 0%, transparent 100%);
+  border-radius: 1px;
+}
+
+.nav-child {
+  display: flex; align-items: center;
+  padding: 7px 12px 7px 28px;
+  font-size: 13px;
+  color: #6B7280;
+  cursor: pointer;
+  border-radius: 6px;
+  margin: 1px 8px 1px 0;
+  position: relative;
+  transition: background 0.12s, color 0.12s;
+  font-weight: 400;
+}
+/* 水平连接线 */
+.nav-child::before {
+  content: '';
+  position: absolute;
+  left: 8px; top: 50%;
+  width: 12px; height: 1.5px;
+  background: #E5E7EB;
+  transform: translateY(-50%);
+}
+.nav-child:hover { background: #F9FAFB; color: #374151; }
+.nav-child:hover::before { background: #C7D2FE; }
+.nav-child.active {
+  background: #EEF2FF;
+  color: #4F46E5;
+  font-weight: 600;
+}
+.nav-child.active::before { background: #4F46E5; }
+
+/* 分隔线 */
+.nav-divider {
+  height: 1px; background: #F3F4F6;
+  margin: 6px 16px;
+}
+
+/* 底部用户区 */
+.sidebar-footer {
+  border-top: 1px solid #F3F4F6;
+  padding: 12px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.avatar {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #4F46E5; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0;
+}
+.user-info { flex: 1; min-width: 0; }
+.user-name { font-size: 12.5px; font-weight: 600; color: #111827; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.user-role { font-size: 10.5px; color: #9CA3AF; margin-top: 1px; }
+.footer-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.footer-btn {
+  width: 26px; height: 26px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: #9CA3AF; cursor: pointer; border: none; background: transparent;
+  transition: background 0.12s, color 0.12s;
+}
+.footer-btn:hover { background: #F0F1FF; color: #4F46E5; }
+
+/* ========= MAIN CONTENT ========= */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  height: 56px; background: #fff; border-bottom: 1px solid #E5E7EB;
+  display: flex; align-items: center; padding: 0 24px;
+  justify-content: space-between; flex-shrink: 0;
+}
+.breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6B7280; }
+.breadcrumb .sep { color: #D1D5DB; }
+.breadcrumb .current { color: #111827; font-weight: 500; }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+.topbar-icon { width: 32px; height: 32px; border-radius: 8px; background: #F9FAFB; border: 1px solid #E5E7EB; display: flex; align-items: center; justify-content: center; color: #6B7280; cursor: pointer; }
+.content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+.page-placeholder {
+  background: #fff; border-radius: 12px; border: 1px solid #E5E7EB;
+  height: 400px; display: flex; align-items: center; justify-content: center;
+  color: #9CA3AF; font-size: 14px;
+}
+
+/* ========= DESIGN LABEL ========= */
+.design-label {
+  position: fixed; top: 16px; right: 16px;
+  background: #4F46E5; color: #fff;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  box-shadow: 0 2px 8px rgba(79,70,229,.35);
+  z-index: 100;
+}
+.design-desc {
+  position: fixed; bottom: 16px; right: 16px;
+  background: #fff; border: 1px solid #E5E7EB;
+  border-radius: 10px; padding: 12px 16px;
+  max-width: 260px; font-size: 12px; line-height: 1.6; color: #374151;
+  box-shadow: 0 4px 12px rgba(0,0,0,.08);
+}
+.design-desc strong { display: block; color: #111827; font-size: 13px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<div class="design-label">方案一：层级连接线</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-title">星辰科技 ERP</div>
+    <div class="logo-sub">INFITEK ENTERPRISE</div>
+  </div>
+
+  <nav class="nav" id="nav">
+    <!-- 销售管理 -->
+    <div class="nav-group">
+      <div class="nav-parent" data-key="sales" onclick="toggle(this)">
+        <span class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 2h7l3 3v9H3V2z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M10 2v3h3" stroke="currentColor" strokeWidth="1.3"/><line x1="5" y1="7" x2="11" y2="7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="5" y1="9.5" x2="11" y2="9.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg></span>
+        <span class="label">销售管理</span>
+        <span class="chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+      </div>
+      <div class="nav-children" id="ch-sales">
+        <div class="nav-children-inner">
+          <div class="nav-child" onclick="setActive(this)">销售订单</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 商务管理 -->
+    <div class="nav-group">
+      <div class="nav-parent" data-key="commerce" onclick="toggle(this)">
+        <span class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M1 10l2-5h10l2 5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M1 10c0 1.657 1.343 2 3 2s3-.343 3-2" stroke="currentColor" strokeWidth="1.3"/><path d="M7 10c0 1.657 1.343 2 3 2s3-.343 3-2" stroke="currentColor" strokeWidth="1.3"/></svg></span>
+        <span class="label">商务管理</span>
+        <span class="chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+      </div>
+      <div class="nav-children" id="ch-commerce">
+        <div class="nav-children-inner">
+          <div class="nav-child" onclick="setActive(this)">发货需求</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 采购管理 -->
+    <div class="nav-group">
+      <div class="nav-parent" data-key="purchase" onclick="toggle(this)">
+        <span class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 5h12l-1.5 8H3.5L2 5z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M5.5 5V4a2.5 2.5 0 015 0v1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg></span>
+        <span class="label">采购管理</span>
+        <span class="chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+      </div>
+      <div class="nav-children" id="ch-purchase">
+        <div class="nav-children-inner">
+          <div class="nav-child" onclick="setActive(this)">采购订单</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 产品管理 (default open + active) -->
+    <div class="nav-group">
+      <div class="nav-parent has-active open" data-key="product" onclick="toggle(this)">
+        <span class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l6 3v6l-6 3-6-3v-6l6-3z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><path d="M8 1.5v13" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/><path d="M2 4.5l6 3 6-3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round"/></svg></span>
+        <span class="label">产品管理</span>
+        <span class="chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+      </div>
+      <div class="nav-children open" id="ch-product">
+        <div class="nav-children-inner">
+          <div class="nav-child active" onclick="setActive(this)">产品分类</div>
+          <div class="nav-child" onclick="setActive(this)">SPU 管理</div>
+          <div class="nav-child" onclick="setActive(this)">SKU 管理</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 库存管理 -->
+    <div class="nav-group">
+      <div class="nav-parent" data-key="inventory" onclick="toggle(this)">
+        <span class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1.5" y="7" width="13" height="7.5" rx="1" stroke="currentColor" strokeWidth="1.3"/><path d="M1 7l7-5.5 7 5.5" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/><rect x="5.5" y="10" width="5" height="4.5" rx=".5" stroke="currentColor" strokeWidth="1.1"/></svg></span>
+        <span class="label">库存管理</span>
+        <span class="chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+      </div>
+      <div class="nav-children" id="ch-inventory">
+        <div class="nav-children-inner">
+          <div class="nav-child" onclick="setActive(this)">库存查询</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-divider"></div>
+
+    <!-- 财务管理 -->
+    <div class="nav-group">
+      <div class="nav-parent" style="cursor:default;opacity:.5">
+        <span class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.3"/><path d="M8 4v8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><path d="M5.5 6C5.5 5 6.5 4.5 8 4.5s2.5.8 2.5 1.8c0 2.4-5 1.8-5 4.2 0 1.1 1.1 1.8 2.5 1.8s2.5-.6 2.5-1.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg></span>
+        <span class="label">财务管理</span>
+        <span style="font-size:10px;color:#C4B5FD;background:#F5F3FF;padding:1px 6px;border-radius:10px;font-weight:600">即将上线</span>
+      </div>
+    </div>
+
+    <!-- 基础数据 -->
+    <div class="nav-group">
+      <div class="nav-parent" data-key="master" onclick="toggle(this)">
+        <span class="icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.3"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg></span>
+        <span class="label">基础数据</span>
+        <span class="chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+      </div>
+      <div class="nav-children" id="ch-master">
+        <div class="nav-children-inner">
+          <div class="nav-child" onclick="setActive(this)">单位管理</div>
+          <div class="nav-child" onclick="setActive(this)">公司主体</div>
+          <div class="nav-child" onclick="setActive(this)">用户管理</div>
+          <div class="nav-child" onclick="setActive(this)">仓库管理</div>
+          <div class="nav-child" onclick="setActive(this)">币种管理</div>
+          <div class="nav-child" onclick="setActive(this)">国家/地区</div>
+          <div class="nav-child" onclick="setActive(this)">供应商</div>
+          <div class="nav-child" onclick="setActive(this)">客户</div>
+        </div>
+      </div>
+    </div>
+
+  </nav>
+
+  <!-- 底部用户 -->
+  <div class="sidebar-footer">
+    <div class="avatar">FR</div>
+    <div class="user-info">
+      <div class="user-name">friday</div>
+      <div class="user-role">管理员</div>
+    </div>
+    <div class="footer-actions">
+      <button class="footer-btn" title="设置">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.3"/><path d="M8 2v1.1M8 12.9V14M2 8h1.1M12.9 8H14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+      </button>
+      <button class="footer-btn" title="退出">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M6 2.5H3a1 1 0 00-1 1v9a1 1 0 001 1h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><path d="M10.5 11l3-3-3-3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/><line x1="13.5" y1="8" x2="6" y2="8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="breadcrumb">
+      <span>产品管理</span>
+      <span class="sep">/</span>
+      <span class="current">产品分类</span>
+    </div>
+    <div class="topbar-right">
+      <div class="topbar-icon">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M14 14l-4-4m0 0A5 5 0 102 7a5 5 0 008 5z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>
+      </div>
+      <div class="topbar-icon">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M8 2a4.5 4.5 0 014.5 4.5c0 2.5.5 4 1.5 5H2c1-1 1.5-2.5 1.5-5A4.5 4.5 0 018 2z" stroke="currentColor" strokeWidth="1.3"/><path d="M6.5 13.5a1.5 1.5 0 003 0" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>
+      </div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-placeholder">
+      ← 当前高亮：产品管理 › 产品分类（点击菜单项可切换激活状态）
+    </div>
+  </div>
+</div>
+
+<div class="design-desc">
+  <strong>方案一亮点：层级连接线</strong>
+  子菜单展开时显示垂直连接线 + 水平分支线，<br>
+  清晰呈现层级关系。SVG 箭头平滑旋转动画，<br>
+  父级在有激活子项时高亮背景提示关联感。
+</div>
+
+<script>
+function toggle(el) {
+  const key = el.dataset.key;
+  const ch = document.getElementById('ch-' + key);
+  if (!ch) return;
+  const isOpen = ch.classList.contains('open');
+  el.classList.toggle('open', !isOpen);
+  ch.classList.toggle('open', !isOpen);
+  // Update has-active based on active child
+  updateParentState(el);
+}
+
+function setActive(el) {
+  document.querySelectorAll('.nav-child').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  // Update all parent states
+  document.querySelectorAll('.nav-parent').forEach(updateParentState);
+  // Update breadcrumb
+  const group = el.closest('.nav-group');
+  const parent = group?.querySelector('.nav-parent .label');
+  if (parent) {
+    document.querySelector('.breadcrumb').innerHTML =
+      `<span>${parent.textContent}</span><span class="sep">/</span><span class="current">${el.textContent}</span>`;
+  }
+}
+
+function updateParentState(parent) {
+  const key = parent.dataset.key;
+  const ch = document.getElementById('ch-' + key);
+  if (!ch) return;
+  const hasActive = ch.querySelector('.nav-child.active');
+  parent.classList.toggle('has-active', !!hasActive);
+}
+</script>
+</body>
+</html>

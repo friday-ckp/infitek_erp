@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>产品分类方案一：树形 + 卡片详情</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif; background: #F9FAFB; min-height: 100vh; padding: 24px 32px; color: #111827; }
+
+/* PAGE HEADER */
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.page-title { font-size: 20px; font-weight: 700; color: #111827; }
+.btn { padding: 7px 16px; border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+.btn-primary { background: #4F46E5; color: #fff; }
+.btn-primary:hover { background: #4338CA; }
+.btn-default { background: #fff; color: #374151; border: 1px solid #D1D5DB; }
+.btn-default:hover { border-color: #A5B4FC; color: #4F46E5; }
+.btn-dashed { background: #fff; color: #6366F1; border: 1.5px dashed #C7D2FE; }
+.btn-dashed:hover { background: #EEF2FF; }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* LAYOUT */
+.layout { display: flex; gap: 16px; min-height: 600px; }
+
+/* ===== LEFT PANEL: TREE ===== */
+.tree-panel {
+  width: 280px; flex-shrink: 0;
+  background: #fff; border-radius: 12px; border: 1px solid #E5E7EB;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.tree-panel-header {
+  padding: 14px 16px; border-bottom: 1px solid #F3F4F6;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.tree-panel-title { font-size: 13px; font-weight: 600; color: #374151; }
+.tree-search {
+  margin: 10px 12px;
+  position: relative;
+}
+.tree-search input {
+  width: 100%; padding: 7px 10px 7px 32px;
+  border: 1px solid #E5E7EB; border-radius: 7px;
+  font-size: 12.5px; color: #374151;
+  outline: none; transition: border-color .15s;
+  background: #FAFAFA;
+}
+.tree-search input:focus { border-color: #818CF8; background: #fff; }
+.tree-search-icon {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  color: #9CA3AF; pointer-events: none;
+}
+.tree-body { flex: 1; overflow-y: auto; padding: 6px 8px 12px; }
+.tree-body::-webkit-scrollbar { width: 3px; }
+.tree-body::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
+
+/* Tree Nodes */
+.tree-node { user-select: none; }
+.tree-node-row {
+  display: flex; align-items: center;
+  padding: 6px 8px; border-radius: 7px; cursor: pointer;
+  gap: 6px; font-size: 13px; color: #374151;
+  transition: background .12s, color .12s;
+  position: relative;
+}
+.tree-node-row:hover { background: #F3F4F6; }
+.tree-node-row.active { background: #EEF2FF; color: #4F46E5; font-weight: 600; }
+.tree-toggle {
+  width: 16px; height: 16px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #9CA3AF; transition: transform .18s;
+}
+.tree-toggle.open { transform: rotate(90deg); }
+.tree-toggle.leaf { opacity: 0; pointer-events: none; }
+.tree-icon { flex-shrink: 0; }
+.tree-label { flex: 1; }
+.tree-count {
+  font-size: 10.5px; color: #9CA3AF; background: #F3F4F6;
+  padding: 1px 6px; border-radius: 8px; font-weight: 500;
+}
+.tree-node-row.active .tree-count { background: #C7D2FE; color: #4F46E5; }
+
+/* Level badges */
+.level-badge {
+  font-size: 9.5px; font-weight: 700; padding: 1px 5px;
+  border-radius: 4px; flex-shrink: 0;
+}
+.level-1 { background: #EDE9FE; color: #7C3AED; }
+.level-2 { background: #DBEAFE; color: #2563EB; }
+.level-3 { background: #D1FAE5; color: #059669; }
+
+/* Children indent */
+.tree-children { padding-left: 20px; display: none; }
+.tree-children.open { display: block; }
+
+/* ===== RIGHT PANEL: DETAIL ===== */
+.detail-panel {
+  flex: 1;
+  display: flex; flex-direction: column; gap: 14px;
+}
+
+/* Empty state */
+.empty-state {
+  flex: 1; background: #fff; border-radius: 12px; border: 1px solid #E5E7EB;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; color: #9CA3AF;
+}
+.empty-icon { width: 56px; height: 56px; background: #F9FAFB; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+.empty-text { font-size: 13px; }
+
+/* Detail header card */
+.detail-header {
+  background: #fff; border-radius: 12px; border: 1px solid #E5E7EB;
+  padding: 16px 20px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.detail-header-left { display: flex; align-items: center; gap: 12px; }
+.detail-icon {
+  width: 44px; height: 44px; border-radius: 11px;
+  background: linear-gradient(135deg, #EDE9FE, #C7D2FE);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.detail-name { font-size: 18px; font-weight: 700; color: #111827; }
+.detail-meta { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.detail-meta .badge { font-size: 11px; padding: 2px 8px; border-radius: 8px; font-weight: 600; }
+.detail-code { font-size: 11.5px; color: #6B7280; }
+.detail-path { font-size: 11.5px; color: #9CA3AF; display: flex; align-items: center; gap: 4px; }
+.detail-path .sep { color: #D1D5DB; }
+.detail-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* Stat row */
+.stat-row { display: flex; gap: 12px; }
+.stat-card {
+  flex: 1; background: #fff; border-radius: 10px; border: 1px solid #E5E7EB;
+  padding: 14px 16px;
+}
+.stat-label { font-size: 11.5px; color: #9CA3AF; font-weight: 500; }
+.stat-value { font-size: 22px; font-weight: 700; color: #111827; margin-top: 3px; }
+.stat-sub { font-size: 11px; color: #9CA3AF; margin-top: 2px; }
+.stat-card.blue .stat-value { color: #4F46E5; }
+.stat-card.green .stat-value { color: #059669; }
+.stat-card.orange .stat-value { color: #D97706; }
+
+/* Info card */
+.info-card {
+  background: #fff; border-radius: 12px; border: 1px solid #E5E7EB;
+  overflow: hidden;
+}
+.info-card-header {
+  padding: 12px 18px; border-bottom: 1px solid #F3F4F6;
+  font-size: 12.5px; font-weight: 600; color: #6B7280; display: flex; align-items: center; gap: 6px;
+}
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+.info-item { padding: 12px 18px; border-bottom: 1px solid #F9FAFB; }
+.info-item:nth-child(odd) { border-right: 1px solid #F9FAFB; }
+.info-label { font-size: 11px; color: #9CA3AF; font-weight: 500; margin-bottom: 3px; }
+.info-value { font-size: 13.5px; color: #111827; font-weight: 500; }
+.info-value.empty { color: #D1D5DB; font-style: italic; font-size: 12px; }
+
+/* Sub-cat list */
+.sub-list { padding: 10px 14px; }
+.sub-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 10px; border-radius: 7px; transition: background .12s; cursor: pointer;
+}
+.sub-item:hover { background: #F9FAFB; }
+.sub-item-left { display: flex; align-items: center; gap: 8px; }
+.sub-item-name { font-size: 13px; color: #374151; font-weight: 500; }
+.sub-item-code { font-size: 11px; color: #9CA3AF; }
+.sub-item-right { display: flex; align-items: center; gap: 8px; }
+.sub-spu { font-size: 11.5px; color: #9CA3AF; }
+.sub-arrow { color: #D1D5DB; }
+
+/* LABEL */
+.design-label {
+  position: fixed; top: 16px; right: 16px;
+  background: #4F46E5; color: #fff;
+  padding: 6px 14px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+  box-shadow: 0 2px 8px rgba(79,70,229,.35);
+  z-index: 100;
+}
+</style>
+</head>
+<body>
+
+<div class="design-label">分类方案一：树形 + 卡片详情</div>
+
+<div class="page-header">
+  <div>
+    <div class="page-title">产品分类管理</div>
+    <div style="font-size:12.5px;color:#9CA3AF;margin-top:3px">共 3 个一级分类，11 个子分类</div>
+  </div>
+  <button class="btn btn-primary" onclick="showCreate()">+ 新建一级分类</button>
+</div>
+
+<div class="layout">
+
+  <!-- TREE PANEL -->
+  <div class="tree-panel">
+    <div class="tree-panel-header">
+      <span class="tree-panel-title">分类树</span>
+      <span style="font-size:11px;color:#9CA3AF;background:#F3F4F6;padding:2px 7px;border-radius:8px;">3 / 11 条</span>
+    </div>
+    <div class="tree-search">
+      <span class="tree-search-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M14 14l-4-4m0 0A5 5 0 102 7a5 5 0 008 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg></span>
+      <input type="text" placeholder="搜索分类名称...">
+    </div>
+    <div class="tree-body" id="tree">
+
+      <!-- 分类 1 -->
+      <div class="tree-node">
+        <div class="tree-node-row" onclick="selectNode(this, 1)">
+          <span class="tree-toggle open" onclick="toggleNode(this, event)"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+          <span class="tree-icon level-badge level-1">L1</span>
+          <span class="tree-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#7C3AED" strokeWidth="1.3"/><path d="M2 7h12" stroke="#7C3AED" strokeWidth="1.2"/></svg></span>
+          <span class="tree-label">实验室仪器</span>
+          <span class="tree-count">4</span>
+        </div>
+        <div class="tree-children open">
+          <div class="tree-node">
+            <div class="tree-node-row" onclick="selectNode(this, 2)">
+              <span class="tree-toggle leaf"></span>
+              <span class="tree-icon level-badge level-2">L2</span>
+              <span class="tree-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="4" width="10" height="8" rx="1" stroke="#2563EB" strokeWidth="1.3"/><path d="M8 4V3" stroke="#2563EB" strokeWidth="1.3" strokeLinecap="round"/></svg></span>
+              <span class="tree-label">分析仪器</span>
+              <span class="tree-count">3</span>
+            </div>
+            <div class="tree-children open">
+              <div class="tree-node">
+                <div class="tree-node-row active" onclick="selectNode(this, 3)">
+                  <span class="tree-toggle leaf"></span>
+                  <span class="tree-icon level-badge level-3">L3</span>
+                  <span class="tree-icon"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#059669" strokeWidth="1.3"/><path d="M8 5v3l2 1.5" stroke="#059669" strokeWidth="1.3" strokeLinecap="round"/></svg></span>
+                  <span class="tree-label">色谱仪</span>
+                  <span class="tree-count">0</span>
+                </div>
+              </div>
+              <div class="tree-node">
+                <div class="tree-node-row" onclick="selectNode(this, 4)">
+                  <span class="tree-toggle leaf"></span>
+                  <span class="tree-icon level-badge level-3">L3</span>
+                  <span class="tree-icon"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#059669" strokeWidth="1.3"/></svg></span>
+                  <span class="tree-label">质谱仪</span>
+                  <span class="tree-count">0</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-node-row" onclick="selectNode(this, 5)">
+              <span class="tree-toggle leaf"></span>
+              <span class="tree-icon level-badge level-2">L2</span>
+              <span class="tree-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="4" width="10" height="8" rx="1" stroke="#2563EB" strokeWidth="1.3"/></svg></span>
+              <span class="tree-label">光谱仪器</span>
+              <span class="tree-count">5</span>
+            </div>
+          </div>
+          <div class="tree-node">
+            <div class="tree-node-row" onclick="selectNode(this, 6)">
+              <span class="tree-toggle leaf"></span>
+              <span class="tree-icon level-badge level-2">L2</span>
+              <span class="tree-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="4" width="10" height="8" rx="1" stroke="#2563EB" strokeWidth="1.3"/></svg></span>
+              <span class="tree-label">显微镜</span>
+              <span class="tree-count">8</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分类 2 -->
+      <div class="tree-node">
+        <div class="tree-node-row" onclick="selectNode(this, 7)">
+          <span class="tree-toggle" onclick="toggleNode(this, event)"><svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg></span>
+          <span class="tree-icon level-badge level-1">L1</span>
+          <span class="tree-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#7C3AED" strokeWidth="1.3"/><path d="M2 7h12" stroke="#7C3AED" strokeWidth="1.2"/></svg></span>
+          <span class="tree-label">工业检测设备</span>
+          <span class="tree-count">3</span>
+        </div>
+        <div class="tree-children">
+          <div class="tree-node">
+            <div class="tree-node-row" onclick="selectNode(this, 8)">
+              <span class="tree-toggle leaf"></span>
+              <span class="tree-icon level-badge level-2">L2</span>
+              <span class="tree-icon"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="3" y="4" width="10" height="8" rx="1" stroke="#2563EB" strokeWidth="1.3"/></svg></span>
+              <span class="tree-label">无损检测</span>
+              <span class="tree-count">12</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 分类 3 -->
+      <div class="tree-node">
+        <div class="tree-node-row" onclick="selectNode(this, 9)">
+          <span class="tree-toggle leaf"></span>
+          <span class="tree-icon level-badge level-1">L1</span>
+          <span class="tree-icon"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#7C3AED" strokeWidth="1.3"/><path d="M2 7h12" stroke="#7C3AED" strokeWidth="1.2"/></svg></span>
+          <span class="tree-label">传感器</span>
+          <span class="tree-count">0</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- DETAIL PANEL -->
+  <div class="detail-panel" id="detail">
+
+    <!-- Header card -->
+    <div class="detail-header">
+      <div class="detail-header-left">
+        <div class="detail-icon">
+          <svg width="22" height="22" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#7C3AED" strokeWidth="1.5"/><path d="M8 5v3l2 1.5" stroke="#6366F1" strokeWidth="1.4" strokeLinecap="round"/></svg>
+        </div>
+        <div>
+          <div class="detail-name">色谱仪</div>
+          <div class="detail-meta">
+            <span class="badge level-3">第 3 级</span>
+            <span class="detail-code"># CAT-003-001-001</span>
+          </div>
+          <div class="detail-path" style="margin-top:5px">
+            <span style="color:#9CA3AF;font-size:11px">路径：</span>
+            <span style="font-size:11.5px;color:#6B7280">实验室仪器</span>
+            <span class="sep">›</span>
+            <span style="font-size:11.5px;color:#6B7280">分析仪器</span>
+            <span class="sep">›</span>
+            <span style="font-size:11.5px;color:#4F46E5;font-weight:600">色谱仪</span>
+          </div>
+        </div>
+      </div>
+      <div class="detail-actions">
+        <button class="btn btn-default btn-sm" onclick="editNode()">编辑</button>
+        <button class="btn btn-dashed btn-sm" style="opacity:.4;cursor:not-allowed">+ 子分类（已是第3级）</button>
+      </div>
+    </div>
+
+    <!-- Stat row -->
+    <div class="stat-row">
+      <div class="stat-card blue">
+        <div class="stat-label">关联 SPU 数</div>
+        <div class="stat-value">28</div>
+        <div class="stat-sub">共 28 个产品型号</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-label">有效 SKU 数</div>
+        <div class="stat-value">143</div>
+        <div class="stat-sub">活跃销售中</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-label">同级分类数</div>
+        <div class="stat-value">3</div>
+        <div class="stat-sub">质谱仪、光谱仪等</div>
+      </div>
+    </div>
+
+    <!-- Info card -->
+    <div class="info-card">
+      <div class="info-card-header">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.3"/><path d="M8 7v4" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/><circle cx="8" cy="5" r=".8" fill="currentColor"/></svg>
+        基本信息
+      </div>
+      <div class="info-grid">
+        <div class="info-item">
+          <div class="info-label">中文名称</div>
+          <div class="info-value">色谱仪</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">英文名称</div>
+          <div class="info-value">Chromatograph</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">采购负责人</div>
+          <div class="info-value">张三</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">产品负责人</div>
+          <div class="info-value">李四</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">父级分类</div>
+          <div class="info-value">分析仪器</div>
+        </div>
+        <div class="info-item">
+          <div class="info-label">创建时间</div>
+          <div class="info-value">2026-01-15</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+function selectNode(el, id) {
+  document.querySelectorAll('.tree-node-row').forEach(r => r.classList.remove('active'));
+  el.classList.add('active');
+}
+function toggleNode(el, e) {
+  e.stopPropagation();
+  const children = el.closest('.tree-node').querySelector('.tree-children');
+  if (children) {
+    children.classList.toggle('open');
+    el.classList.toggle('open');
+  }
+}
+function editNode() { alert('进入编辑表单'); }
+function showCreate() { alert('新建一级分类表单'); }
+</script>
+</body>
+</html>
