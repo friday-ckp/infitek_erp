@@ -162,7 +162,7 @@ export default function CompanyFormPage() {
           quarantineCode: values.quarantineCode || undefined,
           nameEn: values.nameEn || undefined,
           abbreviation: values.abbreviation || undefined,
-          countryId: values.countryId != null ? values.countryId : undefined,
+          countryId: values.countryId != null ? Number(values.countryId) : undefined,
           countryName: values.countryName || undefined,
           addressCn: values.addressCn || undefined,
           addressEn: values.addressEn || undefined,
@@ -221,7 +221,7 @@ export default function CompanyFormPage() {
                 >('/countries', { params: { keyword: params.keyWords, pageSize: 20 } });
                 const list = (res.list || []).map((c) => ({
                   label: `${c.name} (${c.code})`,
-                  value: c.id,
+                  value: Number(c.id),
                   name: c.name,
                 }));
                 if (!params.keyWords && detailQuery.data?.countryId) {
