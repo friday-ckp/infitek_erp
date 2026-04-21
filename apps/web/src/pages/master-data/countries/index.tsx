@@ -4,11 +4,9 @@ import {
   Button,
   Empty,
   Flex,
-  Input,
   Result,
   Skeleton,
   Space,
-  Tag,
   Typography,
   theme,
 } from 'antd';
@@ -17,17 +15,9 @@ import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getCountries, type Country } from '../../../api/countries.api';
-
-function useDebouncedValue(input: string, delay = 300) {
-  const [value, setValue] = useState(input);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setValue(input), delay);
-    return () => window.clearTimeout(timer);
-  }, [input, delay]);
-
-  return value;
-}
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
+import { useDebouncedValue } from '../../../hooks/useDebounce';
 
 export default function CountriesListPage() {
   const navigate = useNavigate();
@@ -39,6 +29,10 @@ export default function CountriesListPage() {
 
   const keyword = useDebouncedValue(keywordInput, 300).trim();
   const hasFilters = Boolean(keyword);
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword]);
 
   const query = useQuery({
     queryKey: ['countries', keyword, page, pageSize],
@@ -146,7 +140,7 @@ export default function CountriesListPage() {
     </Empty>
   );
 
-  const tags = [
+  const activeTags: ActiveTag[] = [
     keyword
       ? {
           key: 'keyword',
@@ -157,7 +151,7 @@ export default function CountriesListPage() {
           },
         }
       : null,
-  ].filter(Boolean) as Array<{ key: string; label: string; onClose: () => void }>;
+  ].filter(Boolean) as ActiveTag[];
 
   return (
     <div>
@@ -170,39 +164,15 @@ export default function CountriesListPage() {
         </Button>
       </Flex>
 
-      <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
-        <Flex gap={token.marginSM} wrap>
-          <Input
-            placeholder="快捷搜索国家/地区代码/名称"
-            style={{ width: 320 }}
-            value={keywordInput}
-            onChange={(e) => {
-              setKeywordInput(e.target.value);
-              setPage(1);
-            }}
-            allowClear
-          />
-        </Flex>
-
-        {tags.length > 0 ? (
-          <Space wrap>
-            {tags.map((item) => (
-              <Tag closable key={item.key} onClose={item.onClose}>
-                {item.label}
-              </Tag>
-            ))}
-            <Button
-              type="link"
-              onClick={() => {
-                setKeywordInput('');
-                setPage(1);
-              }}
-            >
-              清除全部
-            </Button>
-          </Space>
-        ) : null}
-      </Space>
+      <SearchForm
+        searchValue={keywordInput}
+        onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
+        placeholder="快捷搜索国家/地区代码/名称"
+        activeTags={activeTags}
+        onClearAll={() => { setKeywordInput(''); setPage(1); }}
+        onQuery={() => { setPage(1); query.refetch(); }}
+        onReset={() => { setKeywordInput(''); setPage(1); }}
+      />
 
       <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
         <ProTable<Country>
