@@ -1,5 +1,12 @@
+import { useRef } from 'react';
 import { Button, Result, Skeleton } from 'antd';
-import { ProCard, ProForm, ProFormSelect, ProFormText } from '@ant-design/pro-components';
+import {
+  ProCard,
+  ProForm,
+  ProFormSelect,
+  ProFormText,
+  type ProFormInstance,
+} from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -14,12 +21,17 @@ import request from '../../../api/request';
 interface CurrencyOption {
   label: string;
   value: string;
+  currencyName: string;
 }
 
 async function fetchCurrencyOptions(): Promise<CurrencyOption[]> {
   try {
     const res = await request.get<any, { list: Array<{ code: string; name: string }> }>('/currencies');
-    return (res.list || []).map((c) => ({ label: `${c.name} (${c.code})`, value: c.code }));
+    return (res.list || []).map((c) => ({
+      label: `${c.name} (${c.code})`,
+      value: c.code,
+      currencyName: c.name,
+    }));
   } catch {
     return [];
   }
@@ -31,6 +43,7 @@ export default function CompanyFormPage() {
   const { id } = useParams();
   const companyId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
+  const formRef = useRef<ProFormInstance>(undefined);
 
   const detailQuery = useQuery({
     queryKey: ['company-detail', companyId],
@@ -94,7 +107,7 @@ export default function CompanyFormPage() {
 
   const initialValues = detailQuery.data
     ? {
-        name: detailQuery.data.name,
+        nameCn: detailQuery.data.nameCn,
         signingLocation: detailQuery.data.signingLocation ?? undefined,
         bankName: detailQuery.data.bankName ?? undefined,
         bankAccount: detailQuery.data.bankAccount ?? undefined,
@@ -103,11 +116,23 @@ export default function CompanyFormPage() {
         taxId: detailQuery.data.taxId ?? undefined,
         customsCode: detailQuery.data.customsCode ?? undefined,
         quarantineCode: detailQuery.data.quarantineCode ?? undefined,
+        nameEn: detailQuery.data.nameEn ?? undefined,
+        abbreviation: detailQuery.data.abbreviation ?? undefined,
+        countryId: detailQuery.data.countryId ?? undefined,
+        countryName: detailQuery.data.countryName ?? undefined,
+        addressCn: detailQuery.data.addressCn ?? undefined,
+        addressEn: detailQuery.data.addressEn ?? undefined,
+        contactPerson: detailQuery.data.contactPerson ?? undefined,
+        contactPhone: detailQuery.data.contactPhone ?? undefined,
+        defaultCurrencyName: detailQuery.data.defaultCurrencyName ?? undefined,
+        chiefAccountantId: detailQuery.data.chiefAccountantId ?? undefined,
+        chiefAccountantName: detailQuery.data.chiefAccountantName ?? undefined,
       }
     : {};
 
   return (
     <ProForm
+      formRef={formRef}
       title={isEdit ? '编辑公司主体' : '新建公司主体'}
       loading={detailQuery.isLoading}
       submitter={{
@@ -126,7 +151,7 @@ export default function CompanyFormPage() {
       initialValues={initialValues}
       onFinish={async (values) => {
         const payload: CreateCompanyPayload = {
-          name: values.name,
+          nameCn: values.nameCn,
           signingLocation: values.signingLocation || undefined,
           bankName: values.bankName || undefined,
           bankAccount: values.bankAccount || undefined,
@@ -135,6 +160,17 @@ export default function CompanyFormPage() {
           taxId: values.taxId || undefined,
           customsCode: values.customsCode || undefined,
           quarantineCode: values.quarantineCode || undefined,
+          nameEn: values.nameEn || undefined,
+          abbreviation: values.abbreviation || undefined,
+          countryId: values.countryId != null ? values.countryId : undefined,
+          countryName: values.countryName || undefined,
+          addressCn: values.addressCn || undefined,
+          addressEn: values.addressEn || undefined,
+          contactPerson: values.contactPerson || undefined,
+          contactPhone: values.contactPhone || undefined,
+          defaultCurrencyName: values.defaultCurrencyName || undefined,
+          chiefAccountantId: values.chiefAccountantId != null ? values.chiefAccountantId : undefined,
+          chiefAccountantName: values.chiefAccountantName || undefined,
         };
 
         if (isEdit) {
@@ -148,14 +184,68 @@ export default function CompanyFormPage() {
       <ProCard title="基本信息" bordered style={{ marginBottom: 16 }}>
         <ProForm.Group>
           <ProFormText
-            name="name"
-            label="公司名称"
-            placeholder="请输入公司名称"
+            name="nameCn"
+            label="公司中文名称"
+            placeholder="请输入公司中文名称"
             width="md"
             rules={[
-              { required: true, message: '请输入公司名称' },
+              { required: true, message: '请输入公司中文名称' },
               { max: 200, message: '公司名称最多 200 个字符' },
             ]}
+          />
+          <ProFormText
+            name="nameEn"
+            label="公司英文名称"
+            placeholder="请输入公司英文名称（可选）"
+            width="md"
+            rules={[{ max: 200, message: '公司英文名称最多 200 个字符' }]}
+          />
+          <ProFormText
+            name="abbreviation"
+            label="公司简称"
+            placeholder="请输入公司简称（可选）"
+            width="sm"
+            rules={[{ max: 50, message: '公司简称最多 50 个字符' }]}
+          />
+          <ProFormSelect
+            name="countryId"
+            label="国家/地区"
+            placeholder="请搜索国家/地区"
+            width="md"
+            showSearch
+            request={async (params) => {
+              try {
+                const res = await request.get<
+                  any,
+                  { list: Array<{ id: number; name: string; code: string }> }
+                >('/countries', { params: { keyword: params.keyWords, pageSize: 20 } });
+                const list = (res.list || []).map((c) => ({
+                  label: `${c.name} (${c.code})`,
+                  value: c.id,
+                  name: c.name,
+                }));
+                if (!params.keyWords && detailQuery.data?.countryId) {
+                  const alreadyIn = list.some((o) => o.value === detailQuery.data?.countryId);
+                  if (!alreadyIn) {
+                    list.unshift({
+                      label: detailQuery.data.countryName || '',
+                      value: detailQuery.data.countryId,
+                      name: detailQuery.data.countryName || '',
+                    });
+                  }
+                }
+                return list;
+              } catch {
+                return [];
+              }
+            }}
+            fieldProps={{
+              onChange: (_: number | undefined, option: any) => {
+                formRef.current?.setFieldsValue({
+                  countryName: option?.name ?? null,
+                });
+              },
+            }}
           />
           <ProFormText
             name="signingLocation"
@@ -163,6 +253,86 @@ export default function CompanyFormPage() {
             placeholder="请输入签订地点"
             width="md"
             rules={[{ max: 200, message: '签订地点最多 200 个字符' }]}
+          />
+        </ProForm.Group>
+      </ProCard>
+
+      <ProCard title="地址信息" bordered style={{ marginBottom: 16 }}>
+        <ProForm.Group>
+          <ProFormText
+            name="addressCn"
+            label="中文地址"
+            placeholder="请输入中文地址"
+            width="xl"
+            rules={[{ max: 500, message: '中文地址最多 500 个字符' }]}
+          />
+          <ProFormText
+            name="addressEn"
+            label="英文地址"
+            placeholder="Enter English address"
+            width="xl"
+            rules={[{ max: 500, message: '英文地址最多 500 个字符' }]}
+          />
+        </ProForm.Group>
+      </ProCard>
+
+      <ProCard title="联系信息" bordered style={{ marginBottom: 16 }}>
+        <ProForm.Group>
+          <ProFormText
+            name="contactPerson"
+            label="联系人"
+            placeholder="请输入联系人姓名"
+            width="md"
+            rules={[{ max: 100, message: '联系人最多 100 个字符' }]}
+          />
+          <ProFormText
+            name="contactPhone"
+            label="联系电话"
+            placeholder="请输入联系电话"
+            width="md"
+            rules={[{ max: 50, message: '联系电话最多 50 个字符' }]}
+          />
+          <ProFormSelect
+            name="chiefAccountantId"
+            label="总账会计"
+            placeholder="请搜索用户名或姓名"
+            width="md"
+            showSearch
+            request={async (params) => {
+              try {
+                const res = await request.get<
+                  any,
+                  { list: Array<{ id: string; name: string; username: string }> }
+                >('/users', { params: { search: params.keyWords, pageSize: 20 } });
+                const list = (res.list || []).map((u) => ({
+                  label: `${u.name} (${u.username})`,
+                  value: Number(u.id),
+                  name: u.name,
+                }));
+                if (!params.keyWords && detailQuery.data?.chiefAccountantId) {
+                  const alreadyIn = list.some(
+                    (o) => o.value === detailQuery.data?.chiefAccountantId,
+                  );
+                  if (!alreadyIn) {
+                    list.unshift({
+                      label: detailQuery.data.chiefAccountantName || '',
+                      value: detailQuery.data.chiefAccountantId,
+                      name: detailQuery.data.chiefAccountantName || '',
+                    });
+                  }
+                }
+                return list;
+              } catch {
+                return [];
+              }
+            }}
+            fieldProps={{
+              onChange: (_: number | undefined, option: any) => {
+                formRef.current?.setFieldsValue({
+                  chiefAccountantName: option?.name ?? null,
+                });
+              },
+            }}
           />
         </ProForm.Group>
       </ProCard>
@@ -196,6 +366,13 @@ export default function CompanyFormPage() {
             placeholder="请选择默认币种"
             width="sm"
             request={fetchCurrencyOptions}
+            fieldProps={{
+              onChange: (_: string, option: any) => {
+                formRef.current?.setFieldsValue({
+                  defaultCurrencyName: option?.currencyName ?? null,
+                });
+              },
+            }}
           />
         </ProForm.Group>
       </ProCard>

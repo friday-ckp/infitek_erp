@@ -1,10 +1,10 @@
-import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCompanyDto {
   @IsString()
   @IsNotEmpty()
   @MaxLength(200)
-  name: string;
+  nameCn: string;
 
   @IsString()
   @IsOptional()
@@ -45,4 +45,57 @@ export class CreateCompanyDto {
   @IsOptional()
   @MaxLength(100)
   quarantineCode?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  nameEn?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  abbreviation?: string;
+
+  @IsNumber()
+  @IsOptional()
+  countryId?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  countryName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  addressCn?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  addressEn?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  contactPerson?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  contactPhone?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  defaultCurrencyName?: string;
+
+  @IsNumber()
+  @IsOptional()
+  chiefAccountantId?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  chiefAccountantName?: string;
 }

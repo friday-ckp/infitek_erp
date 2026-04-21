@@ -15,8 +15,8 @@ export class CompaniesRepository {
     return this.repo.findOne({ where: { id } });
   }
 
-  findByName(name: string): Promise<Company | null> {
-    return this.repo.findOne({ where: { name } });
+  findByName(nameCn: string): Promise<Company | null> {
+    return this.repo.findOne({ where: { nameCn } });
   }
 
   async findAll(query: QueryCompanyDto) {
@@ -25,7 +25,7 @@ export class CompaniesRepository {
     const qb = this.repo.createQueryBuilder('company');
 
     if (keyword) {
-      qb.where('company.name LIKE :kw', { kw: `%${keyword}%` });
+      qb.where('company.nameCn LIKE :kw', { kw: `%${keyword}%` });
     }
 
     const [list, total] = await qb

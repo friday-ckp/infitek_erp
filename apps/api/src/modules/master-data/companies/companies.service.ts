@@ -22,13 +22,13 @@ export class CompaniesService {
   }
 
   async create(dto: CreateCompanyDto, operator?: string): Promise<Company> {
-    const duplicate = await this.companiesRepository.findByName(dto.name);
+    const duplicate = await this.companiesRepository.findByName(dto.nameCn);
     if (duplicate) {
       throw new BadRequestException('公司名称已存在');
     }
 
     return this.companiesRepository.create({
-      name: dto.name,
+      nameCn: dto.nameCn,
       signingLocation: dto.signingLocation ?? null,
       bankName: dto.bankName ?? null,
       bankAccount: dto.bankAccount ?? null,
@@ -37,6 +37,17 @@ export class CompaniesService {
       taxId: dto.taxId ?? null,
       customsCode: dto.customsCode ?? null,
       quarantineCode: dto.quarantineCode ?? null,
+      nameEn: dto.nameEn ?? null,
+      abbreviation: dto.abbreviation ?? null,
+      countryId: dto.countryId ?? null,
+      countryName: dto.countryName ?? null,
+      addressCn: dto.addressCn ?? null,
+      addressEn: dto.addressEn ?? null,
+      contactPerson: dto.contactPerson ?? null,
+      contactPhone: dto.contactPhone ?? null,
+      defaultCurrencyName: dto.defaultCurrencyName ?? null,
+      chiefAccountantId: dto.chiefAccountantId ?? null,
+      chiefAccountantName: dto.chiefAccountantName ?? null,
       createdBy: operator,
       updatedBy: operator,
     });
@@ -48,8 +59,8 @@ export class CompaniesService {
       throw new NotFoundException('公司主体不存在');
     }
 
-    if (dto.name && dto.name !== company.name) {
-      const duplicate = await this.companiesRepository.findByName(dto.name);
+    if (dto.nameCn && dto.nameCn !== company.nameCn) {
+      const duplicate = await this.companiesRepository.findByName(dto.nameCn);
       if (duplicate && duplicate.id !== id) {
         throw new BadRequestException('公司名称已存在');
       }
