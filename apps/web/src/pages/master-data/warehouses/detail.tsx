@@ -69,6 +69,45 @@ export default function WarehouseDetailPage() {
       renderText: (value) => value || '-',
     },
     {
+      title: '仓库编号',
+      dataIndex: 'warehouseCode',
+      span: 1,
+      renderText: (value) => value || '-',
+    },
+    {
+      title: '仓库类型',
+      dataIndex: 'warehouseType',
+      span: 1,
+      renderText: (value) => value || '-',
+    },
+    {
+      title: '仓库归属',
+      dataIndex: 'ownership',
+      span: 1,
+      renderText: (value) => value || '-',
+    },
+    {
+      title: '默认发运省市',
+      span: 1,
+      render: (_, record) => {
+        const parts = [record.defaultShipProvince, record.defaultShipCity].filter(Boolean);
+        return parts.length > 0 ? parts.join(' / ') : '-';
+      },
+    },
+    {
+      title: '关联供应商',
+      dataIndex: 'supplierName',
+      span: 1,
+      renderText: (value) => value || '-',
+    },
+    {
+      title: '是否虚拟仓',
+      dataIndex: 'isVirtual',
+      span: 1,
+      render: (_, record) =>
+        record.isVirtual ? <Tag color="orange">虚拟仓</Tag> : <Tag>实体仓</Tag>,
+    },
+    {
       title: '创建时间',
       dataIndex: 'createdAt',
       span: 1,

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { WarehouseStatus } from '@infitek/shared';
+import { WarehouseOwnership, WarehouseStatus } from '@infitek/shared';
 import { CreateWarehouseDto } from './dto/create-warehouse.dto';
 import { QueryWarehouseDto } from './dto/query-warehouse.dto';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto';
@@ -27,6 +27,14 @@ export class WarehousesService {
       name: dto.name,
       address: dto.address ?? null,
       status: WarehouseStatus.ACTIVE,
+      warehouseCode: dto.warehouseCode ?? null,
+      warehouseType: dto.warehouseType ?? null,
+      supplierId: dto.supplierId ?? null,
+      supplierName: dto.supplierName ?? null,
+      defaultShipProvince: dto.defaultShipProvince ?? null,
+      defaultShipCity: dto.defaultShipCity ?? null,
+      ownership: dto.ownership ?? WarehouseOwnership.INTERNAL,
+      isVirtual: dto.isVirtual ?? 0,
       createdBy: operator,
       updatedBy: operator,
     });

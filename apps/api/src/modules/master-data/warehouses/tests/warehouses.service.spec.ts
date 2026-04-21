@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { WarehouseStatus } from '@infitek/shared';
+import { WarehouseOwnership, WarehouseStatus } from '@infitek/shared';
 import { CreateWarehouseDto } from '../dto/create-warehouse.dto';
 import { UpdateWarehouseDto } from '../dto/update-warehouse.dto';
 import { Warehouse } from '../entities/warehouse.entity';
@@ -12,6 +12,14 @@ const mockWarehouse: Warehouse = {
   name: '深圳仓',
   address: '深圳市宝安区',
   status: WarehouseStatus.ACTIVE,
+  warehouseCode: null,
+  warehouseType: null,
+  supplierId: null,
+  supplierName: null,
+  defaultShipProvince: null,
+  defaultShipCity: null,
+  ownership: WarehouseOwnership.INTERNAL,
+  isVirtual: 0,
   deletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -90,6 +98,46 @@ describe('WarehousesService', () => {
       await service.create(dto, 'admin');
       expect(mockRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ address: null }),
+      );
+    });
+
+    it('ownership 默认为 INTERNAL（内部仓）', async () => {
+      const dto: CreateWarehouseDto = { name: '默认仓' };
+      mockRepo.create.mockResolvedValue(mockWarehouse);
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ ownership: WarehouseOwnership.INTERNAL }),
+      );
+    });
+
+    it('isVirtual 默认为 0', async () => {
+      const dto: CreateWarehouseDto = { name: '默认仓' };
+      mockRepo.create.mockResolvedValue(mockWarehouse);
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ isVirtual: 0 }),
+      );
+    });
+
+    it('可传入 isVirtual=1 创建虚拟仓', async () => {
+      const dto: CreateWarehouseDto = { name: '虚拟仓', isVirtual: 1 };
+      mockRepo.create.mockResolvedValue({ ...mockWarehouse, isVirtual: 1 });
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ isVirtual: 1 }),
+      );
+    });
+
+    it('可传入 ownership=外部仓', async () => {
+      const dto: CreateWarehouseDto = { name: '外部仓', ownership: WarehouseOwnership.EXTERNAL };
+      mockRepo.create.mockResolvedValue({ ...mockWarehouse, ownership: WarehouseOwnership.EXTERNAL });
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ ownership: WarehouseOwnership.EXTERNAL }),
       );
     });
   });
