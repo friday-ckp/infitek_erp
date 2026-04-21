@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Form, Input, message, Skeleton, TreeSelect } from 'antd';
+import { Form, Input, message, Select, Skeleton, TreeSelect } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createProductCategory,
@@ -9,6 +9,7 @@ import {
   updateProductCategory,
   type ProductCategoryNode,
 } from '../../../api/product-categories.api';
+import { getUsers } from '../../../api/users.api';
 
 interface TreeSelectNode {
   title: string;
@@ -95,6 +96,13 @@ export default function ProductCategoryFormPage() {
     },
   });
 
+  const usersQuery = useQuery({
+    queryKey: ['users', 'all'],
+    queryFn: () => getUsers(1, 200),
+    staleTime: 5 * 60 * 1000,
+  });
+  const userOptions = (usersQuery.data?.list ?? []).map((u) => ({ label: u.name, value: u.name }));
+
   const loading = isEdit && detailQuery.isLoading;
   const submitting = createMutation.isPending || updateMutation.isPending;
   const treeSelectData = buildTreeSelectData(treeQuery.data ?? []);
@@ -113,7 +121,7 @@ export default function ProductCategoryFormPage() {
       createMutation.mutate({
         name: values.name,
         nameEn: values.nameEn,
-        parentId: values.parentId,
+        parentId: values.parentId ?? (parentIdFromQuery ? Number(parentIdFromQuery) : undefined),
         purchaseOwner: values.purchaseOwner,
         productOwner: values.productOwner,
       });
@@ -194,7 +202,19 @@ export default function ProductCategoryFormPage() {
               </Form.Item>
             </div>
 
-            {/* 新建一级分类时可选父级；新建子分类时父级已由 URL 参数确定，不显示 */}
+            {/* 新建子分类时展示只读父级；新建一级分类时可选父级 */}
+            {!isEdit && parentIdFromQuery && (
+              <Form.Item
+                label={<span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>父级分类</span>}
+                style={{ marginBottom: 16 }}
+              >
+                <Input
+                  value={parentNode ? parentNode.name : `分类 #${parentIdFromQuery}`}
+                  disabled
+                  size="middle"
+                />
+              </Form.Item>
+            )}
             {!isEdit && !parentIdFromQuery && (
               <Form.Item
                 label={<span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>父级分类</span>}
@@ -216,19 +236,39 @@ export default function ProductCategoryFormPage() {
               <Form.Item
                 label={<span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>采购负责人</span>}
                 name="purchaseOwner"
-                rules={[{ max: 100, message: '不能超过100个字符' }]}
                 style={{ marginBottom: 24 }}
               >
-                <Input placeholder="可选" size="middle" />
+                <Select
+                  placeholder="请选择用户"
+                  allowClear
+                  showSearch
+                  options={userOptions}
+                  loading={usersQuery.isLoading}
+                  size="middle"
+                  style={{ width: '100%' }}
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                />
               </Form.Item>
 
               <Form.Item
                 label={<span style={{ fontSize: 13, color: '#374151', fontWeight: 500 }}>产品负责人</span>}
                 name="productOwner"
-                rules={[{ max: 100, message: '不能超过100个字符' }]}
                 style={{ marginBottom: 24 }}
               >
-                <Input placeholder="可选" size="middle" />
+                <Select
+                  placeholder="请选择用户"
+                  allowClear
+                  showSearch
+                  options={userOptions}
+                  loading={usersQuery.isLoading}
+                  size="middle"
+                  style={{ width: '100%' }}
+                  filterOption={(input, option) =>
+                    (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                  }
+                />
               </Form.Item>
             </div>
 

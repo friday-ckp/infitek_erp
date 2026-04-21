@@ -4,7 +4,6 @@ import {
   Button,
   Empty,
   Flex,
-  Input,
   Result,
   Skeleton,
   Space,
@@ -18,17 +17,9 @@ import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getCompanies, type Company } from '../../../api/companies.api';
-
-function useDebouncedValue(input: string, delay = 300) {
-  const [value, setValue] = useState(input);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setValue(input), delay);
-    return () => window.clearTimeout(timer);
-  }, [input, delay]);
-
-  return value;
-}
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
+import { useDebouncedValue } from '../../../hooks/useDebounce';
 
 export default function CompaniesListPage() {
   const navigate = useNavigate();
@@ -172,7 +163,7 @@ export default function CompaniesListPage() {
     </Empty>
   );
 
-  const tags = [
+  const activeTags: ActiveTag[] = [
     keyword
       ? {
           key: 'keyword',
@@ -183,7 +174,7 @@ export default function CompaniesListPage() {
           },
         }
       : null,
-  ].filter(Boolean) as Array<{ key: string; label: string; onClose: () => void }>;
+  ].filter(Boolean) as ActiveTag[];
 
   return (
     <div>
@@ -196,37 +187,15 @@ export default function CompaniesListPage() {
         </Button>
       </Flex>
 
-      <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
-        <Input
-          placeholder="快捷搜索公司名称"
-          style={{ width: 320 }}
-          value={keywordInput}
-          onChange={(e) => {
-            setKeywordInput(e.target.value);
-            setPage(1);
-          }}
-          allowClear
-        />
-
-        {tags.length > 0 ? (
-          <Space wrap>
-            {tags.map((item) => (
-              <Tag closable key={item.key} onClose={item.onClose}>
-                {item.label}
-              </Tag>
-            ))}
-            <Button
-              type="link"
-              onClick={() => {
-                setKeywordInput('');
-                setPage(1);
-              }}
-            >
-              清除全部
-            </Button>
-          </Space>
-        ) : null}
-      </Space>
+      <SearchForm
+        searchValue={keywordInput}
+        onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
+        placeholder="快捷搜索公司名称"
+        activeTags={activeTags}
+        onClearAll={() => { setKeywordInput(''); setPage(1); }}
+        onQuery={() => { setPage(1); query.refetch(); }}
+        onReset={() => { setKeywordInput(''); setPage(1); }}
+      />
 
       <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
         <ProTable<Company>

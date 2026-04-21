@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import { IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class CreateCompanyDto {
@@ -56,6 +57,7 @@ export class CreateCompanyDto {
   @MaxLength(50)
   abbreviation?: string;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   countryId?: number;
@@ -90,6 +92,7 @@ export class CreateCompanyDto {
   @MaxLength(50)
   defaultCurrencyName?: string;
 
+  @Type(() => Number)
   @IsNumber()
   @IsOptional()
   chiefAccountantId?: number;

@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider, message } from 'antd';
+import { App as AntdApp, ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import React, { type ReactNode } from 'react';
 import LoginPage from './pages/login/index';
 import AppLayout from './components/layout/AppLayout';
+import { AntdInitializer } from './components/AntdInitializer';
 import UsersList from './pages/settings/users/index';
 import UserDetail from './pages/settings/users/detail';
 import UserForm from './pages/settings/users/form';
@@ -40,13 +41,6 @@ queryClient.setDefaultOptions({
   queries: {
     retry: 1,
     staleTime: 30_000,
-  },
-  mutations: {
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      const msg = err?.response?.data?.message ?? '操作失败，请重试';
-      message.error(msg);
-    },
   },
 });
 
@@ -89,7 +83,9 @@ function App() {
             },
           }}
         >
-          <BrowserRouter>
+          <AntdApp>
+            <AntdInitializer />
+            <BrowserRouter>
             <Routes>
               {/* 公开路由 */}
               <Route path="/login" element={<LoginPage />} />
@@ -135,6 +131,7 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </BrowserRouter>
+          </AntdApp>
         </ConfigProvider>
       </QueryClientProvider>
     </ErrorBoundary>

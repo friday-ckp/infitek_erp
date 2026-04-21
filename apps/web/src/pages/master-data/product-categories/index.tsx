@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Modal, Result, Skeleton, message } from 'antd';
+import { App, Button, Result, Skeleton } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteProductCategory, getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
 
@@ -157,6 +157,7 @@ function TreeNode({
 export default function ProductCategoriesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { message, modal } = App.useApp();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [searchText, setSearchText] = useState('');
@@ -236,7 +237,7 @@ export default function ProductCategoriesPage() {
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#4338CA'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#4F46E5'; }}
         >
-          + 新建一级分类
+          + 新建分类
         </button>
       </div>
 
@@ -302,7 +303,7 @@ export default function ProductCategoriesPage() {
                         onClick={() => navigate('/master-data/product-categories/create')}
                         style={{ padding: '6px 14px', borderRadius: 7, fontSize: 12, background: '#4F46E5', color: '#fff', border: 'none', cursor: 'pointer' }}
                       >
-                        新建一级分类
+                        新建分类
                       </button>
                     </>
                   ) : '无匹配结果'}
@@ -346,7 +347,7 @@ export default function ProductCategoriesPage() {
                 onEdit={() => navigate(`/master-data/product-categories/${selectedNode.id}/edit`)}
                 onCreateChild={() => navigate(`/master-data/product-categories/create?parentId=${selectedNode.id}`)}
                 onDelete={() => {
-                  Modal.confirm({
+                  modal.confirm({
                     title: `删除「${selectedNode.name}」？`,
                     content: selectedNode.children.length > 0
                       ? '该分类下有子分类，请先删除子分类后再操作。'
@@ -355,10 +356,14 @@ export default function ProductCategoriesPage() {
                     okButtonProps: { danger: true, disabled: selectedNode.children.length > 0 },
                     cancelText: '取消',
                     onOk: async () => {
-                      await deleteProductCategory(selectedNode.id);
-                      message.success('删除成功');
-                      queryClient.invalidateQueries({ queryKey: ['product-categories', 'tree'] });
-                      setSelectedId(null);
+                      try {
+                        await deleteProductCategory(selectedNode.id);
+                        message.success('删除成功');
+                        queryClient.invalidateQueries({ queryKey: ['product-categories', 'tree'] });
+                        setSelectedId(null);
+                      } catch {
+                        // 错误由 request.ts 统一处理
+                      }
                     },
                   });
                 }}

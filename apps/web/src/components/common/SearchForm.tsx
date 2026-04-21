@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button, Flex, Input, Space, Tag, theme } from 'antd';
+import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
 
 export interface ActiveTag {
   /** 唯一标识，用作 React key */
@@ -17,21 +18,26 @@ export interface SearchFormProps {
   onSearchChange: (value: string) => void;
   /** 搜索框占位文字 */
   placeholder?: string;
-  /** 高级筛选区内容（由调用方渲染，SearchForm 仅负责折叠/展开） */
+  /** 高级筛选区内容（直接全部展示，不折叠） */
   advancedContent?: React.ReactNode;
   /** 已选筛选条件，有内容时显示 Tag 列表和"清除全部"按钮 */
   activeTags?: ActiveTag[];
   /** 点击"清除全部"按钮的回调 */
   onClearAll?: () => void;
+  /** 点击"查询"按钮的回调 */
+  onQuery?: () => void;
+  /** 点击"重置"按钮的回调 */
+  onReset?: () => void;
 }
 
 /**
- * 通用搜索表单组件，封装列表页搜索/高级筛选/筛选 Tag 三段式交互。
+ * 通用搜索表单组件，封装列表页搜索/筛选/Tag 三段式交互。
  *
  * 职责边界：
  * - 只负责 UI 展示和用户交互事件上报
  * - 不持有业务状态，不发起 API 请求
  * - 防抖逻辑由调用方使用 useDebouncedValue hook 处理
+ * - 所有筛选项直接展示，不折叠
  */
 export function SearchForm({
   searchValue,
@@ -40,14 +46,17 @@ export function SearchForm({
   advancedContent,
   activeTags = [],
   onClearAll,
+  onQuery,
+  onReset,
 }: SearchFormProps) {
   const { token } = theme.useToken();
-  const [showAdvanced, setShowAdvanced] = React.useState(false);
+
+  const hasActions = onQuery != null || onReset != null;
 
   return (
     <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
-      {/* 搜索框行 */}
-      <Flex gap={token.marginSM} wrap>
+      {/* 搜索框行 + 高级筛选项（全部直接展示）+ 操作按钮 */}
+      <Flex gap={token.marginSM} wrap align="center">
         <Input
           placeholder={placeholder}
           style={{ width: 320 }}
@@ -55,19 +64,22 @@ export function SearchForm({
           onChange={(e) => onSearchChange(e.target.value)}
           allowClear
         />
-        {advancedContent != null && (
-          <Button type="link" onClick={() => setShowAdvanced((prev) => !prev)}>
-            {showAdvanced ? '收起高级筛选' : '展开高级筛选'}
-          </Button>
+        {advancedContent}
+        {hasActions && (
+          <>
+            {onQuery && (
+              <Button type="primary" icon={<SearchOutlined />} onClick={onQuery}>
+                查询
+              </Button>
+            )}
+            {onReset && (
+              <Button icon={<ReloadOutlined />} onClick={onReset}>
+                重置
+              </Button>
+            )}
+          </>
         )}
       </Flex>
-
-      {/* 高级筛选区（可折叠） */}
-      {advancedContent != null && showAdvanced && (
-        <Flex gap={token.marginSM} wrap>
-          {advancedContent}
-        </Flex>
-      )}
 
       {/* 已选筛选条件 Tag 列表 */}
       {activeTags.length > 0 && (

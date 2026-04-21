@@ -31,12 +31,12 @@ export default function UsersList() {
   const [searchInput, setSearchInput] = useState('');
   const [statusInput, setStatusInput] = useState('');
 
-  const fetchUsers = async (page: number = 1, search: string = '', status: string = '') => {
+  const fetchUsers = async (page: number = 1, search: string = '', status: string = '', pageSize?: number) => {
     setState((prev) => ({ ...prev, loading: true }));
     try {
       const data = await getUsers(
         page,
-        state.pageSize,
+        pageSize ?? state.pageSize,
         search || undefined,
         (status as 'ACTIVE' | 'INACTIVE') || undefined,
       );
@@ -175,10 +175,13 @@ export default function UsersList() {
             current: state.page,
             pageSize: state.pageSize,
             total: state.total,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 20, 50],
             showTotal: (total) => `共 ${total} 条`,
-            onChange: (page) => {
-              setState((prev) => ({ ...prev, page }));
-              fetchUsers(page, state.search, state.statusFilter);
+            onChange: (page, pageSize) => {
+              const newPage = pageSize !== state.pageSize ? 1 : page;
+              setState((prev) => ({ ...prev, page: newPage, pageSize }));
+              fetchUsers(newPage, state.search, state.statusFilter, pageSize);
             },
           }}
         />

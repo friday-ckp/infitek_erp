@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { message } from 'antd';
+import antdStatic from '../utils/antdStatic';
 
 const request = axios.create({
   baseURL: '/api',
@@ -29,7 +29,9 @@ request.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/login';
     } else {
-      message.error(error.response?.data?.message ?? '操作失败');
+      const rawMsg = error.response?.data?.message;
+      const msg = Array.isArray(rawMsg) ? rawMsg.join('；') : (rawMsg ?? '操作失败');
+      antdStatic.message?.error(msg);
     }
     return Promise.reject(error.response?.data);
   },
