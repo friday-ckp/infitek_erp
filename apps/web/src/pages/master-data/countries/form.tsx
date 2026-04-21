@@ -81,6 +81,8 @@ export default function CountryFormPage() {
       <ProForm<{
         code: string;
         name: string;
+        nameEn?: string;
+        abbreviation?: string;
       }>
         grid
         rowProps={{ gutter: [16, 0] }}
@@ -102,6 +104,8 @@ export default function CountryFormPage() {
             ? {
                 code: detailQuery.data.code,
                 name: detailQuery.data.name,
+                nameEn: detailQuery.data.nameEn ?? undefined,
+                abbreviation: detailQuery.data.abbreviation ?? undefined,
               }
             : {}
         }
@@ -110,11 +114,15 @@ export default function CountryFormPage() {
             await updateMutation.mutateAsync({
               code: values.code,
               name: values.name,
+              nameEn: values.nameEn || undefined,
+              abbreviation: values.abbreviation || undefined,
             });
           } else {
             await createMutation.mutateAsync({
               code: values.code,
               name: values.name,
+              nameEn: values.nameEn || undefined,
+              abbreviation: values.abbreviation || undefined,
             });
           }
           return true;
@@ -137,6 +145,18 @@ export default function CountryFormPage() {
             { required: true, message: '请输入国家/地区名称' },
             { max: 100, message: '国家/地区名称最多 100 个字符' },
           ]}
+        />
+        <ProFormText
+          name="nameEn"
+          label="英文名称"
+          placeholder="如：China、United States"
+          rules={[{ max: 100, message: '英文名称最多 100 个字符' }]}
+        />
+        <ProFormText
+          name="abbreviation"
+          label="简称"
+          placeholder="如：中国、美"
+          rules={[{ max: 20, message: '简称最多 20 个字符' }]}
         />
       </ProForm>
     </Card>
