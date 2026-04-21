@@ -1,0 +1,94 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - img [ref=e7]
+      - generic [ref=e9]:
+        - generic [ref=e10]: 星辰科技 ERP
+        - generic [ref=e11]: INFITEK ENTERPRISE
+    - navigation [ref=e12]:
+      - generic [ref=e13]: 业务模块
+      - generic [ref=e14]:
+        - generic [ref=e15] [cursor=pointer]:
+          - img [ref=e17]
+          - generic [ref=e20]: 销售管理
+          - img [ref=e22]
+        - generic [ref=e25] [cursor=pointer]: 销售订单
+      - generic [ref=e26]:
+        - generic [ref=e27] [cursor=pointer]:
+          - img [ref=e29]
+          - generic [ref=e33]: 商务管理
+          - img [ref=e35]
+        - generic [ref=e38] [cursor=pointer]: 发货需求
+      - generic [ref=e39]:
+        - generic [ref=e40] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e45]: 采购管理
+          - img [ref=e47]
+        - generic [ref=e50] [cursor=pointer]: 采购订单
+      - generic [ref=e51]:
+        - generic [ref=e52] [cursor=pointer]:
+          - img [ref=e54]
+          - generic [ref=e57]: 产品管理
+          - img [ref=e59]
+        - generic [ref=e62]:
+          - generic [ref=e63] [cursor=pointer]: 产品分类
+          - generic [ref=e64] [cursor=pointer]: SPU 管理
+          - generic [ref=e65] [cursor=pointer]: SKU 管理
+      - generic [ref=e66]:
+        - generic [ref=e67] [cursor=pointer]:
+          - img [ref=e69]
+          - generic [ref=e73]: 库存管理
+          - img [ref=e75]
+        - generic [ref=e78] [cursor=pointer]: 库存查询
+      - generic [ref=e80]: 系统功能
+      - generic:
+        - generic:
+          - generic:
+            - img
+          - generic: 财务管理
+          - generic: 即将上线
+      - generic [ref=e81]:
+        - generic [ref=e82] [cursor=pointer]:
+          - img [ref=e84]
+          - generic [ref=e87]: 基础数据
+          - img [ref=e89]
+        - generic [ref=e91]:
+          - generic [ref=e92] [cursor=pointer]: 单位管理
+          - generic [ref=e93] [cursor=pointer]: 公司主体
+          - generic [ref=e94] [cursor=pointer]: 用户管理
+          - generic [ref=e95] [cursor=pointer]: 仓库管理
+          - generic [ref=e96] [cursor=pointer]: 币种管理
+          - generic [ref=e97] [cursor=pointer]: 国家/地区
+          - generic [ref=e98] [cursor=pointer]: 供应商
+          - generic [ref=e99] [cursor=pointer]: 客户
+    - generic [ref=e100]:
+      - generic [ref=e101]: AD
+      - generic [ref=e102]:
+        - generic [ref=e103]: admin
+        - generic [ref=e104]: 管理员
+      - generic [ref=e105]:
+        - button "设置" [ref=e106] [cursor=pointer]:
+          - img [ref=e107]
+        - button "退出登录" [ref=e110] [cursor=pointer]:
+          - img [ref=e111]
+  - generic [ref=e114]:
+    - generic [ref=e115]:
+      - navigation:
+        - list
+      - generic [ref=e116]:
+        - img "bell" [ref=e118] [cursor=pointer]:
+          - img [ref=e119]
+        - generic [ref=e121] [cursor=pointer]: AD
+    - main [ref=e122]:
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - generic [ref=e126]: 产品分类管理
+            - generic [ref=e127]: 共 0 个一级分类，0 个子分类
+          - button "+ 新建一级分类" [ref=e128] [cursor=pointer]
+        - generic [ref=e130]:
+          - heading [level=3] [ref=e131]
+          - list [ref=e132]:
+            - listitem [ref=e133]
+            - listitem [ref=e134]
+            - listitem [ref=e135]
