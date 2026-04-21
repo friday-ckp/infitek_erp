@@ -3,9 +3,9 @@ import { Button, Result, Skeleton } from 'antd';
 import {
   ProCard,
   ProForm,
-  ProFormInstance,
   ProFormSelect,
   ProFormText,
+  type ProFormInstance,
 } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -43,7 +43,7 @@ export default function CompanyFormPage() {
   const { id } = useParams();
   const companyId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
-  const formRef = useRef<ProFormInstance>();
+  const formRef = useRef<ProFormInstance>(undefined);
 
   const detailQuery = useQuery({
     queryKey: ['company-detail', companyId],
