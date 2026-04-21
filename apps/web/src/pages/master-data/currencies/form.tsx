@@ -1,5 +1,5 @@
 import { Button, Card, Result, Skeleton, Space } from 'antd';
-import { ProForm, ProFormSelect, ProFormText } from '@ant-design/pro-components';
+import { ProForm, ProFormSelect, ProFormSwitch, ProFormText } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { CurrencyStatus } from '@infitek/shared';
@@ -88,6 +88,8 @@ export default function CurrencyFormPage() {
         code: string;
         name: string;
         status?: CurrencyStatus;
+        symbol?: string;
+        isBaseCurrency?: boolean;
       }>
         grid
         rowProps={{ gutter: [16, 0] }}
@@ -110,6 +112,8 @@ export default function CurrencyFormPage() {
                 code: detailQuery.data.code,
                 name: detailQuery.data.name,
                 status: detailQuery.data.status,
+                symbol: detailQuery.data.symbol ?? undefined,
+                isBaseCurrency: Boolean(detailQuery.data.isBaseCurrency),
               }
             : {}
         }
@@ -119,11 +123,15 @@ export default function CurrencyFormPage() {
               code: values.code,
               name: values.name,
               status: values.status,
+              symbol: values.symbol || undefined,
+              isBaseCurrency: values.isBaseCurrency ? 1 : 0,
             });
           } else {
             await createMutation.mutateAsync({
               code: values.code,
               name: values.name,
+              symbol: values.symbol || undefined,
+              isBaseCurrency: values.isBaseCurrency ? 1 : 0,
             });
           }
           return true;
@@ -146,6 +154,21 @@ export default function CurrencyFormPage() {
             { required: true, message: '请输入币种名称' },
             { max: 50, message: '币种名称最多 50 个字符' },
           ]}
+        />
+        <ProFormText
+          name="symbol"
+          label="币种符号"
+          placeholder="如：$、¥、€（可选，最多 10 个字符）"
+          rules={[{ max: 10, message: '币种符号最多 10 个字符' }]}
+        />
+        <ProFormSwitch
+          name="isBaseCurrency"
+          label="是否本位币"
+          tooltip="同一时间只能有一种本位币，开启后将自动取消其他币种的本位币状态"
+          fieldProps={{
+            checkedChildren: '是',
+            unCheckedChildren: '否',
+          }}
         />
         {isEdit ? (
           <ProFormSelect

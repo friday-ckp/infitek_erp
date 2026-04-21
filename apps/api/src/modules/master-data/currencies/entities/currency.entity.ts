@@ -23,6 +23,14 @@ export class Currency extends BaseEntity {
   @Expose()
   status: CurrencyStatus;
 
+  @Column({ name: 'symbol', type: 'varchar', length: 10, nullable: true })
+  @Expose()
+  symbol: string | null;
+
+  @Column({ name: 'is_base_currency', type: 'tinyint', width: 1, default: 0 })
+  @Expose()
+  isBaseCurrency: number;
+
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date | null;
 }

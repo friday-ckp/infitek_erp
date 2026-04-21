@@ -12,6 +12,8 @@ const mockCurrency: Currency = {
   code: 'USD',
   name: '美元',
   status: CurrencyStatus.ACTIVE,
+  symbol: '$',
+  isBaseCurrency: 0,
   deletedAt: null,
   createdAt: new Date(),
   updatedAt: new Date(),
@@ -25,6 +27,7 @@ const mockRepo = {
   findByCode: jest.fn(),
   create: jest.fn(),
   update: jest.fn(),
+  clearBaseCurrency: jest.fn(),
 };
 
 describe('CurrenciesService', () => {
@@ -119,6 +122,54 @@ describe('CurrenciesService', () => {
     it('币种不存在时应抛出 NotFoundException', async () => {
       mockRepo.findById.mockResolvedValue(null);
       await expect(service.update(999, {}, 'admin')).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('create - 本位币互斥', () => {
+    it('isBaseCurrency=1 时应先调用 clearBaseCurrency 再创建', async () => {
+      const dto: CreateCurrencyDto = { code: 'CNY', name: '人民币', isBaseCurrency: 1 };
+      mockRepo.findByCode.mockResolvedValue(null);
+      mockRepo.clearBaseCurrency.mockResolvedValue(undefined);
+      mockRepo.create.mockResolvedValue({ ...mockCurrency, code: 'CNY', isBaseCurrency: 1 });
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.clearBaseCurrency).toHaveBeenCalledTimes(1);
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ isBaseCurrency: 1 }),
+      );
+    });
+
+    it('isBaseCurrency=0 时不应调用 clearBaseCurrency', async () => {
+      const dto: CreateCurrencyDto = { code: 'EUR', name: '欧元', isBaseCurrency: 0 };
+      mockRepo.findByCode.mockResolvedValue(null);
+      mockRepo.create.mockResolvedValue({ ...mockCurrency, code: 'EUR', isBaseCurrency: 0 });
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.clearBaseCurrency).not.toHaveBeenCalled();
+    });
+
+    it('create 时 isBaseCurrency 未传入应默认为 0', async () => {
+      const dto: CreateCurrencyDto = { code: 'JPY', name: '日元' };
+      mockRepo.findByCode.mockResolvedValue(null);
+      mockRepo.create.mockResolvedValue({ ...mockCurrency, code: 'JPY', isBaseCurrency: 0 });
+
+      await service.create(dto, 'admin');
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ isBaseCurrency: 0 }),
+      );
+      expect(mockRepo.clearBaseCurrency).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update - 本位币互斥', () => {
+    it('update isBaseCurrency=1 时应先调用 clearBaseCurrency', async () => {
+      const dto: UpdateCurrencyDto = { isBaseCurrency: 1 };
+      mockRepo.findById.mockResolvedValue(mockCurrency);
+      mockRepo.clearBaseCurrency.mockResolvedValue(undefined);
+      mockRepo.update.mockResolvedValue({ ...mockCurrency, isBaseCurrency: 1 });
+
+      await service.update(1, dto, 'admin');
+      expect(mockRepo.clearBaseCurrency).toHaveBeenCalledTimes(1);
     });
   });
 });

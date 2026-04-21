@@ -59,4 +59,8 @@ export class CurrenciesRepository {
     await this.repo.update(id, data);
     return this.repo.findOneOrFail({ where: { id, deletedAt: IsNull() } });
   }
+
+  async clearBaseCurrency(): Promise<void> {
+    await this.repo.update({ deletedAt: IsNull() }, { isBaseCurrency: 0 });
+  }
 }

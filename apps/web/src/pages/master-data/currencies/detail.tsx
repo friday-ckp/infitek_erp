@@ -64,6 +64,23 @@ export default function CurrencyDetailPage() {
     { title: '币种代码', dataIndex: 'code', span: 1 },
     { title: '币种名称', dataIndex: 'name', span: 1 },
     {
+      title: '币种符号',
+      dataIndex: 'symbol',
+      span: 1,
+      renderText: (value: string | null) => value || '-',
+    },
+    {
+      title: '本位币',
+      dataIndex: 'isBaseCurrency',
+      span: 1,
+      render: (_: unknown, record: Currency) =>
+        record.isBaseCurrency === 1 ? (
+          <Tag color="processing">本位币</Tag>
+        ) : (
+          <span>-</span>
+        ),
+    },
+    {
       title: '创建时间',
       dataIndex: 'createdAt',
       span: 1,
