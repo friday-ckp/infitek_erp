@@ -50,7 +50,10 @@ export default function CompanyDetailPage() {
   }
 
   const basicColumns: ProDescriptionsItemProps<Company>[] = [
-    { title: '公司名称', dataIndex: 'name', span: 1 },
+    { title: '公司中文名称', dataIndex: 'nameCn', span: 1 },
+    { title: '公司英文名称', dataIndex: 'nameEn', span: 1, renderText: (v) => v || '-' },
+    { title: '公司简称', dataIndex: 'abbreviation', span: 1, renderText: (v) => v || '-' },
+    { title: '国家/地区', dataIndex: 'countryName', span: 1, renderText: (v) => v || '-' },
     { title: '签订地点', dataIndex: 'signingLocation', span: 1, renderText: (v) => v || '-' },
     {
       title: '创建时间',
@@ -66,11 +69,23 @@ export default function CompanyDetailPage() {
     },
   ];
 
+  const addressColumns: ProDescriptionsItemProps<Company>[] = [
+    { title: '中文地址', dataIndex: 'addressCn', span: 2, renderText: (v) => v || '-' },
+    { title: '英文地址', dataIndex: 'addressEn', span: 2, renderText: (v) => v || '-' },
+  ];
+
+  const contactColumns: ProDescriptionsItemProps<Company>[] = [
+    { title: '联系人', dataIndex: 'contactPerson', span: 1, renderText: (v) => v || '-' },
+    { title: '联系电话', dataIndex: 'contactPhone', span: 1, renderText: (v) => v || '-' },
+    { title: '总账会计', dataIndex: 'chiefAccountantName', span: 1, renderText: (v) => v || '-' },
+  ];
+
   const bankColumns: ProDescriptionsItemProps<Company>[] = [
     { title: '开户行', dataIndex: 'bankName', span: 1, renderText: (v) => v || '-' },
     { title: '银行账号', dataIndex: 'bankAccount', span: 1, renderText: (v) => v || '-' },
     { title: 'SWIFT CODE', dataIndex: 'swiftCode', span: 1, renderText: (v) => v || '-' },
-    { title: '默认币种', dataIndex: 'defaultCurrencyCode', span: 1, renderText: (v) => v || '-' },
+    { title: '默认币种代码', dataIndex: 'defaultCurrencyCode', span: 1, renderText: (v) => v || '-' },
+    { title: '默认币种名称', dataIndex: 'defaultCurrencyName', span: 1, renderText: (v) => v || '-' },
   ];
 
   const complianceColumns: ProDescriptionsItemProps<Company>[] = [
@@ -104,6 +119,22 @@ export default function CompanyDetailPage() {
         column={2}
         dataSource={query.data}
         columns={basicColumns}
+      />
+
+      <ProDescriptions<Company>
+        title="地址信息"
+        loading={query.isLoading}
+        column={2}
+        dataSource={query.data}
+        columns={addressColumns}
+      />
+
+      <ProDescriptions<Company>
+        title="联系信息"
+        loading={query.isLoading}
+        column={2}
+        dataSource={query.data}
+        columns={contactColumns}
       />
 
       <ProDescriptions<Company>

@@ -75,12 +75,12 @@ export default function CompaniesListPage() {
     () => [
       {
         title: '公司名称',
-        dataIndex: 'name',
+        dataIndex: 'nameCn',
         width: 280,
         ellipsis: true,
         render: (_, record) => (
           <Link to={`/master-data/companies/${record.id}`} style={{ color: token.colorLink }}>
-            {record.name}
+            {record.nameCn}
           </Link>
         ),
       },

@@ -2,7 +2,7 @@ import request from './request';
 
 export interface Company {
   id: number;
-  name: string;
+  nameCn: string;
   signingLocation: string | null;
   bankName: string | null;
   bankAccount: string | null;
@@ -11,6 +11,17 @@ export interface Company {
   taxId: string | null;
   customsCode: string | null;
   quarantineCode: string | null;
+  nameEn?: string | null;
+  abbreviation?: string | null;
+  countryId?: number | null;
+  countryName?: string | null;
+  addressCn?: string | null;
+  addressEn?: string | null;
+  contactPerson?: string | null;
+  contactPhone?: string | null;
+  defaultCurrencyName?: string | null;
+  chiefAccountantId?: number | null;
+  chiefAccountantName?: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -32,7 +43,7 @@ export interface CompaniesListData {
 }
 
 export interface CreateCompanyPayload {
-  name: string;
+  nameCn: string;
   signingLocation?: string;
   bankName?: string;
   bankAccount?: string;
@@ -41,6 +52,17 @@ export interface CreateCompanyPayload {
   taxId?: string;
   customsCode?: string;
   quarantineCode?: string;
+  nameEn?: string;
+  abbreviation?: string;
+  countryId?: number;
+  countryName?: string;
+  addressCn?: string;
+  addressEn?: string;
+  contactPerson?: string;
+  contactPhone?: string;
+  defaultCurrencyName?: string;
+  chiefAccountantId?: number;
+  chiefAccountantName?: string;
 }
 
 export type UpdateCompanyPayload = Partial<CreateCompanyPayload>;
