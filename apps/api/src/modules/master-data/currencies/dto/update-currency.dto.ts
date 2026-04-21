@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { CurrencyStatus } from '@infitek/shared';
 
 export class UpdateCurrencyDto {
@@ -15,4 +15,15 @@ export class UpdateCurrencyDto {
   @IsEnum(Object.values(CurrencyStatus))
   @IsOptional()
   status?: CurrencyStatus;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  symbol?: string;
+
+  @IsInt()
+  @Min(0)
+  @Max(1)
+  @IsOptional()
+  isBaseCurrency?: number;
 }

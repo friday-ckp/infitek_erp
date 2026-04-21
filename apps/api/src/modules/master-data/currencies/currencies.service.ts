@@ -27,10 +27,17 @@ export class CurrenciesService {
     if (duplicate) {
       throw new BadRequestException('币种代码已存在');
     }
+
+    if (dto.isBaseCurrency === 1) {
+      await this.currenciesRepository.clearBaseCurrency();
+    }
+
     return this.currenciesRepository.create({
       code: dto.code,
       name: dto.name,
       status: CurrencyStatus.ACTIVE,
+      symbol: dto.symbol ?? null,
+      isBaseCurrency: dto.isBaseCurrency ?? 0,
       createdBy: operator,
       updatedBy: operator,
     });
@@ -47,6 +54,10 @@ export class CurrenciesService {
       if (duplicate && duplicate.id !== id) {
         throw new BadRequestException('币种代码已存在');
       }
+    }
+
+    if (dto.isBaseCurrency === 1) {
+      await this.currenciesRepository.clearBaseCurrency();
     }
 
     return this.currenciesRepository.update(id, {

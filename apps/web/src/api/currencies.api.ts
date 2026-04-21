@@ -6,6 +6,8 @@ export interface Currency {
   code: string;
   name: string;
   status: CurrencyStatus;
+  symbol?: string | null;
+  isBaseCurrency?: number;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -30,12 +32,16 @@ export interface CurrenciesListData {
 export interface CreateCurrencyPayload {
   code: string;
   name: string;
+  symbol?: string;
+  isBaseCurrency?: number;
 }
 
 export interface UpdateCurrencyPayload {
   code?: string;
   name?: string;
   status?: CurrencyStatus;
+  symbol?: string;
+  isBaseCurrency?: number;
 }
 
 function normalizeApiError(error: unknown): never {

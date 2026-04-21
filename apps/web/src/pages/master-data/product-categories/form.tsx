@@ -49,7 +49,12 @@ export default function ProductCategoryFormPage() {
 
   useEffect(() => {
     if (isEdit && detailQuery.data) {
-      form.setFieldsValue({ name: detailQuery.data.name });
+      form.setFieldsValue({
+        name: detailQuery.data.name,
+        nameEn: detailQuery.data.nameEn ?? undefined,
+        purchaseOwner: detailQuery.data.purchaseOwner ?? undefined,
+        productOwner: detailQuery.data.productOwner ?? undefined,
+      });
     } else if (!isEdit && parentIdFromQuery) {
       form.setFieldsValue({ parentId: Number(parentIdFromQuery) });
     }
@@ -65,7 +70,7 @@ export default function ProductCategoryFormPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ payload }: { payload: { name?: string } }) =>
+    mutationFn: ({ payload }: { payload: { name?: string; nameEn?: string; purchaseOwner?: string; productOwner?: string } }) =>
       updateProductCategory(Number(id), payload),
     onSuccess: () => {
       message.success('保存成功', 3);
@@ -79,11 +84,24 @@ export default function ProductCategoryFormPage() {
 
   const treeSelectData = buildTreeSelectData(treeQuery.data ?? []);
 
-  const handleSubmit = (values: { name: string; parentId?: number }) => {
+  const handleSubmit = (values: { name: string; nameEn?: string; parentId?: number; purchaseOwner?: string; productOwner?: string }) => {
     if (isEdit) {
-      updateMutation.mutate({ payload: { name: values.name } });
+      updateMutation.mutate({
+        payload: {
+          name: values.name,
+          nameEn: values.nameEn,
+          purchaseOwner: values.purchaseOwner,
+          productOwner: values.productOwner,
+        },
+      });
     } else {
-      createMutation.mutate({ name: values.name, parentId: values.parentId });
+      createMutation.mutate({
+        name: values.name,
+        nameEn: values.nameEn,
+        parentId: values.parentId,
+        purchaseOwner: values.purchaseOwner,
+        productOwner: values.productOwner,
+      });
     }
   };
 
@@ -107,6 +125,14 @@ export default function ProductCategoryFormPage() {
               <Input placeholder="请输入分类名称" />
             </Form.Item>
 
+            <Form.Item
+              label="英文名"
+              name="nameEn"
+              rules={[{ max: 100, message: '英文名不能超过100个字符' }]}
+            >
+              <Input placeholder="请输入英文名（可选）" />
+            </Form.Item>
+
             {!isEdit && (
               <Form.Item label="父级分类" name="parentId">
                 <TreeSelect
@@ -118,6 +144,22 @@ export default function ProductCategoryFormPage() {
                 />
               </Form.Item>
             )}
+
+            <Form.Item
+              label="采购负责人"
+              name="purchaseOwner"
+              rules={[{ max: 100, message: '采购负责人不能超过100个字符' }]}
+            >
+              <Input placeholder="请输入采购负责人（可选）" />
+            </Form.Item>
+
+            <Form.Item
+              label="产品负责人"
+              name="productOwner"
+              rules={[{ max: 100, message: '产品负责人不能超过100个字符' }]}
+            >
+              <Input placeholder="请输入产品负责人（可选）" />
+            </Form.Item>
 
             <Form.Item style={{ marginBottom: 0 }}>
               <Button

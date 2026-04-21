@@ -3,9 +3,13 @@ import request from './request';
 export interface ProductCategory {
   id: number;
   name: string;
+  nameEn: string | null;
+  code: string | null;
   parentId: number | null;
   level: number;
   sortOrder: number;
+  purchaseOwner: string | null;
+  productOwner: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -33,11 +37,17 @@ export interface ProductCategoriesListData {
 
 export interface CreateProductCategoryPayload {
   name: string;
+  nameEn?: string;
   parentId?: number;
+  purchaseOwner?: string;
+  productOwner?: string;
 }
 
 export interface UpdateProductCategoryPayload {
   name?: string;
+  nameEn?: string;
+  purchaseOwner?: string;
+  productOwner?: string;
 }
 
 function normalizeApiError(error: unknown): never {

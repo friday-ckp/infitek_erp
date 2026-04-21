@@ -147,6 +147,34 @@ export default function ProductCategoriesPage() {
                     <Typography.Text>{breadcrumb}</Typography.Text>
                   </div>
 
+                  {selectedNode.code && (
+                    <div>
+                      <Typography.Text type="secondary">分类编号：</Typography.Text>
+                      <Typography.Text>{selectedNode.code}</Typography.Text>
+                    </div>
+                  )}
+
+                  {selectedNode.nameEn && (
+                    <div>
+                      <Typography.Text type="secondary">英文名：</Typography.Text>
+                      <Typography.Text>{selectedNode.nameEn}</Typography.Text>
+                    </div>
+                  )}
+
+                  {selectedNode.purchaseOwner && (
+                    <div>
+                      <Typography.Text type="secondary">采购负责人：</Typography.Text>
+                      <Typography.Text>{selectedNode.purchaseOwner}</Typography.Text>
+                    </div>
+                  )}
+
+                  {selectedNode.productOwner && (
+                    <div>
+                      <Typography.Text type="secondary">产品负责人：</Typography.Text>
+                      <Typography.Text>{selectedNode.productOwner}</Typography.Text>
+                    </div>
+                  )}
+
                   <div>
                     <Typography.Text type="secondary">下属 SPU 数量：</Typography.Text>
                     <Typography.Text>0</Typography.Text>

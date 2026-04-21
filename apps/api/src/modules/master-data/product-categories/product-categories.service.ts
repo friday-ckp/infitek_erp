@@ -34,11 +34,17 @@ export class ProductCategoriesService {
       level = parent.level + 1;
     }
 
+    const code = await this.repo.generateCode();
+
     return this.repo.create({
       name: dto.name,
+      nameEn: dto.nameEn ?? null,
+      code,
       parentId: dto.parentId ?? null,
       level,
       sortOrder: 0,
+      purchaseOwner: dto.purchaseOwner ?? null,
+      productOwner: dto.productOwner ?? null,
       createdBy: operator,
       updatedBy: operator,
     });
@@ -53,6 +59,12 @@ export class ProductCategoriesService {
       if (dup && dup.id !== id) throw new BadRequestException('分类名称已存在');
     }
 
-    return this.repo.update(id, { name: dto.name, updatedBy: operator });
+    return this.repo.update(id, {
+      name: dto.name,
+      nameEn: dto.nameEn,
+      purchaseOwner: dto.purchaseOwner,
+      productOwner: dto.productOwner,
+      updatedBy: operator,
+    });
   }
 }
