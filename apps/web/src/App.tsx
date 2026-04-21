@@ -26,6 +26,9 @@ import CompanyDetailPage from './pages/master-data/companies/detail';
 import CompanyFormPage from './pages/master-data/companies/form';
 import ProductCategoriesPage from './pages/master-data/product-categories/index';
 import ProductCategoryFormPage from './pages/master-data/product-categories/form';
+import SpusListPage from './pages/master-data/spus/index';
+import SpuDetailPage from './pages/master-data/spus/detail';
+import SpuFormPage from './pages/master-data/spus/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -118,6 +121,10 @@ function App() {
                 <Route path="/master-data/product-categories/create" element={<ProductCategoryFormPage />} />
                 <Route path="/master-data/product-categories/:id/edit" element={<ProductCategoryFormPage />} />
                 <Route path="/products/categories" element={<Navigate to="/master-data/product-categories" replace />} />
+                <Route path="/master-data/spus" element={<SpusListPage />} />
+                <Route path="/master-data/spus/create" element={<SpuFormPage />} />
+                <Route path="/master-data/spus/:id" element={<SpuDetailPage />} />
+                <Route path="/master-data/spus/:id/edit" element={<SpuFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}

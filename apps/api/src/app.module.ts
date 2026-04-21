@@ -18,6 +18,7 @@ import { CurrenciesModule } from './modules/master-data/currencies/currencies.mo
 import { CountriesModule } from './modules/master-data/countries/countries.module';
 import { CompaniesModule } from './modules/master-data/companies/companies.module';
 import { ProductCategoriesModule } from './modules/master-data/product-categories/product-categories.module';
+import { SpusModule } from './modules/master-data/spus/spus.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -41,6 +42,7 @@ import databaseConfig from './config/database.config';
     CountriesModule,
     CompaniesModule,
     ProductCategoriesModule,
+    SpusModule,
     FilesModule,
   ],
   controllers: [AppController],
