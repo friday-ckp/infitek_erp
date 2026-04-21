@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Modal, Result, Skeleton, message } from 'antd';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteProductCategory, getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
 
 // ─── helpers ───────────────────────────────────────────────────────────────

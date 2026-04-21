@@ -40,3 +40,9 @@
 - `UpdateCompanyDto.nameCn` 缺少 `@IsNotEmpty()`，空字符串可绕过唯一性检查（`update-company.dto.ts`）— pre-existing 模式，与其他 DTO 一致
 - `contactPhone` 仅有 `MaxLength(50)` 无格式校验（`create-company.dto.ts`）— pre-existing 设计决策
 - `bigint` DB 列（country_id / chief_accountant_id）TypeScript 层类型为 `number`，超大 ID 精度风险（`company.entity.ts`）— pre-existing 项目级模式，实际 ID 范围安全
+
+## Deferred from: code review of 3-2-spu基础信息管理 (2026-04-21)
+
+- `findByCode` 方法未被调用（`spus.repository.ts:35`）— 死代码，无害，可在后续清理
+- 详情页显示公司主体 ID 而非公司名称（`detail.tsx:110`）— Epic 4 供应商/公司集成后处理
+- `generateCode` TOCTOU 竞态：并发创建时两个请求可能读到相同 MAX 值，DB 唯一约束会拦截但返回 500 — 超出本 Story 范围，与其他模块 pre-existing 模式一致
