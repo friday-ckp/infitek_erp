@@ -9,7 +9,10 @@ const dataSource = new DataSource({
   password: process.env.DB_PASS || '',
   database: process.env.DB_NAME || 'infitek_erp',
   entities: [path.join(__dirname, '**/*.entity{.ts,.js}')],
-  migrations: [path.join(__dirname, 'migrations/*{.ts,.js}')],
+  migrations: [
+    path.join(__dirname, 'migrations/*.ts'),
+    path.join(__dirname, 'migrations/*.js'),
+  ],
   synchronize: false,
 });
 
