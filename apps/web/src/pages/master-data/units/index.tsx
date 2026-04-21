@@ -216,6 +216,15 @@ export default function UnitsListPage() {
           setStatus(undefined);
           setPage(1);
         }}
+        onQuery={() => {
+          setPage(1);
+          query.refetch();
+        }}
+        onReset={() => {
+          setKeywordInput('');
+          setStatus(undefined);
+          setPage(1);
+        }}
         advancedContent={
           <Select<UnitStatus>
             allowClear

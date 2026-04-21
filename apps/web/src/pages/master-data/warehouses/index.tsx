@@ -5,13 +5,11 @@ import {
   Button,
   Empty,
   Flex,
-  Input,
   Popconfirm,
   Result,
   Select,
   Skeleton,
   Space,
-  Tag,
   Tooltip,
   Typography,
   message,
@@ -23,6 +21,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import type { WarehouseStatus } from '@infitek/shared';
 import { getWarehouses, updateWarehouse, type Warehouse } from '../../../api/warehouses.api';
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
+import { useDebouncedValue } from '../../../hooks/useDebounce';
 
 const WAREHOUSE_STATUS_ACTIVE = 'active' as WarehouseStatus;
 const WAREHOUSE_STATUS_INACTIVE = 'inactive' as WarehouseStatus;
@@ -37,17 +38,6 @@ const statusTagMap = {
   inactive: { status: 'default', text: '禁用' },
 } satisfies Record<WarehouseStatus, { status: 'success' | 'default'; text: string }>;
 
-function useDebouncedValue(input: string, delay = 300) {
-  const [value, setValue] = useState(input);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setValue(input), delay);
-    return () => window.clearTimeout(timer);
-  }, [input, delay]);
-
-  return value;
-}
-
 export default function WarehousesListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -55,12 +45,15 @@ export default function WarehousesListPage() {
 
   const [keywordInput, setKeywordInput] = useState('');
   const [status, setStatus] = useState<WarehouseStatus | undefined>();
-  const [showAdvanced, setShowAdvanced] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   const keyword = useDebouncedValue(keywordInput, 300).trim();
   const hasFilters = Boolean(keyword || status);
+
+  useEffect(() => {
+    setPage(1);
+  }, [keyword, status]);
 
   const query = useQuery({
     queryKey: ['warehouses', keyword, status, page, pageSize],
@@ -207,7 +200,7 @@ export default function WarehousesListPage() {
     </Empty>
   );
 
-  const tags = [
+  const activeTags: ActiveTag[] = [
     keyword
       ? {
           key: 'keyword',
@@ -228,7 +221,7 @@ export default function WarehousesListPage() {
           },
         }
       : null,
-  ].filter(Boolean) as Array<{ key: string; label: string; onClose: () => void }>;
+  ].filter(Boolean) as ActiveTag[];
 
   return (
     <div>
@@ -241,59 +234,28 @@ export default function WarehousesListPage() {
         </Button>
       </Flex>
 
-      <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
-        <Flex gap={token.marginSM} wrap>
-          <Input
-            placeholder="快捷搜索仓库名称/地址"
-            style={{ width: 320 }}
-            value={keywordInput}
-            onChange={(e) => {
-              setKeywordInput(e.target.value);
+      <SearchForm
+        searchValue={keywordInput}
+        onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
+        placeholder="快捷搜索仓库名称/地址"
+        activeTags={activeTags}
+        onClearAll={() => { setKeywordInput(''); setStatus(undefined); setPage(1); }}
+        onQuery={() => { setPage(1); query.refetch(); }}
+        onReset={() => { setKeywordInput(''); setStatus(undefined); setPage(1); }}
+        advancedContent={
+          <Select<WarehouseStatus>
+            allowClear
+            placeholder="按状态筛选"
+            options={statusOptions}
+            value={status}
+            onChange={(value) => {
+              setStatus(value);
               setPage(1);
             }}
-            allowClear
+            style={{ width: 200 }}
           />
-          <Button type="link" onClick={() => setShowAdvanced((prev) => !prev)}>
-            {showAdvanced ? '收起高级筛选' : '展开高级筛选'}
-          </Button>
-        </Flex>
-
-        {showAdvanced ? (
-          <Flex gap={token.marginSM} wrap>
-            <Select<WarehouseStatus>
-              allowClear
-              placeholder="按状态筛选"
-              options={statusOptions}
-              value={status}
-              onChange={(value) => {
-                setStatus(value);
-                setPage(1);
-              }}
-              style={{ width: 200 }}
-            />
-          </Flex>
-        ) : null}
-
-        {tags.length > 0 ? (
-          <Space wrap>
-            {tags.map((item) => (
-              <Tag closable key={item.key} onClose={item.onClose}>
-                {item.label}
-              </Tag>
-            ))}
-            <Button
-              type="link"
-              onClick={() => {
-                setKeywordInput('');
-                setStatus(undefined);
-                setPage(1);
-              }}
-            >
-              清除全部
-            </Button>
-          </Space>
-        ) : null}
-      </Space>
+        }
+      />
 
       <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
         <ProTable<Warehouse>

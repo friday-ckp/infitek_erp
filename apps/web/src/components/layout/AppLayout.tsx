@@ -12,6 +12,15 @@ const BREADCRUMB_MAP: Record<string, { label: string; parent?: string; parentLab
   '/settings/users/create': { label: '新建用户', parent: '/settings/users', parentLabel: '用户管理' },
   '/master-data/units': { label: '单位管理', parent: '/master-data', parentLabel: '基础数据' },
   '/master-data/units/create': { label: '新建单位', parent: '/master-data/units', parentLabel: '单位管理' },
+  '/master-data/companies': { label: '公司主体管理', parent: '/master-data', parentLabel: '基础数据' },
+  '/master-data/companies/create': { label: '新建公司主体', parent: '/master-data/companies', parentLabel: '公司主体管理' },
+  '/master-data/countries': { label: '国家/地区管理', parent: '/master-data', parentLabel: '基础数据' },
+  '/master-data/countries/create': { label: '新建国家/地区', parent: '/master-data/countries', parentLabel: '国家/地区管理' },
+  '/master-data/currencies': { label: '币种管理', parent: '/master-data', parentLabel: '基础数据' },
+  '/master-data/currencies/create': { label: '新建币种', parent: '/master-data/currencies', parentLabel: '币种管理' },
+  '/master-data/warehouses': { label: '仓库管理', parent: '/master-data', parentLabel: '基础数据' },
+  '/master-data/warehouses/create': { label: '新建仓库', parent: '/master-data/warehouses', parentLabel: '仓库管理' },
+  '/master-data/product-categories': { label: '产品分类管理', parent: '/master-data', parentLabel: '基础数据' },
 };
 
 function isValidToken(token: string | null): boolean {
@@ -54,6 +63,66 @@ function getBreadcrumbItems(pathname: string): { title: string; path: string }[]
     { title: '基础数据', path: '/master-data' },
     { title: '单位管理', path: '/master-data/units' },
     { title: '单位详情', path: pathname },
+  ];
+  const companyEditMatch = pathname.match(/^\/master-data\/companies\/([a-zA-Z0-9\-_]+)\/edit$/);
+  if (companyEditMatch && companyEditMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '公司主体管理', path: '/master-data/companies' },
+    { title: '编辑公司主体', path: pathname },
+  ];
+  const companyDetailMatch = pathname.match(/^\/master-data\/companies\/([a-zA-Z0-9\-_]+)$/);
+  if (companyDetailMatch && companyDetailMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '公司主体管理', path: '/master-data/companies' },
+    { title: '公司主体详情', path: pathname },
+  ];
+  const countryEditMatch = pathname.match(/^\/master-data\/countries\/([a-zA-Z0-9\-_]+)\/edit$/);
+  if (countryEditMatch && countryEditMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '国家/地区管理', path: '/master-data/countries' },
+    { title: '编辑国家/地区', path: pathname },
+  ];
+  const countryDetailMatch = pathname.match(/^\/master-data\/countries\/([a-zA-Z0-9\-_]+)$/);
+  if (countryDetailMatch && countryDetailMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '国家/地区管理', path: '/master-data/countries' },
+    { title: '国家/地区详情', path: pathname },
+  ];
+  const currencyEditMatch = pathname.match(/^\/master-data\/currencies\/([a-zA-Z0-9\-_]+)\/edit$/);
+  if (currencyEditMatch && currencyEditMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '币种管理', path: '/master-data/currencies' },
+    { title: '编辑币种', path: pathname },
+  ];
+  const currencyDetailMatch = pathname.match(/^\/master-data\/currencies\/([a-zA-Z0-9\-_]+)$/);
+  if (currencyDetailMatch && currencyDetailMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '币种管理', path: '/master-data/currencies' },
+    { title: '币种详情', path: pathname },
+  ];
+  const warehouseEditMatch = pathname.match(/^\/master-data\/warehouses\/([a-zA-Z0-9\-_]+)\/edit$/);
+  if (warehouseEditMatch && warehouseEditMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '仓库管理', path: '/master-data/warehouses' },
+    { title: '编辑仓库', path: pathname },
+  ];
+  const warehouseDetailMatch = pathname.match(/^\/master-data\/warehouses\/([a-zA-Z0-9\-_]+)$/);
+  if (warehouseDetailMatch && warehouseDetailMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '仓库管理', path: '/master-data/warehouses' },
+    { title: '仓库详情', path: pathname },
+  ];
+  const productCategoryEditMatch = pathname.match(/^\/master-data\/product-categories\/([a-zA-Z0-9\-_]+)\/edit$/);
+  if (productCategoryEditMatch && productCategoryEditMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '产品分类管理', path: '/master-data/product-categories' },
+    { title: '编辑产品分类', path: pathname },
+  ];
+  const productCategoryDetailMatch = pathname.match(/^\/master-data\/product-categories\/([a-zA-Z0-9\-_]+)$/);
+  if (productCategoryDetailMatch && productCategoryDetailMatch[1]) return [
+    { title: '基础数据', path: '/master-data' },
+    { title: '产品分类管理', path: '/master-data/product-categories' },
+    { title: '产品分类详情', path: pathname },
   ];
   return [];
 }

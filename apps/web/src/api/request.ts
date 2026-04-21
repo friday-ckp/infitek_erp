@@ -29,7 +29,9 @@ request.interceptors.response.use(
       localStorage.removeItem('token');
       window.location.href = '/login';
     } else {
-      message.error(error.response?.data?.message ?? '操作失败');
+      const rawMsg = error.response?.data?.message;
+      const msg = Array.isArray(rawMsg) ? rawMsg.join('；') : (rawMsg ?? '操作失败');
+      message.error(msg);
     }
     return Promise.reject(error.response?.data);
   },

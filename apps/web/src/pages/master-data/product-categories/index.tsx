@@ -236,7 +236,7 @@ export default function ProductCategoriesPage() {
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#4338CA'; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#4F46E5'; }}
         >
-          + 新建一级分类
+          + 新建分类
         </button>
       </div>
 
@@ -302,7 +302,7 @@ export default function ProductCategoriesPage() {
                         onClick={() => navigate('/master-data/product-categories/create')}
                         style={{ padding: '6px 14px', borderRadius: 7, fontSize: 12, background: '#4F46E5', color: '#fff', border: 'none', cursor: 'pointer' }}
                       >
-                        新建一级分类
+                        新建分类
                       </button>
                     </>
                   ) : '无匹配结果'}
@@ -355,10 +355,14 @@ export default function ProductCategoriesPage() {
                     okButtonProps: { danger: true, disabled: selectedNode.children.length > 0 },
                     cancelText: '取消',
                     onOk: async () => {
-                      await deleteProductCategory(selectedNode.id);
-                      message.success('删除成功');
-                      queryClient.invalidateQueries({ queryKey: ['product-categories', 'tree'] });
-                      setSelectedId(null);
+                      try {
+                        await deleteProductCategory(selectedNode.id);
+                        message.success('删除成功');
+                        queryClient.invalidateQueries({ queryKey: ['product-categories', 'tree'] });
+                        setSelectedId(null);
+                      } catch {
+                        // 错误由 request.ts 统一处理
+                      }
                     },
                   });
                 }}
