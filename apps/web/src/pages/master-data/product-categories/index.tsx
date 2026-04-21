@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Modal, Result, Skeleton, message } from 'antd';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { App, Button, Result, Skeleton } from 'antd';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteProductCategory, getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
 
 // ─── helpers ───────────────────────────────────────────────────────────────
@@ -157,6 +157,7 @@ function TreeNode({
 export default function ProductCategoriesPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { message, modal } = App.useApp();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [searchText, setSearchText] = useState('');
@@ -346,7 +347,7 @@ export default function ProductCategoriesPage() {
                 onEdit={() => navigate(`/master-data/product-categories/${selectedNode.id}/edit`)}
                 onCreateChild={() => navigate(`/master-data/product-categories/create?parentId=${selectedNode.id}`)}
                 onDelete={() => {
-                  Modal.confirm({
+                  modal.confirm({
                     title: `删除「${selectedNode.name}」？`,
                     content: selectedNode.children.length > 0
                       ? '该分类下有子分类，请先删除子分类后再操作。'
