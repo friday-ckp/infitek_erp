@@ -207,17 +207,11 @@ export default function WarehouseFormPage() {
           <Cascader
             options={chinaRegions}
             placeholder="请选择省/市（可选）"
-            onChange={(val: string[]) => {
-              form.setFieldsValue({
-                defaultShipArea: val,
-              });
-            }}
           />
         </Form.Item>
         <ProFormSelect
           name="ownership"
           label="仓库归属"
-          initialValue="内部仓"
           options={ownershipOptions}
           rules={[{ required: true, message: '请选择仓库归属' }]}
         />

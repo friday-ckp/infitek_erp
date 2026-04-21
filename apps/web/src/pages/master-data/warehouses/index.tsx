@@ -64,7 +64,6 @@ export default function WarehousesListPage() {
 
   const query = useQuery({
     queryKey: ['warehouses', keyword, status, page, pageSize],
-    placeholderData: (previousData) => previousData,
     queryFn: () =>
       getWarehouses({
         keyword: keyword || undefined,
