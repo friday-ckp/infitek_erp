@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button, Result, Skeleton } from 'antd';
-import { useQuery } from '@tanstack/react-query';
-import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
+import { Button, Modal, Result, Skeleton, message } from 'antd';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { deleteProductCategory, getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -23,12 +23,6 @@ function buildPath(nodes: ProductCategoryNode[], id: number, path: ProductCatego
     if (found.length) return found;
   }
   return [];
-}
-
-function countSiblings(nodes: ProductCategoryNode[], node: ProductCategoryNode): number {
-  if (!node.parentId) return nodes.length;
-  const parent = findNodeById(nodes, node.parentId);
-  return parent ? parent.children.length : 0;
 }
 
 function countAll(nodes: ProductCategoryNode[]): { l1: number; total: number } {
@@ -158,20 +152,11 @@ function TreeNode({
 
 // ─── stat card ─────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub, color }: { label: string; value: number | string; sub: string; color: string }) {
-  return (
-    <div style={{ flex: 1, background: '#fff', borderRadius: 10, border: '1px solid #E5E7EB', padding: '14px 16px' }}>
-      <div style={{ fontSize: 11.5, color: '#9CA3AF', fontWeight: 500 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 700, color, marginTop: 3 }}>{value}</div>
-      <div style={{ fontSize: 11, color: '#9CA3AF', marginTop: 2 }}>{sub}</div>
-    </div>
-  );
-}
-
 // ─── main page ─────────────────────────────────────────────────────────────
 
 export default function ProductCategoriesPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [searchText, setSearchText] = useState('');
@@ -208,7 +193,6 @@ export default function ProductCategoriesPage() {
   const { l1, total } = countAll(treeNodes);
   const selectedNode = selectedId !== null ? findNodeById(treeNodes, selectedId) : null;
   const pathNodes = selectedId !== null ? buildPath(treeNodes, selectedId) : [];
-  const siblingCount = selectedNode ? countSiblings(treeNodes, selectedNode) : 0;
 
   const handleToggle = (id: number) => {
     setExpandedIds((prev) => {
@@ -359,9 +343,25 @@ export default function ProductCategoriesPage() {
               <DetailPanel
                 node={selectedNode}
                 pathNodes={pathNodes}
-                siblingCount={siblingCount}
                 onEdit={() => navigate(`/master-data/product-categories/${selectedNode.id}/edit`)}
                 onCreateChild={() => navigate(`/master-data/product-categories/create?parentId=${selectedNode.id}`)}
+                onDelete={() => {
+                  Modal.confirm({
+                    title: `删除「${selectedNode.name}」？`,
+                    content: selectedNode.children.length > 0
+                      ? '该分类下有子分类，请先删除子分类后再操作。'
+                      : '删除后不可恢复。',
+                    okText: '确认删除',
+                    okButtonProps: { danger: true, disabled: selectedNode.children.length > 0 },
+                    cancelText: '取消',
+                    onOk: async () => {
+                      await deleteProductCategory(selectedNode.id);
+                      message.success('删除成功');
+                      queryClient.invalidateQueries({ queryKey: ['product-categories', 'tree'] });
+                      setSelectedId(null);
+                    },
+                  });
+                }}
               />
             )}
           </div>
@@ -374,13 +374,13 @@ export default function ProductCategoriesPage() {
 // ─── detail panel ──────────────────────────────────────────────────────────
 
 function DetailPanel({
-  node, pathNodes, siblingCount, onEdit, onCreateChild,
+  node, pathNodes, onEdit, onCreateChild, onDelete,
 }: {
   node: ProductCategoryNode;
   pathNodes: ProductCategoryNode[];
-  siblingCount: number;
   onEdit: () => void;
   onCreateChild: () => void;
+  onDelete: () => void;
 }) {
   const levelStyle = LEVEL_STYLES[node.level] ?? LEVEL_STYLES[1];
   const isMaxLevel = node.level >= 3;
@@ -446,14 +446,8 @@ function DetailPanel({
             title={isMaxLevel ? '已达最大层级（3级）' : undefined}
             onClick={onCreateChild}
           />
+          <BtnDanger label="删除" onClick={onDelete} />
         </div>
-      </div>
-
-      {/* 统计数据行 */}
-      <div style={{ display: 'flex', gap: 12 }}>
-        <StatCard label="关联 SPU 数" value={0} sub="该分类下 SPU 总数" color="#4F46E5" />
-        <StatCard label="有效 SKU 数" value={0} sub="活跃 SKU 数量" color="#059669" />
-        <StatCard label="同级分类数" value={siblingCount} sub="同父级下的分类数量" color="#D97706" />
       </div>
 
       {/* 基本信息卡片 */}
@@ -537,6 +531,26 @@ function BtnDashed({ label, disabled, title, onClick }: { label: string; disable
         border: '1.5px dashed #C7D2FE',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.4 : 1,
+        transition: 'all .15s',
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function BtnDanger({ label, onClick }: { label: string; onClick: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: '5px 12px', borderRadius: 7, fontSize: 12, fontWeight: 500, cursor: 'pointer',
+        background: hovered ? '#FEF2F2' : '#fff',
+        color: hovered ? '#DC2626' : '#9CA3AF',
+        border: `1px solid ${hovered ? '#FECACA' : '#E5E7EB'}`,
         transition: 'all .15s',
       }}
     >

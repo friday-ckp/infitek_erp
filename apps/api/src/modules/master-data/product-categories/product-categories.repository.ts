@@ -84,4 +84,12 @@ export class ProductCategoriesRepository {
     await this.repo.update(id, data);
     return this.repo.findOneOrFail({ where: { id } });
   }
+
+  async delete(id: number): Promise<void> {
+    await this.repo.delete(id);
+  }
+
+  countChildren(parentId: number): Promise<number> {
+    return this.repo.count({ where: { parentId } });
+  }
 }

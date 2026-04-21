@@ -76,3 +76,7 @@ export const createProductCategory = (payload: CreateProductCategoryPayload): Pr
 export const updateProductCategory = (id: number, payload: UpdateProductCategoryPayload): Promise<ProductCategory> => {
   return request.patch<any, ProductCategory>(`/product-categories/${id}`, payload).catch(normalizeApiError);
 };
+
+export const deleteProductCategory = (id: number): Promise<void> => {
+  return request.delete<any, void>(`/product-categories/${id}`).catch(normalizeApiError);
+};

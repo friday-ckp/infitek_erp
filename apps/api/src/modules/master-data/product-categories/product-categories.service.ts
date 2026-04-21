@@ -67,4 +67,12 @@ export class ProductCategoriesService {
       updatedBy: operator,
     });
   }
+
+  async delete(id: number): Promise<void> {
+    const cat = await this.repo.findById(id);
+    if (!cat) throw new NotFoundException('产品分类不存在');
+    const childCount = await this.repo.countChildren(id);
+    if (childCount > 0) throw new BadRequestException('请先删除该分类下的所有子分类');
+    await this.repo.delete(id);
+  }
 }
