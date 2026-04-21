@@ -101,6 +101,15 @@ export default function CurrenciesListPage() {
         ellipsis: true,
       },
       {
+        title: '本位币',
+        dataIndex: 'isBaseCurrency',
+        width: 100,
+        render: (_, record) =>
+          record.isBaseCurrency === 1 ? (
+            <Tag color="processing">本位币</Tag>
+          ) : null,
+      },
+      {
         title: '状态',
         dataIndex: 'status',
         width: 120,
