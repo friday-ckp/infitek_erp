@@ -1,12 +1,13 @@
-import { Breadcrumb, Button, Empty, Modal, Result, Space, message } from 'antd';
-import { ProDescriptions } from '@ant-design/pro-components';
-import type { ProDescriptionsItemProps } from '@ant-design/pro-components';
+import { Breadcrumb, Button, Modal, Result, Space, Tag, message } from 'antd';
+import { ProDescriptions, ProTable } from '@ant-design/pro-components';
+import type { ProDescriptionsItemProps, ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deleteSpu, getSpuById, type Spu } from '../../../api/spus.api';
 import { getProductCategoryTree } from '../../../api/product-categories.api';
 import { findCategoryName } from '../../../utils/category';
+import { getSkus, type Sku } from '../../../api/skus.api';
 
 export default function SpuDetailPage() {
   const navigate = useNavigate();
@@ -24,6 +25,12 @@ export default function SpuDetailPage() {
     queryKey: ['product-categories', 'tree'],
     queryFn: getProductCategoryTree,
     staleTime: 5 * 60 * 1000,
+  });
+
+  const skusQuery = useQuery({
+    queryKey: ['skus', { spuId }],
+    queryFn: () => getSkus({ spuId, pageSize: 100 }),
+    enabled: Number.isInteger(spuId) && spuId > 0,
   });
 
   const deleteMutation = useMutation({
@@ -100,6 +107,46 @@ export default function SpuDetailPage() {
     { title: '开票型号', dataIndex: 'invoiceModel', span: 1, renderText: (v) => v || '-' },
   ];
 
+  const skuColumns: ProColumns<Sku>[] = [
+    {
+      title: 'SKU 编码',
+      dataIndex: 'skuCode',
+      width: 120,
+      render: (_, record) => (
+        <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/master-data/skus/${record.id}`)}>
+          {record.skuCode}
+        </Button>
+      ),
+    },
+    { title: '规格描述', dataIndex: 'specification', ellipsis: true },
+    { title: 'HS 码', dataIndex: 'hsCode', width: 120 },
+    { title: '净重(KG)', dataIndex: 'weightKg', width: 90 },
+    { title: '体积(CBM)', dataIndex: 'volumeCbm', width: 100 },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      width: 80,
+      render: (_, record) =>
+        record.status === 'active' ? <Tag color="success">启用</Tag> : <Tag>停用</Tag>,
+    },
+    {
+      title: '操作',
+      key: 'actions',
+      width: 120,
+      fixed: 'right' as const,
+      render: (_, record) => (
+        <Space size={12}>
+          <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/master-data/skus/${record.id}`)}>
+            查看
+          </Button>
+          <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/master-data/skus/${record.id}/edit`)}>
+            编辑
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   const otherColumns: ProDescriptionsItemProps<Spu>[] = [
     { title: '禁止经营国家', dataIndex: 'forbiddenCountries', span: 2, renderText: (v) => v || '-' },
     { title: '公司主体 ID', dataIndex: 'companyId', span: 1, renderText: (v) => v ?? '-' },
@@ -157,9 +204,26 @@ export default function SpuDetailPage() {
         columns={otherColumns}
       />
 
-      <div style={{ padding: '24px', background: '#fafafa', borderRadius: 8, textAlign: 'center' }}>
-        <Empty description="SKU 变体将在后续版本实现" />
-      </div>
+      <ProTable<Sku>
+        headerTitle="SKU 变体"
+        search={false}
+        options={false}
+        rowKey="id"
+        loading={skusQuery.isFetching}
+        columns={skuColumns}
+        dataSource={skusQuery.data?.list ?? []}
+        pagination={false}
+        scroll={{ x: 800 }}
+        toolBarRender={() => [
+          <Button
+            key="create"
+            type="primary"
+            onClick={() => navigate(`/master-data/skus/create?spuId=${spuId}`)}
+          >
+            + 新建 SKU
+          </Button>,
+        ]}
+      />
     </Space>
   );
 }

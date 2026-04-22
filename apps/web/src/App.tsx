@@ -29,6 +29,9 @@ import ProductCategoryFormPage from './pages/master-data/product-categories/form
 import SpusListPage from './pages/master-data/spus/index';
 import SpuDetailPage from './pages/master-data/spus/detail';
 import SpuFormPage from './pages/master-data/spus/form';
+import SkusListPage from './pages/master-data/skus/index';
+import SkuDetailPage from './pages/master-data/skus/detail';
+import SkuFormPage from './pages/master-data/skus/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -125,6 +128,10 @@ function App() {
                 <Route path="/master-data/spus/create" element={<SpuFormPage />} />
                 <Route path="/master-data/spus/:id" element={<SpuDetailPage />} />
                 <Route path="/master-data/spus/:id/edit" element={<SpuFormPage />} />
+                <Route path="/master-data/skus" element={<SkusListPage />} />
+                <Route path="/master-data/skus/create" element={<SkuFormPage />} />
+                <Route path="/master-data/skus/:id" element={<SkuDetailPage />} />
+                <Route path="/master-data/skus/:id/edit" element={<SkuFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}

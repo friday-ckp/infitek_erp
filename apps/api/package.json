@@ -97,6 +97,9 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
+    "moduleNameMapper": {
+      "@infitek/shared": "<rootDir>/../../../packages/shared/src"
+    },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
