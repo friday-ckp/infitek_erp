@@ -224,7 +224,6 @@ export default function SkuFormPage() {
             placeholder="请选择 SPU"
             width="md"
             options={spuOptions}
-            loading={spusQuery.isLoading}
             showSearch
             fieldProps={{ optionFilterProp: 'label', disabled: Boolean(prefilledSpuId) }}
             rules={[{ required: true, message: '请选择所属 SPU' }]}
@@ -245,7 +244,6 @@ export default function SkuFormPage() {
             placeholder="请选择单位"
             width="sm"
             options={unitOptions}
-            loading={unitsQuery.isLoading}
             showSearch
             fieldProps={{ optionFilterProp: 'label', allowClear: true }}
           />
