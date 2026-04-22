@@ -18,8 +18,10 @@ export class SkusService {
     return this.repo.findAll(query);
   }
 
-  async findById(id: number): Promise<Sku | null> {
-    return this.repo.findById(id);
+  async findById(id: number): Promise<Sku> {
+    const sku = await this.repo.findById(id);
+    if (!sku) throw new NotFoundException('SKU 不存在');
+    return sku;
   }
 
   async create(dto: CreateSkuDto, operator?: string): Promise<Sku> {

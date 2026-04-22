@@ -26,7 +26,11 @@ export default function SkuFormPage() {
   const formRef = useRef<ProFormInstance>(undefined);
 
   // spuId pre-fill from query param (when navigating from SPU detail)
-  const prefilledSpuId = searchParams.get('spuId') ? Number(searchParams.get('spuId')) : undefined;
+  const rawSpuId = searchParams.get('spuId');
+  const prefilledSpuId =
+    rawSpuId && Number.isInteger(Number(rawSpuId)) && Number(rawSpuId) > 0
+      ? Number(rawSpuId)
+      : undefined;
 
   const detailQuery = useQuery({
     queryKey: ['sku-detail', skuId],
