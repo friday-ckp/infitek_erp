@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { Button, Result, Skeleton, message } from 'antd';
+import { Button, Descriptions, Result, Skeleton, message } from 'antd';
 import {
   ProCard,
   ProForm,
@@ -93,6 +93,11 @@ export default function SkuFormPage() {
       />
     );
   }
+
+  const referencedSpuId = prefilledSpuId ?? (isEdit ? detailQuery.data?.spuId : undefined);
+  const referencedSpu = referencedSpuId
+    ? (spusQuery.data?.list ?? []).find((s) => s.id === referencedSpuId)
+    : undefined;
 
   const spuOptions = (spusQuery.data?.list ?? []).map((s) => ({
     label: `${s.spuCode} - ${s.name}`,
@@ -203,6 +208,14 @@ export default function SkuFormPage() {
         return true;
       }}
     >
+      {referencedSpu && (
+        <ProCard bordered style={{ marginBottom: 16, background: '#fafafa' }}>
+          <Descriptions size="small" column={2} title="参考 SPU 信息">
+            <Descriptions.Item label="SPU 编码">{referencedSpu.spuCode}</Descriptions.Item>
+            <Descriptions.Item label="品名">{referencedSpu.name}</Descriptions.Item>
+          </Descriptions>
+        </ProCard>
+      )}
       <ProCard title="基本信息" bordered style={{ marginBottom: 16 }}>
         <ProForm.Group>
           <ProFormSelect

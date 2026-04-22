@@ -6,6 +6,7 @@ import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getSkus, type Sku } from '../../../api/skus.api';
+import { getSpus } from '../../../api/spus.api';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
 
 export default function SkusListPage() {
@@ -26,6 +27,18 @@ export default function SkusListPage() {
     placeholderData: (prev) => prev,
     queryFn: () => getSkus({ keyword: keyword || undefined, page, pageSize }),
   });
+
+  const spusQuery = useQuery({
+    queryKey: ['spus-options'],
+    queryFn: () => getSpus({ pageSize: 500 }),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const spuMap = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const s of spusQuery.data?.list ?? []) m.set(s.id, s.name);
+    return m;
+  }, [spusQuery.data]);
 
   if (query.isError && !query.data) {
     return (
@@ -55,6 +68,13 @@ export default function SkusListPage() {
         dataIndex: 'specification',
         width: 200,
         ellipsis: true,
+      },
+      {
+        title: '所属 SPU',
+        dataIndex: 'spuId',
+        width: 160,
+        ellipsis: true,
+        render: (_, record) => spuMap.get(record.spuId) ?? record.spuId,
       },
       {
         title: 'HS 码',
@@ -105,7 +125,7 @@ export default function SkusListPage() {
         ),
       },
     ],
-    [navigate, token.colorLink],
+    [navigate, token.colorLink, spuMap],
   );
 
   const emptyText = hasFilters ? (

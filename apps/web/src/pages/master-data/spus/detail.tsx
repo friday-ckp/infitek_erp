@@ -1,4 +1,5 @@
-import { Breadcrumb, Button, Modal, Result, Space, Tag, message } from 'antd';
+import { useState } from 'react';
+import { Breadcrumb, Button, Input, Modal, Result, Space, Tag, message } from 'antd';
 import { ProDescriptions, ProTable } from '@ant-design/pro-components';
 import type { ProDescriptionsItemProps, ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,9 +28,13 @@ export default function SpuDetailPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const [skuKeyword, setSkuKeyword] = useState('');
+  const [skuPage, setSkuPage] = useState(1);
+  const [skuPageSize, setSkuPageSize] = useState(10);
+
   const skusQuery = useQuery({
-    queryKey: ['skus', { spuId }],
-    queryFn: () => getSkus({ spuId, pageSize: 100 }),
+    queryKey: ['skus', { spuId, keyword: skuKeyword, page: skuPage, pageSize: skuPageSize }],
+    queryFn: () => getSkus({ spuId, keyword: skuKeyword || undefined, page: skuPage, pageSize: skuPageSize }),
     enabled: Number.isInteger(spuId) && spuId > 0,
   });
 
@@ -212,9 +217,28 @@ export default function SpuDetailPage() {
         loading={skusQuery.isFetching}
         columns={skuColumns}
         dataSource={skusQuery.data?.list ?? []}
-        pagination={false}
         scroll={{ x: 800 }}
+        pagination={{
+          current: skuPage,
+          pageSize: skuPageSize,
+          total: skusQuery.data?.total ?? 0,
+          showSizeChanger: true,
+          pageSizeOptions: [10, 20, 50],
+          showTotal: (total) => `共 ${total} 条`,
+          onChange: (p, ps) => {
+            if (ps !== skuPageSize) { setSkuPage(1); } else { setSkuPage(p); }
+            setSkuPageSize(ps);
+          },
+        }}
         toolBarRender={() => [
+          <Input
+            key="search"
+            placeholder="搜索 SKU 编码/规格..."
+            style={{ width: 200 }}
+            value={skuKeyword}
+            onChange={(e) => { setSkuKeyword(e.target.value); setSkuPage(1); }}
+            allowClear
+          />,
           <Button
             key="create"
             type="primary"

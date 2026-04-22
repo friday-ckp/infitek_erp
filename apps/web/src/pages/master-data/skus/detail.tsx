@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deleteSku, getSkuById, type Sku } from '../../../api/skus.api';
+import { getSpuById } from '../../../api/spus.api';
 
 export default function SkuDetailPage() {
   const navigate = useNavigate();
@@ -16,6 +17,12 @@ export default function SkuDetailPage() {
     queryKey: ['sku-detail', skuId],
     queryFn: () => getSkuById(skuId),
     enabled: Number.isInteger(skuId) && skuId > 0,
+  });
+
+  const spuQuery = useQuery({
+    queryKey: ['spu-detail', query.data?.spuId],
+    queryFn: () => getSpuById(query.data!.spuId),
+    enabled: Boolean(query.data?.spuId),
   });
 
   const deleteMutation = useMutation({
@@ -62,6 +69,12 @@ export default function SkuDetailPage() {
     });
   };
 
+  const categoryPath = spuQuery.data
+    ? [spuQuery.data.categoryLevel1Code, spuQuery.data.categoryLevel2Code, spuQuery.data.categoryLevel3Code]
+        .filter(Boolean)
+        .join(' / ') || '-'
+    : '-';
+
   const basicColumns: ProDescriptionsItemProps<Sku>[] = [
     { title: 'SKU 编码', dataIndex: 'skuCode', span: 1 },
     {
@@ -71,6 +84,8 @@ export default function SkuDetailPage() {
       render: (_, record) =>
         record.status === 'active' ? <Tag color="success">启用</Tag> : <Tag>停用</Tag>,
     },
+    { title: '所属 SPU', key: 'spuName', span: 1, render: () => spuQuery.data?.name ?? '-' },
+    { title: '分类路径', key: 'categoryPath', span: 1, render: () => categoryPath },
     { title: '中文名称', dataIndex: 'nameCn', span: 1, renderText: (v) => v || '-' },
     { title: '英文名称', dataIndex: 'nameEn', span: 1, renderText: (v) => v || '-' },
     { title: '规格描述', dataIndex: 'specification', span: 2 },
