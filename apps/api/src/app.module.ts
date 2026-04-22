@@ -19,6 +19,7 @@ import { CountriesModule } from './modules/master-data/countries/countries.modul
 import { CompaniesModule } from './modules/master-data/companies/companies.module';
 import { ProductCategoriesModule } from './modules/master-data/product-categories/product-categories.module';
 import { SpusModule } from './modules/master-data/spus/spus.module';
+import { SkusModule } from './modules/master-data/skus/skus.module';
 import { SpuFaqsModule } from './modules/master-data/spu-faqs/spu-faqs.module';
 import { CertificatesModule } from './modules/master-data/certificates/certificates.module';
 import databaseConfig from './config/database.config';
@@ -45,6 +46,7 @@ import databaseConfig from './config/database.config';
     CompaniesModule,
     ProductCategoriesModule,
     SpusModule,
+    SkusModule,
     SpuFaqsModule,
     CertificatesModule,
     FilesModule,
