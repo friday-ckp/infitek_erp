@@ -20,6 +20,7 @@ import { CompaniesModule } from './modules/master-data/companies/companies.modul
 import { ProductCategoriesModule } from './modules/master-data/product-categories/product-categories.module';
 import { SpusModule } from './modules/master-data/spus/spus.module';
 import { SpuFaqsModule } from './modules/master-data/spu-faqs/spu-faqs.module';
+import { CertificatesModule } from './modules/master-data/certificates/certificates.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -45,6 +46,7 @@ import databaseConfig from './config/database.config';
     ProductCategoriesModule,
     SpusModule,
     SpuFaqsModule,
+    CertificatesModule,
     FilesModule,
   ],
   controllers: [AppController],
