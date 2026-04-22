@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Breadcrumb, Button, Input, Modal, Result, Space, Tag, message } from 'antd';
+import { Breadcrumb, Button, Input, Modal, Result, Space, Tabs, Tag, message } from 'antd';
 import { ProDescriptions, ProTable } from '@ant-design/pro-components';
 import type { ProDescriptionsItemProps, ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { deleteSpu, getSpuById, type Spu } from '../../../api/spus.api';
 import { getProductCategoryTree } from '../../../api/product-categories.api';
 import { findCategoryName } from '../../../utils/category';
 import { getSkus, type Sku } from '../../../api/skus.api';
+import SpuFaqTab from './components/SpuFaqTab';
 
 export default function SpuDetailPage() {
   const navigate = useNavigate();
@@ -157,6 +158,98 @@ export default function SpuDetailPage() {
     { title: '公司主体 ID', dataIndex: 'companyId', span: 1, renderText: (v) => v ?? '-' },
   ];
 
+  const tabItems = [
+    {
+      key: 'info',
+      label: '基本信息',
+      children: (
+        <>
+          <ProDescriptions<Spu>
+            title="基础信息"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={basicColumns}
+          />
+
+          <ProDescriptions<Spu>
+            title="供应商信息"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={supplierColumns}
+          />
+
+          <ProDescriptions<Spu>
+            title="开票信息"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={invoiceColumns}
+          />
+
+          <ProDescriptions<Spu>
+            title="其他"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={otherColumns}
+          />
+        </>
+      ),
+    },
+    {
+      key: 'faq',
+      label: 'FAQ',
+      children: <SpuFaqTab spuId={spuId} />,
+    },
+    {
+      key: 'sku',
+      label: 'SKU 变体',
+      children: (
+        <ProTable<Sku>
+          headerTitle="SKU 变体"
+          search={false}
+          options={false}
+          rowKey="id"
+          loading={skusQuery.isFetching}
+          columns={skuColumns}
+          dataSource={skusQuery.data?.list ?? []}
+          scroll={{ x: 800 }}
+          pagination={{
+            current: skuPage,
+            pageSize: skuPageSize,
+            total: skusQuery.data?.total ?? 0,
+            showSizeChanger: true,
+            pageSizeOptions: [10, 20, 50],
+            showTotal: (total) => `共 ${total} 条`,
+            onChange: (p, ps) => {
+              if (ps !== skuPageSize) { setSkuPage(1); } else { setSkuPage(p); }
+              setSkuPageSize(ps);
+            },
+          }}
+          toolBarRender={() => [
+            <Input
+              key="search"
+              placeholder="搜索 SKU 编码/规格..."
+              style={{ width: 200 }}
+              value={skuKeyword}
+              onChange={(e) => { setSkuKeyword(e.target.value); setSkuPage(1); }}
+              allowClear
+            />,
+            <Button
+              key="create"
+              type="primary"
+              onClick={() => navigate(`/master-data/skus/create?spuId=${spuId}`)}
+            >
+              + 新建 SKU
+            </Button>,
+          ]}
+        />
+      ),
+    },
+  ];
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Breadcrumb
@@ -177,77 +270,7 @@ export default function SpuDetailPage() {
         <Button danger onClick={handleDelete} loading={deleteMutation.isPending}>删除</Button>
       </div>
 
-      <ProDescriptions<Spu>
-        title="基础信息"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={basicColumns}
-      />
-
-      <ProDescriptions<Spu>
-        title="供应商信息"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={supplierColumns}
-      />
-
-      <ProDescriptions<Spu>
-        title="开票信息"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={invoiceColumns}
-      />
-
-      <ProDescriptions<Spu>
-        title="其他"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={otherColumns}
-      />
-
-      <ProTable<Sku>
-        headerTitle="SKU 变体"
-        search={false}
-        options={false}
-        rowKey="id"
-        loading={skusQuery.isFetching}
-        columns={skuColumns}
-        dataSource={skusQuery.data?.list ?? []}
-        scroll={{ x: 800 }}
-        pagination={{
-          current: skuPage,
-          pageSize: skuPageSize,
-          total: skusQuery.data?.total ?? 0,
-          showSizeChanger: true,
-          pageSizeOptions: [10, 20, 50],
-          showTotal: (total) => `共 ${total} 条`,
-          onChange: (p, ps) => {
-            if (ps !== skuPageSize) { setSkuPage(1); } else { setSkuPage(p); }
-            setSkuPageSize(ps);
-          },
-        }}
-        toolBarRender={() => [
-          <Input
-            key="search"
-            placeholder="搜索 SKU 编码/规格..."
-            style={{ width: 200 }}
-            value={skuKeyword}
-            onChange={(e) => { setSkuKeyword(e.target.value); setSkuPage(1); }}
-            allowClear
-          />,
-          <Button
-            key="create"
-            type="primary"
-            onClick={() => navigate(`/master-data/skus/create?spuId=${spuId}`)}
-          >
-            + 新建 SKU
-          </Button>,
-        ]}
-      />
+      <Tabs defaultActiveKey="info" items={tabItems} />
     </Space>
   );
 }

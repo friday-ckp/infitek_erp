@@ -32,6 +32,9 @@ import SpuFormPage from './pages/master-data/spus/form';
 import SkusListPage from './pages/master-data/skus/index';
 import SkuDetailPage from './pages/master-data/skus/detail';
 import SkuFormPage from './pages/master-data/skus/form';
+import CertificatesListPage from './pages/master-data/certificates/index';
+import CertificateDetailPage from './pages/master-data/certificates/detail';
+import CertificateFormPage from './pages/master-data/certificates/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -132,6 +135,10 @@ function App() {
                 <Route path="/master-data/skus/create" element={<SkuFormPage />} />
                 <Route path="/master-data/skus/:id" element={<SkuDetailPage />} />
                 <Route path="/master-data/skus/:id/edit" element={<SkuFormPage />} />
+                <Route path="/master-data/certificates" element={<CertificatesListPage />} />
+                <Route path="/master-data/certificates/create" element={<CertificateFormPage />} />
+                <Route path="/master-data/certificates/:id" element={<CertificateDetailPage />} />
+                <Route path="/master-data/certificates/:id/edit" element={<CertificateFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}
