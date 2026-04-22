@@ -10,6 +10,7 @@ export * from './enums/warehouse-status.enum';
 export * from './enums/warehouse-type.enum';
 export * from './enums/warehouse-ownership.enum';
 export * from './enums/currency-status.enum';
+export * from './enums/certificate-status.enum';
 
 // Types
 export * from './types/api-response.types';
