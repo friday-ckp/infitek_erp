@@ -70,4 +70,16 @@ export class Spu extends BaseEntity {
   @Column({ name: 'company_id', type: 'bigint', unsigned: true, nullable: true })
   @Expose()
   companyId: number | null;
+
+  @Column({ name: 'category_level1_code', type: 'varchar', length: 20, nullable: true })
+  @Expose()
+  categoryLevel1Code: string | null; // 一级分类编号（冗余，来自分类树）
+
+  @Column({ name: 'category_level2_code', type: 'varchar', length: 20, nullable: true })
+  @Expose()
+  categoryLevel2Code: string | null; // 二级分类编号（冗余，来自分类树）
+
+  @Column({ name: 'category_level3_code', type: 'varchar', length: 20, nullable: true })
+  @Expose()
+  categoryLevel3Code: string | null; // 三级分类编号（冗余，即选中分类的 code）
 }

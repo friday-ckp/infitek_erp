@@ -18,6 +18,9 @@ export interface Spu {
   invoiceModel: string | null;
   supplierName: string | null;
   companyId: number | null;
+  categoryLevel1Code: string | null;
+  categoryLevel2Code: string | null;
+  categoryLevel3Code: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
