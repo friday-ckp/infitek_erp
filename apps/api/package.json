@@ -97,9 +97,6 @@
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
     },
-    "setupFiles": [
-      "<rootDir>/jest.setup.ts"
-    ],
     "moduleNameMapper": {
       "@infitek/shared": "<rootDir>/../../../packages/shared/src"
     },
@@ -107,6 +104,6 @@
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "<rootDir>/jest.env.js"
   }
 }
