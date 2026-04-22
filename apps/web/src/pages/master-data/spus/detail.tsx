@@ -1,4 +1,4 @@
-import { Breadcrumb, Button, Empty, Modal, Result, Space, message } from 'antd';
+import { Breadcrumb, Button, Empty, Modal, Result, Space, Tabs, message } from 'antd';
 import { ProDescriptions } from '@ant-design/pro-components';
 import type { ProDescriptionsItemProps } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { deleteSpu, getSpuById, type Spu } from '../../../api/spus.api';
 import { getProductCategoryTree } from '../../../api/product-categories.api';
 import { findCategoryName } from '../../../utils/category';
+import SpuFaqTab from './components/SpuFaqTab';
 
 export default function SpuDetailPage() {
   const navigate = useNavigate();
@@ -105,6 +106,62 @@ export default function SpuDetailPage() {
     { title: '公司主体 ID', dataIndex: 'companyId', span: 1, renderText: (v) => v ?? '-' },
   ];
 
+  const tabItems = [
+    {
+      key: 'info',
+      label: '基本信息',
+      children: (
+        <>
+          <ProDescriptions<Spu>
+            title="基础信息"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={basicColumns}
+          />
+
+          <ProDescriptions<Spu>
+            title="供应商信息"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={supplierColumns}
+          />
+
+          <ProDescriptions<Spu>
+            title="开票信息"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={invoiceColumns}
+          />
+
+          <ProDescriptions<Spu>
+            title="其他"
+            loading={query.isLoading}
+            column={2}
+            dataSource={query.data}
+            columns={otherColumns}
+          />
+        </>
+      ),
+    },
+    {
+      key: 'faq',
+      label: 'FAQ',
+      children: <SpuFaqTab spuId={spuId} />,
+    },
+    {
+      key: 'sku',
+      label: 'SKU 变体',
+      children: (
+        <div style={{ padding: '24px', background: '#fafafa', borderRadius: 8, textAlign: 'center' }}>
+          <Empty description="SKU 变体将在后续版本实现" />
+        </div>
+      ),
+    },
+  ];
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Breadcrumb
@@ -125,41 +182,7 @@ export default function SpuDetailPage() {
         <Button danger onClick={handleDelete} loading={deleteMutation.isPending}>删除</Button>
       </div>
 
-      <ProDescriptions<Spu>
-        title="基础信息"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={basicColumns}
-      />
-
-      <ProDescriptions<Spu>
-        title="供应商信息"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={supplierColumns}
-      />
-
-      <ProDescriptions<Spu>
-        title="开票信息"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={invoiceColumns}
-      />
-
-      <ProDescriptions<Spu>
-        title="其他"
-        loading={query.isLoading}
-        column={2}
-        dataSource={query.data}
-        columns={otherColumns}
-      />
-
-      <div style={{ padding: '24px', background: '#fafafa', borderRadius: 8, textAlign: 'center' }}>
-        <Empty description="SKU 变体将在后续版本实现" />
-      </div>
+      <Tabs defaultActiveKey="info" items={tabItems} />
     </Space>
   );
 }

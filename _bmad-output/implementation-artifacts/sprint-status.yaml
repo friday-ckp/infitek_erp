@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-15
-last_updated: 2026-04-22 (story-3-5-done)
+last_updated: 2026-04-22 (story-3-4-done, story-3-5-done)
 project: infitek_erp
 
 project_key: NOKEY
@@ -76,7 +76,7 @@ development_status:
   3-1-三级产品分类管理: done
   3-2-spu基础信息管理: done
   3-3-sku变体管理: backlog
-  3-4-产品faq维护: backlog
+  3-4-产品faq维护: done
   3-5-产品证书库管理: done
   3-6-产品资料库管理: backlog
   epic-3-retrospective: optional
