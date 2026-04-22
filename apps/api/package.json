@@ -98,15 +98,12 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "moduleNameMapper": {
-      "@infitek/shared": "<rootDir>/../../../packages/shared/src"
+      "@infitek/shared": "<rootDir>/__mocks__/infitek-shared"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "<rootDir>/jest.env.js",
-    "testEnvironmentOptions": {
-      "globalsCleanup": "off"
-    }
+    "testEnvironment": "node"
   }
 }
