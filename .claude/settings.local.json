@@ -23,7 +23,12 @@
       "Bash(npm view *)",
       "Bash(npx tsc *)",
       "Bash(lsof -ti:5173)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(pnpm --filter api test src/modules/master-data/skus/tests/skus.service.spec.ts --runInBand)",
+      "Bash(/usr/local/bin/node --version)",
+      "Bash(/usr/local/bin/node -e \":*)",
+      "Bash(git -C:*)",
+      "Bash(pnpm --filter web build)"
     ]
   }
 }
