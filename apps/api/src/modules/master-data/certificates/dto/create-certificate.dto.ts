@@ -17,6 +17,11 @@ export class CreateCertificateDto {
   certificateName: string;
 
   @IsString()
+  @IsOptional()
+  @MaxLength(30)
+  certificateNo?: string;
+
+  @IsString()
   @IsNotEmpty()
   @MaxLength(50)
   certificateType: string;

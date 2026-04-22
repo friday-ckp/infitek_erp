@@ -49,7 +49,14 @@ export class CertificatesService {
       ? await Promise.all(dto.spuIds.map((id) => this.spusService.findById(id)))
       : [];
 
-    const certificateNo = await this.repo.generateCode();
+    let certificateNo: string;
+    if (dto.certificateNo) {
+      const existing = await this.repo.findByNo(dto.certificateNo);
+      if (existing) throw new BadRequestException(`证书编号 ${dto.certificateNo} 已存在`);
+      certificateNo = dto.certificateNo;
+    } else {
+      certificateNo = await this.repo.generateCode();
+    }
 
     const entity = this.repo.create({
       certificateNo,

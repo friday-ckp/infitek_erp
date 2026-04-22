@@ -34,7 +34,7 @@ export class CertificatesRepository {
     }
 
     const [list, total] = await qb
-      .orderBy('c.created_at', 'DESC')
+      .orderBy('c.createdAt', 'DESC')
       .skip((page - 1) * pageSize)
       .take(pageSize)
       .getManyAndCount();

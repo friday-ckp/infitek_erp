@@ -103,6 +103,49 @@ describe('CertificatesService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('提供自定义编号时优先使用，不调用 generateCode', async () => {
+      repoMock.findByNo.mockResolvedValue(null);
+      repoMock.create.mockReturnValue({ ...baseCert, certificateNo: 'CUST-001' });
+      repoMock.save.mockResolvedValue({ ...baseCert, certificateNo: 'CUST-001' });
+      filesServiceMock.getSignedUrl.mockResolvedValue(null);
+
+      const result = await service.create(
+        {
+          certificateName: '测试证书',
+          certificateNo: 'CUST-001',
+          certificateType: 'CE',
+          validFrom: '2024-01-01',
+          validUntil: futureDate,
+          issuingAuthority: '测试机构',
+        },
+        'admin',
+      );
+
+      expect(result.certificateNo).toBe('CUST-001');
+      expect(repoMock.generateCode).not.toHaveBeenCalled();
+      expect(repoMock.findByNo).toHaveBeenCalledWith('CUST-001');
+    });
+
+    it('自定义编号已存在 → BadRequestException', async () => {
+      repoMock.findByNo.mockResolvedValue({ ...baseCert, certificateNo: 'CUST-001' });
+
+      await expect(
+        service.create(
+          {
+            certificateName: '测试证书',
+            certificateNo: 'CUST-001',
+            certificateType: 'CE',
+            validFrom: '2024-01-01',
+            validUntil: futureDate,
+            issuingAuthority: '测试机构',
+          },
+          'admin',
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(repoMock.generateCode).not.toHaveBeenCalled();
+    });
+
     it('传入 spuIds → 查询并关联 SPU', async () => {
       const spu = { id: 1, spuCode: 'SPU001', name: '产品A' };
       repoMock.generateCode.mockResolvedValue('CERT001');
