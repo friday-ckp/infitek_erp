@@ -79,6 +79,9 @@ export default function SpuDetailPage() {
     { title: 'SPU 名称', dataIndex: 'name', span: 1 },
     { title: '所属分类', key: 'category', span: 1, render: () => categoryName },
     { title: '单位', dataIndex: 'unit', span: 1, renderText: (v) => v || '-' },
+    { title: '一级分类编号', dataIndex: 'categoryLevel1Code', span: 1, renderText: (v) => v || '-' },
+    { title: '二级分类编号', dataIndex: 'categoryLevel2Code', span: 1, renderText: (v) => v || '-' },
+    { title: '三级分类编号', dataIndex: 'categoryLevel3Code', span: 1, renderText: (v) => v || '-' },
     { title: '创建时间', dataIndex: 'createdAt', span: 1, renderText: (v) => dayjs(v).format('YYYY-MM-DD') },
     { title: '更新时间', dataIndex: 'updatedAt', span: 1, renderText: (v) => dayjs(v).format('YYYY-MM-DD') },
   ];
