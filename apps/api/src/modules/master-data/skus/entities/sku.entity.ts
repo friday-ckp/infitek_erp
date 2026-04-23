@@ -33,13 +33,33 @@ export class Sku extends BaseEntity {
   @Expose()
   specification: string;
 
-  @Column({ name: 'status', type: 'varchar', length: 20, default: SkuStatus.ACTIVE })
+  @Column({ name: 'status', type: 'varchar', length: 20, default: SkuStatus.ON_SHELF })
   @Expose()
   status: SkuStatus;
 
   @Column({ name: 'product_type', type: 'varchar', length: 100, nullable: true })
   @Expose()
   productType: string | null;
+
+  @Column({ name: 'product_model', type: 'varchar', length: 200, nullable: true })
+  @Expose()
+  productModel: string | null;
+
+  @Column({ name: 'accessory_parent_sku_id', type: 'bigint', unsigned: true, nullable: true })
+  @Expose()
+  accessoryParentSkuId: number | null;
+
+  @Column({ name: 'category_level1_id', type: 'bigint', unsigned: true, nullable: true })
+  @Expose()
+  categoryLevel1Id: number | null;
+
+  @Column({ name: 'category_level2_id', type: 'bigint', unsigned: true, nullable: true })
+  @Expose()
+  categoryLevel2Id: number | null;
+
+  @Column({ name: 'category_level3_id', type: 'bigint', unsigned: true, nullable: true })
+  @Expose()
+  categoryLevel3Id: number | null;
 
   @Column({ name: 'principle', type: 'varchar', length: 200, nullable: true })
   @Expose()
@@ -119,6 +139,10 @@ export class Sku extends BaseEntity {
   @Expose()
   packagingInfo: string | null;
 
+  @Column({ name: 'packaging_list', type: 'text', nullable: true })
+  @Expose()
+  packagingList: string | null;
+
   // --- 报关 ---
   @Column({ name: 'hs_code', type: 'varchar', length: 20 })
   @Expose()
@@ -160,4 +184,8 @@ export class Sku extends BaseEntity {
   @Column({ name: 'product_image_url', type: 'varchar', length: 500, nullable: true })
   @Expose()
   productImageUrl: string | null;
+
+  @Column({ name: 'product_image_urls', type: 'text', nullable: true })
+  @Expose()
+  productImageUrls: string | null;
 }

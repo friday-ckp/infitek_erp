@@ -209,6 +209,7 @@ export default function SkuFormPage() {
 
   const initialValues = detailQuery.data
     ? {
+        skuCode: detailQuery.data.skuCode,
         spuId: detailQuery.data.spuId,
         nameCn: detailQuery.data.nameCn ?? undefined,
         nameEn: detailQuery.data.nameEn ?? undefined,
@@ -263,6 +264,7 @@ export default function SkuFormPage() {
         const imageKeys = uploadedImageKeys.length > 0 ? uploadedImageKeys : existingImageUrls;
 
         const payload: CreateSkuPayload = {
+          skuCode: values.skuCode,
           spuId: values.spuId,
           nameCn: values.nameCn || undefined,
           nameEn: values.nameEn || undefined,
@@ -322,6 +324,7 @@ export default function SkuFormPage() {
       <ProCard title="基本信息" bordered style={{ marginBottom: 16 }}>
         <ProForm.Group>
           <ProFormSelect name="spuId" label="所属 SPU" placeholder="请选择 SPU" width="md" options={spuOptions} showSearch fieldProps={{ optionFilterProp: 'label', disabled: Boolean(prefilledSpuId) }} rules={[{ required: true, message: '请选择所属 SPU' }]} />
+          <ProFormText name="skuCode" label="SKU 编码" placeholder="请输入 SKU 编码" width="md" rules={[{ required: true, message: '请输入 SKU 编码' }, { max: 30, message: '最多 30 个字符' }]} disabled={isEdit} />
           <ProFormSelect name="status" label="状态" width="sm" options={STATUS_OPTIONS} rules={[{ required: true, message: '请选择状态' }]} />
           <ProFormSelect name="unitId" label="单位" placeholder="请选择单位" width="sm" options={unitOptions} showSearch fieldProps={{ optionFilterProp: 'label', allowClear: true }} />
           <ProFormText name="nameCn" label="中文名称" placeholder="请输入中文名称" width="md" rules={[{ max: 200, message: '最多 200 个字符' }]} />

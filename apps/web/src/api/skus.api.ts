@@ -80,6 +80,7 @@ export interface SkusListData {
 }
 
 export interface CreateSkuPayload {
+  skuCode: string;
   spuId: number;
   unitId?: number;
   nameCn?: string;

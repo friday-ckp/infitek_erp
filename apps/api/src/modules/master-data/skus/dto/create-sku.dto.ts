@@ -15,6 +15,11 @@ import { Type } from 'class-transformer';
 import { SkuStatus } from '@infitek/shared';
 
 export class CreateSkuDto {
+  @IsString()
+  @IsNotEmpty({ message: 'SKU 编码不能为空' })
+  @MaxLength(30)
+  skuCode: string;
+
   @IsInt()
   @IsPositive()
   @Type(() => Number)
@@ -50,6 +55,35 @@ export class CreateSkuDto {
   @IsOptional()
   @MaxLength(100)
   productType?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  productModel?: string;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  accessoryParentSkuId?: number;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  categoryLevel1Id?: number;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  categoryLevel2Id?: number;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  categoryLevel3Id?: number;
 
   @IsString()
   @IsOptional()
@@ -98,7 +132,7 @@ export class CreateSkuDto {
 
   // --- 重量体积 ---
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @Type(() => Number)
   weightKg: number;
 
@@ -127,7 +161,7 @@ export class CreateSkuDto {
   heightCm?: number;
 
   @IsNumber()
-  @IsPositive()
+  @Min(0)
   @Type(() => Number)
   volumeCbm: number;
 
@@ -145,6 +179,10 @@ export class CreateSkuDto {
   @IsString()
   @IsOptional()
   packagingInfo?: string;
+
+  @IsString()
+  @IsOptional()
+  packagingList?: string;
 
   // --- 报关 ---
   @IsString()
@@ -197,4 +235,8 @@ export class CreateSkuDto {
   @IsOptional()
   @MaxLength(500)
   productImageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  productImageUrls?: string;
 }
