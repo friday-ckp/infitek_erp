@@ -1,7 +1,7 @@
 import { useRef } from 'react';
-import { Button, Result, Skeleton, TreeSelect, message } from 'antd';
+import { Breadcrumb, Button, Result, Skeleton, Tabs, TreeSelect, message } from 'antd';
+import type { TabsProps } from 'antd/es/tabs';
 import {
-  ProCard,
   ProForm,
   ProFormDigit,
   ProFormSelect,
@@ -14,6 +14,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { createSpu, getSpuById, updateSpu, type CreateSpuPayload, type UpdateSpuPayload } from '../../../api/spus.api';
 import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
 import { getCompanies } from '../../../api/companies.api';
+import './spu-page.css';
 
 interface TreeSelectNode {
   title: string;
@@ -120,174 +121,220 @@ export default function SpuFormPage() {
     : {};
 
   const treeData = categoryTreeQuery.data ? buildTreeData(categoryTreeQuery.data) : [];
-  const companyOptions = (companiesQuery.data?.list ?? []).map((c) => ({
-    label: c.nameCn,
-    value: c.id,
+  const companyOptions = (companiesQuery.data?.list ?? []).map((company) => ({
+    label: company.nameCn,
+    value: company.id,
   }));
 
-  return (
-    <ProForm
-      formRef={formRef}
-      title={isEdit ? '编辑 SPU' : '新建 SPU'}
-      loading={detailQuery.isLoading}
-      submitter={{
-        searchConfig: { submitText: isEdit ? '保存' : '创建' },
-        render: (_, dom) => (
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button onClick={() => navigate(-1)}>取消</Button>
-            {dom[1]}
-          </div>
-        ),
-      }}
-      initialValues={initialValues}
-      onFinish={async (values) => {
-        const payload: CreateSpuPayload = {
-          name: values.name,
-          categoryId: values.categoryId,
-          unit: values.unit || undefined,
-          manufacturerModel: values.manufacturerModel || undefined,
-          customerWarrantyMonths: values.customerWarrantyMonths ?? undefined,
-          purchaseWarrantyMonths: values.purchaseWarrantyMonths ?? undefined,
-          supplierWarrantyNote: values.supplierWarrantyNote || undefined,
-          forbiddenCountries: values.forbiddenCountries || undefined,
-          invoiceName: values.invoiceName || undefined,
-          invoiceUnit: values.invoiceUnit || undefined,
-          invoiceModel: values.invoiceModel || undefined,
-          supplierName: values.supplierName || undefined,
-          companyId: values.companyId ?? undefined,
-        };
-        if (isEdit) {
-          await updateMutation.mutateAsync(payload);
-        } else {
-          await createMutation.mutateAsync(payload);
-        }
-        return true;
-      }}
-    >
-      <ProCard title="基础信息" bordered style={{ marginBottom: 16 }}>
-        <ProForm.Group>
-          <ProFormText
-            name="name"
-            label="SPU 名称"
-            placeholder="请输入 SPU 名称"
-            width="md"
-            rules={[
-              { required: true, message: '请输入 SPU 名称' },
-              { max: 200, message: 'SPU 名称最多 200 个字符' },
-            ]}
-          />
-          <ProForm.Item
-            name="categoryId"
-            label="所属分类"
-            rules={[{ required: true, message: '请选择所属分类' }]}
-          >
-            <TreeSelect
-              style={{ width: 328 }}
-              placeholder="请选择三级分类"
-              treeData={treeData}
-              loading={categoryTreeQuery.isLoading}
-              showSearch
-              treeNodeFilterProp="title"
-              allowClear
+  const tabItems: TabsProps['items'] = [
+    {
+      key: 'basic',
+      label: '基础信息',
+      children: (
+        <div className="spu-form-tab">
+          <ProForm.Group>
+            <ProFormText
+              name="name"
+              label="SPU 名称"
+              placeholder="请输入 SPU 名称"
+              width="md"
+              rules={[
+                { required: true, message: '请输入 SPU 名称' },
+                { max: 200, message: 'SPU 名称最多 200 个字符' },
+              ]}
             />
-          </ProForm.Item>
-          <ProFormText
-            name="unit"
-            label="单位"
-            placeholder="请输入单位（可选）"
-            width="sm"
-            rules={[{ max: 50, message: '单位最多 50 个字符' }]}
-          />
-        </ProForm.Group>
-      </ProCard>
+            <ProForm.Item
+              name="categoryId"
+              label="所属分类"
+              rules={[{ required: true, message: '请选择所属分类' }]}
+            >
+              <TreeSelect
+                style={{ width: 328 }}
+                placeholder="请选择三级分类"
+                treeData={treeData}
+                loading={categoryTreeQuery.isLoading}
+                showSearch
+                treeNodeFilterProp="title"
+                allowClear
+              />
+            </ProForm.Item>
+            <ProFormText
+              name="unit"
+              label="单位"
+              placeholder="请输入单位（可选）"
+              width="sm"
+              rules={[{ max: 50, message: '单位最多 50 个字符' }]}
+            />
+          </ProForm.Group>
+        </div>
+      ),
+    },
+    {
+      key: 'supplier',
+      label: '供应商信息',
+      children: (
+        <div className="spu-form-tab">
+          <ProForm.Group>
+            <ProFormText
+              name="supplierName"
+              label="供应商"
+              placeholder="请输入供应商名称"
+              width="md"
+              rules={[{ max: 200, message: '供应商名称最多 200 个字符' }]}
+            />
+            <ProFormText
+              name="manufacturerModel"
+              label="厂家型号"
+              placeholder="请输入厂家型号"
+              width="md"
+              rules={[{ max: 200, message: '厂家型号最多 200 个字符' }]}
+            />
+            <ProFormDigit
+              name="customerWarrantyMonths"
+              label="客户质保期（月）"
+              placeholder="请输入月数"
+              width="sm"
+              min={0}
+              fieldProps={{ precision: 0 }}
+            />
+            <ProFormDigit
+              name="purchaseWarrantyMonths"
+              label="采购质保期（月）"
+              placeholder="请输入月数"
+              width="sm"
+              min={0}
+              fieldProps={{ precision: 0 }}
+            />
+          </ProForm.Group>
+          <div className="spu-cond-block">
+            <div className="spu-cond-label">▼ 供应链补充说明（可选）</div>
+            <ProFormTextArea
+              name="supplierWarrantyNote"
+              label="供应商质保说明"
+              placeholder="请输入供应商质保说明"
+              width="xl"
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'invoice',
+      label: '开票与经营',
+      children: (
+        <div className="spu-form-tab">
+          <ProForm.Group>
+            <ProFormText
+              name="invoiceName"
+              label="开票品名"
+              placeholder="请输入开票品名"
+              width="md"
+              rules={[{ max: 200, message: '开票品名最多 200 个字符' }]}
+            />
+            <ProFormText
+              name="invoiceUnit"
+              label="开票单位"
+              placeholder="请输入开票单位"
+              width="sm"
+              rules={[{ max: 50, message: '开票单位最多 50 个字符' }]}
+            />
+            <ProFormText
+              name="invoiceModel"
+              label="开票型号"
+              placeholder="请输入开票型号"
+              width="md"
+              rules={[{ max: 200, message: '开票型号最多 200 个字符' }]}
+            />
+          </ProForm.Group>
+          <ProForm.Group>
+            <ProFormText
+              name="forbiddenCountries"
+              label="禁止经营国家"
+              placeholder="多个国家用逗号分隔"
+              width="xl"
+              rules={[{ max: 500, message: '最多 500 个字符' }]}
+            />
+            <ProFormSelect
+              name="companyId"
+              label="公司主体"
+              placeholder="请选择公司主体"
+              width="md"
+              options={companyOptions}
+              showSearch
+              fieldProps={{ optionFilterProp: 'label' }}
+            />
+          </ProForm.Group>
+        </div>
+      ),
+    },
+  ];
 
-      <ProCard title="供应商信息" bordered style={{ marginBottom: 16 }}>
-        <ProForm.Group>
-          <ProFormText
-            name="supplierName"
-            label="供应商"
-            placeholder="请输入供应商名称"
-            width="md"
-            rules={[{ max: 200, message: '供应商名称最多 200 个字符' }]}
-          />
-          <ProFormText
-            name="manufacturerModel"
-            label="厂家型号"
-            placeholder="请输入厂家型号"
-            width="md"
-            rules={[{ max: 200, message: '厂家型号最多 200 个字符' }]}
-          />
-          <ProFormDigit
-            name="customerWarrantyMonths"
-            label="客户质保期（月）"
-            placeholder="请输入月数"
-            width="sm"
-            min={0}
-            fieldProps={{ precision: 0 }}
-          />
-          <ProFormDigit
-            name="purchaseWarrantyMonths"
-            label="采购质保期（月）"
-            placeholder="请输入月数"
-            width="sm"
-            min={0}
-            fieldProps={{ precision: 0 }}
-          />
-          <ProFormTextArea
-            name="supplierWarrantyNote"
-            label="供应商质保说明"
-            placeholder="请输入供应商质保说明"
-            width="xl"
-          />
-        </ProForm.Group>
-      </ProCard>
+  return (
+    <div className="spu-page spu-form-page">
+      <Breadcrumb
+        items={[
+          {
+            title: (
+              <Button type="link" className="spu-breadcrumb-link" onClick={() => navigate('/master-data/spus')}>
+                主数据
+              </Button>
+            ),
+          },
+          {
+            title: (
+              <Button type="link" className="spu-breadcrumb-link" onClick={() => navigate('/master-data/spus')}>
+                SPU 管理
+              </Button>
+            ),
+          },
+          { title: isEdit ? `编辑 ${detailQuery.data?.spuCode || ''}` : '新建 SPU' },
+        ]}
+      />
 
-      <ProCard title="开票信息" bordered style={{ marginBottom: 16 }}>
-        <ProForm.Group>
-          <ProFormText
-            name="invoiceName"
-            label="开票品名"
-            placeholder="请输入开票品名"
-            width="md"
-            rules={[{ max: 200, message: '开票品名最多 200 个字符' }]}
-          />
-          <ProFormText
-            name="invoiceUnit"
-            label="开票单位"
-            placeholder="请输入开票单位"
-            width="sm"
-            rules={[{ max: 50, message: '开票单位最多 50 个字符' }]}
-          />
-          <ProFormText
-            name="invoiceModel"
-            label="开票型号"
-            placeholder="请输入开票型号"
-            width="md"
-            rules={[{ max: 200, message: '开票型号最多 200 个字符' }]}
-          />
-        </ProForm.Group>
-      </ProCard>
+      <ProForm
+        formRef={formRef}
+        loading={detailQuery.isLoading}
+        submitter={false}
+        initialValues={initialValues}
+        onFinish={async (values) => {
+          const payload: CreateSpuPayload = {
+            name: values.name,
+            categoryId: values.categoryId,
+            unit: values.unit || undefined,
+            manufacturerModel: values.manufacturerModel || undefined,
+            customerWarrantyMonths: values.customerWarrantyMonths ?? undefined,
+            purchaseWarrantyMonths: values.purchaseWarrantyMonths ?? undefined,
+            supplierWarrantyNote: values.supplierWarrantyNote || undefined,
+            forbiddenCountries: values.forbiddenCountries || undefined,
+            invoiceName: values.invoiceName || undefined,
+            invoiceUnit: values.invoiceUnit || undefined,
+            invoiceModel: values.invoiceModel || undefined,
+            supplierName: values.supplierName || undefined,
+            companyId: values.companyId ?? undefined,
+          };
 
-      <ProCard title="其他" bordered>
-        <ProForm.Group>
-          <ProFormText
-            name="forbiddenCountries"
-            label="禁止经营国家"
-            placeholder="多个国家用逗号分隔"
-            width="xl"
-            rules={[{ max: 500, message: '最多 500 个字符' }]}
-          />
-          <ProFormSelect
-            name="companyId"
-            label="公司主体"
-            placeholder="请选择公司主体"
-            width="md"
-            options={companyOptions}
-            showSearch
-            fieldProps={{ optionFilterProp: 'label' }}
-          />
-        </ProForm.Group>
-      </ProCard>
-    </ProForm>
+          if (isEdit) {
+            await updateMutation.mutateAsync(payload as UpdateSpuPayload);
+          } else {
+            await createMutation.mutateAsync(payload);
+          }
+          return true;
+        }}
+      >
+        <div className="spu-info-card">
+          <Tabs className="spu-info-tabs" defaultActiveKey="basic" items={tabItems} />
+          <div className="spu-form-footer">
+            <Button onClick={() => navigate(-1)}>取消</Button>
+            <Button
+              type="primary"
+              loading={createMutation.isPending || updateMutation.isPending}
+              onClick={() => formRef.current?.submit?.()}
+            >
+              {isEdit ? '保存' : '创建'}
+            </Button>
+          </div>
+        </div>
+      </ProForm>
+    </div>
   );
 }

@@ -1,5 +1,6 @@
-import { Button, Card, Result, Skeleton, Space } from 'antd';
-import { ProForm, ProFormText } from '@ant-design/pro-components';
+import { useRef } from 'react';
+import { Breadcrumb, Button, Result, Skeleton } from 'antd';
+import { ProForm, ProFormText, type ProFormInstance } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
@@ -9,6 +10,7 @@ import {
   type CreateCountryPayload,
   type UpdateCountryPayload,
 } from '../../../api/countries.api';
+import '../master-page.css';
 
 export default function CountryFormPage() {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export default function CountryFormPage() {
   const { id } = useParams();
   const countryId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
+  const formRef = useRef<ProFormInstance>(undefined);
 
   const detailQuery = useQuery({
     queryKey: ['country-detail', countryId],
@@ -45,11 +48,7 @@ export default function CountryFormPage() {
       <Result
         status="404"
         title="国家/地区不存在"
-        extra={
-          <Button type="primary" onClick={() => navigate('/master-data/countries')}>
-            返回列表
-          </Button>
-        }
+        extra={<Button type="primary" onClick={() => navigate('/master-data/countries')}>返回列表</Button>}
       />
     );
   }
@@ -65,40 +64,44 @@ export default function CountryFormPage() {
         title="国家/地区详情加载失败"
         subTitle="请检查网络或稍后重试"
         extra={[
-          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>
-            重试
-          </Button>,
-          <Button key="back" onClick={() => navigate('/master-data/countries')}>
-            返回列表
-          </Button>,
+          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>重试</Button>,
+          <Button key="back" onClick={() => navigate('/master-data/countries')}>返回列表</Button>,
         ]}
       />
     );
   }
 
   return (
-    <Card title={isEdit ? '编辑国家/地区' : '新建国家/地区'}>
+    <div className="master-page master-form-page">
+      <Breadcrumb
+        items={[
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/countries')}>
+                主数据
+              </Button>
+            ),
+          },
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/countries')}>
+                国家/地区管理
+              </Button>
+            ),
+          },
+          { title: isEdit ? `编辑 ${detailQuery.data?.code || ''}` : '新建国家/地区' },
+        ]}
+      />
+
       <ProForm<{
         code: string;
         name: string;
         nameEn?: string;
         abbreviation?: string;
       }>
-        grid
-        rowProps={{ gutter: [16, 0] }}
-        colProps={{ span: 12 }}
+        formRef={formRef}
+        submitter={false}
         loading={detailQuery.isLoading}
-        submitter={{
-          render: (_, dom) => (
-            <Space>
-              <Button onClick={() => navigate('/master-data/countries')}>取消</Button>
-              {dom[1]}
-            </Space>
-          ),
-          searchConfig: {
-            submitText: isEdit ? '保存' : '创建',
-          },
-        }}
         initialValues={
           detailQuery.data
             ? {
@@ -128,37 +131,59 @@ export default function CountryFormPage() {
           return true;
         }}
       >
-        <ProFormText
-          name="code"
-          label="国家/地区代码"
-          placeholder="如：CN、US、DE"
-          rules={[
-            { required: true, message: '请输入国家/地区代码' },
-            { max: 10, message: '国家/地区代码最多 10 个字符' },
-          ]}
-        />
-        <ProFormText
-          name="name"
-          label="国家/地区名称"
-          placeholder="如：中国、美国、德国"
-          rules={[
-            { required: true, message: '请输入国家/地区名称' },
-            { max: 100, message: '国家/地区名称最多 100 个字符' },
-          ]}
-        />
-        <ProFormText
-          name="nameEn"
-          label="英文名称"
-          placeholder="如：China、United States"
-          rules={[{ max: 100, message: '英文名称最多 100 个字符' }]}
-        />
-        <ProFormText
-          name="abbreviation"
-          label="简称"
-          placeholder="如：中国、美"
-          rules={[{ max: 20, message: '简称最多 20 个字符' }]}
-        />
+        <div className="master-info-card">
+          <div className="master-form-body">
+            <ProForm.Group>
+              <ProFormText
+                name="code"
+                label="国家/地区代码"
+                width="sm"
+                placeholder="如：CN、US、DE"
+                rules={[
+                  { required: true, message: '请输入国家/地区代码' },
+                  { max: 10, message: '国家/地区代码最多 10 个字符' },
+                ]}
+              />
+              <ProFormText
+                name="name"
+                label="国家/地区名称"
+                width="md"
+                placeholder="如：中国、美国、德国"
+                rules={[
+                  { required: true, message: '请输入国家/地区名称' },
+                  { max: 100, message: '国家/地区名称最多 100 个字符' },
+                ]}
+              />
+            </ProForm.Group>
+            <ProForm.Group>
+              <ProFormText
+                name="nameEn"
+                label="英文名称"
+                width="md"
+                placeholder="如：China、United States"
+                rules={[{ max: 100, message: '英文名称最多 100 个字符' }]}
+              />
+              <ProFormText
+                name="abbreviation"
+                label="简称"
+                width="sm"
+                placeholder="如：中国、美"
+                rules={[{ max: 20, message: '简称最多 20 个字符' }]}
+              />
+            </ProForm.Group>
+          </div>
+          <div className="master-form-footer">
+            <Button onClick={() => navigate('/master-data/countries')}>取消</Button>
+            <Button
+              type="primary"
+              loading={createMutation.isPending || updateMutation.isPending}
+              onClick={() => formRef.current?.submit?.()}
+            >
+              {isEdit ? '保存' : '创建'}
+            </Button>
+          </div>
+        </div>
       </ProForm>
-    </Card>
+    </div>
   );
 }

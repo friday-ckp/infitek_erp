@@ -147,7 +147,34 @@ appliesTo: 所有业务模块的详情页和编辑页
 </div>
 ```
 
-### 2.4 状态标签映射
+### 2.4 操作记录（时间线）Tab
+
+用于展示记录生命周期内的关键操作事件（创建、状态变更、提交、审核、系统回写等），统一采用时间线样式，禁止以普通段落堆叠。
+
+**适用规则：**
+- 详情页：可作为独立 Tab（复杂模块）或卡片区块（中等模块）
+- 编辑页：默认不展示（只读历史信息）
+- 记录条目按时间倒序（最新在上）
+
+**必含元素：**
+- 时间线容器（`master-status-timeline`）
+- 事件项（`master-tl-item`）：圆点 + 文本 + 时间
+- 事件文本（`master-tl-text`）：可包含关联单据链接或状态 tag
+- 事件时间（`master-tl-time`）：统一 `YYYY-MM-DD HH:mm`
+
+```html
+<div class="master-status-timeline">
+  <div class="master-tl-item">
+    <div class="master-tl-dot"></div>
+    <div class="master-tl-content">
+      <div class="master-tl-text">小王 创建了采购订单 PO-2026-0089</div>
+      <div class="master-tl-time">2026-04-12 15:10</div>
+    </div>
+  </div>
+</div>
+```
+
+### 2.5 状态标签映射
 
 详情页中所有状态字段必须使用 pill 或 tag 样式，禁止纯文字展示。
 
@@ -361,7 +388,7 @@ appliesTo: 所有业务模块的详情页和编辑页
 如：销售订单、采购订单、物流单
 
 - 摘要卡片额外包含：流程进度条（`FlowProgress`）、Smart Button 计数器
-- Tab 中包含：产品明细（子表）、操作记录（`ActivityTimeline`）
+- Tab 中包含：产品明细（子表）、操作记录（统一 `master-status-timeline` 时间线样式）
 - 状态推进按钮放在摘要卡片操作区或产品明细表格下方
 
 ---
@@ -391,6 +418,7 @@ appliesTo: 所有业务模块的详情页和编辑页
 - [ ] 面包屑导航格式正确，模块名可点击返回
 - [ ] 详情页有摘要卡片（简单模块除外），包含编码 + 状态 + 核心字段
 - [ ] 内容按业务含义分 Tab，Tab 名称 2-4 字
+- [ ] 涉及流程的页面包含操作记录时间线（倒序展示）
 - [ ] 详情页使用三列 `meta-grid` 展示数据
 - [ ] 所有状态字段使用 pill/tag 样式，禁止纯文字
 - [ ] 空值统一显示 `—`
