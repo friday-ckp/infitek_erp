@@ -1,5 +1,16 @@
 import request from './request';
 
+export interface PackagingRow {
+  packagingType?: string;
+  packagingQty?: number;
+  weightKg?: number;
+  grossWeightKg?: number;
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
+  volumeCbm?: number;
+}
+
 export interface Sku {
   id: number;
   skuCode: string;
@@ -10,6 +21,11 @@ export interface Sku {
   specification: string;
   status: string;
   productType: string | null;
+  productModel: string | null;
+  accessoryParentSkuId: number | null;
+  categoryLevel1Id: number | null;
+  categoryLevel2Id: number | null;
+  categoryLevel3Id: number | null;
   principle: string | null;
   productUsage: string | null;
   coreParams: string | null;
@@ -29,6 +45,7 @@ export interface Sku {
   packagingType: string | null;
   packagingQty: number | null;
   packagingInfo: string | null;
+  packagingList: string | null;
   hsCode: string;
   customsNameCn: string;
   customsNameEn: string;
@@ -39,6 +56,7 @@ export interface Sku {
   taxRefundRate: number | null;
   customsInfoMaintained: boolean | null;
   productImageUrl: string | null;
+  productImageUrls: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
@@ -69,6 +87,11 @@ export interface CreateSkuPayload {
   specification: string;
   status?: string;
   productType?: string;
+  productModel?: string;
+  accessoryParentSkuId?: number;
+  categoryLevel1Id?: number;
+  categoryLevel2Id?: number;
+  categoryLevel3Id?: number;
   principle?: string;
   productUsage?: string;
   coreParams?: string;
@@ -87,7 +110,7 @@ export interface CreateSkuPayload {
   volumeCbm: number;
   packagingType?: string;
   packagingQty?: number;
-  packagingInfo?: string;
+  packagingList?: string;
   hsCode: string;
   customsNameCn: string;
   customsNameEn: string;
@@ -97,7 +120,7 @@ export interface CreateSkuPayload {
   regulatoryConditions?: string;
   taxRefundRate?: number;
   customsInfoMaintained?: boolean;
-  productImageUrl?: string;
+  productImageUrls?: string;
 }
 
 export type UpdateSkuPayload = Partial<CreateSkuPayload>;
@@ -127,4 +150,18 @@ export const updateSku = (id: number, payload: UpdateSkuPayload): Promise<Sku> =
 
 export const deleteSku = (id: number): Promise<void> => {
   return request.delete<any, void>(`/skus/${id}`).catch(normalizeApiError);
+};
+
+export const uploadSkuImage = (file: File): Promise<{ key: string }> => {
+  const formData = new FormData();
+  formData.append('file', file);
+  return request
+    .post<any, { key: string }>('/files/upload?folder=skus', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    .catch(normalizeApiError);
+};
+
+export const getSignedUrl = (key: string): Promise<string> => {
+  return request.get<any, string>('/files/signed-url', { params: { key } }).catch(normalizeApiError);
 };
