@@ -1,9 +1,20 @@
 import { Type } from 'class-transformer';
-import { IsInt, IsPositive } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsPositive, IsString } from 'class-validator';
+import { BaseQueryDto } from '../../../../common/dto/base-query.dto';
+import { SpuFaqQuestionType } from '@infitek/shared';
 
-export class QuerySpuFaqDto {
+export class QuerySpuFaqDto extends BaseQueryDto {
   @Type(() => Number)
   @IsInt()
   @IsPositive()
-  spuId: number;
+  @IsOptional()
+  spuId?: number;
+
+  @IsEnum(SpuFaqQuestionType)
+  @IsOptional()
+  questionType?: SpuFaqQuestionType;
+
+  @IsString()
+  @IsOptional()
+  spuCode?: string;
 }

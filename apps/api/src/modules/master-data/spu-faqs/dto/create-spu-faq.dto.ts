@@ -1,11 +1,18 @@
-import { IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, MaxLength, Min } from 'class-validator';
+import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsPositive, IsString, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { SpuFaqQuestionType } from '@infitek/shared';
 
 export class CreateSpuFaqDto {
   @Type(() => Number)
   @IsInt()
   @IsPositive()
-  spuId: number;
+  @IsOptional()
+  spuId?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(30)
+  spuCode?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -15,6 +22,15 @@ export class CreateSpuFaqDto {
   @IsString()
   @IsNotEmpty()
   answer: string;
+
+  @IsEnum(SpuFaqQuestionType)
+  @IsNotEmpty()
+  questionType: SpuFaqQuestionType;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  attachmentUrl?: string;
 
   @IsInt()
   @Min(0)

@@ -17,7 +17,7 @@ const ALLOWED_MIME_TYPES = new Set([
 ]);
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const ALLOWED_FOLDERS = new Set(['certificates', 'documents', 'general']);
+const ALLOWED_FOLDERS = new Set(['certificates', 'documents', 'general', 'faqs']);
 
 @Injectable()
 export class FilesService {
@@ -164,7 +164,7 @@ export class FilesService {
   }
 
   private isValidKeyFormat(key: string): boolean {
-    const keyPattern = /^(prod|dev)\/(certificates|documents|general)\/\d{4}-\d{2}\/[0-9a-f-]+\.(jpg|png|webp|pdf|bin)$/i;
+    const keyPattern = /^(prod|dev)\/(certificates|documents|general|faqs)\/\d{4}-\d{2}\/[0-9a-f-]+\.(jpg|png|webp|pdf|bin)$/i;
     return keyPattern.test(key);
   }
 }

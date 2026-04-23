@@ -3,11 +3,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SpuFaqsRepository } from '../spu-faqs.repository';
 import { SpuFaqsService } from '../spu-faqs.service';
 import { SpusService } from '../../spus/spus.service';
+import { SpuFaqQuestionType } from '@infitek/shared';
 
 describe('SpuFaqsService', () => {
   let service: SpuFaqsService;
 
   const repoMock = {
+    findAll: jest.fn(),
     findBySpu: jest.fn(),
     findById: jest.fn(),
     create: jest.fn(),
@@ -17,6 +19,7 @@ describe('SpuFaqsService', () => {
 
   const spusServiceMock = {
     findById: jest.fn(),
+    findByCode: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -39,11 +42,12 @@ describe('SpuFaqsService', () => {
       spuId: 1,
       question: '这是问题',
       answer: '这是回答',
+      questionType: SpuFaqQuestionType.GENERAL_KNOWLEDGE,
       sortOrder: 0,
     });
 
     const result = await service.create(
-      { spuId: 1, question: '这是问题', answer: '这是回答' },
+      { spuId: 1, question: '这是问题', answer: '这是回答', questionType: SpuFaqQuestionType.GENERAL_KNOWLEDGE },
       'admin',
     );
 
@@ -65,8 +69,30 @@ describe('SpuFaqsService', () => {
     spusServiceMock.findById.mockRejectedValue(new NotFoundException('SPU 不存在'));
 
     await expect(
-      service.create({ spuId: 999, question: '问题', answer: '回答' }, 'admin'),
+      service.create({ spuId: 999, question: '问题', answer: '回答', questionType: SpuFaqQuestionType.OTHER }, 'admin'),
     ).rejects.toThrow(NotFoundException);
+  });
+
+  it('通过 spuCode 创建 FAQ 成功', async () => {
+    spusServiceMock.findByCode.mockResolvedValue({ id: 2, spuCode: 'SPU001' });
+    spusServiceMock.findById.mockResolvedValue({ id: 2, spuCode: 'SPU001' });
+    repoMock.create.mockResolvedValue({
+      id: 3,
+      spuId: 2,
+      spuCode: 'SPU001',
+      question: '问题',
+      answer: '回答',
+      questionType: SpuFaqQuestionType.PRODUCT_ADVANTAGES,
+      sortOrder: 0,
+    });
+
+    const result = await service.create(
+      { spuCode: 'SPU001', question: '问题', answer: '回答', questionType: SpuFaqQuestionType.PRODUCT_ADVANTAGES },
+      'admin',
+    );
+
+    expect(spusServiceMock.findByCode).toHaveBeenCalledWith('SPU001');
+    expect(result.spuId).toBe(2);
   });
 
   it('更新 FAQ 成功', async () => {

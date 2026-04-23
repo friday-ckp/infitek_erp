@@ -22,6 +22,10 @@ export class SpusService {
     return spu;
   }
 
+  findByCode(code: string) {
+    return this.repo.findByCode(code);
+  }
+
   async create(dto: CreateSpuDto, operator?: string) {
     const category = await this.categoriesService.findById(dto.categoryId);
     if (category.level !== 3) throw new BadRequestException('只能选择三级（末级）分类');

@@ -3,6 +3,7 @@ import { SpuFaqsRepository } from './spu-faqs.repository';
 import { SpusService } from '../spus/spus.service';
 import { CreateSpuFaqDto } from './dto/create-spu-faq.dto';
 import { UpdateSpuFaqDto } from './dto/update-spu-faq.dto';
+import { QuerySpuFaqDto } from './dto/query-spu-faq.dto';
 import { SpuFaq } from './entities/spu-faq.entity';
 
 @Injectable()
@@ -12,17 +13,39 @@ export class SpuFaqsService {
     private readonly spusService: SpusService,
   ) {}
 
+  findAll(query: QuerySpuFaqDto) {
+    return this.repo.findAll(query);
+  }
+
+  async findById(id: number): Promise<SpuFaq> {
+    const faq = await this.repo.findById(id);
+    if (!faq) throw new NotFoundException('FAQ 不存在');
+    return faq;
+  }
+
   findBySpu(spuId: number): Promise<SpuFaq[]> {
     return this.repo.findBySpu(spuId);
   }
 
   async create(dto: CreateSpuFaqDto, operator?: string): Promise<SpuFaq> {
-    await this.spusService.findById(dto.spuId);
+    let resolvedSpuId: number | undefined = dto.spuId;
+
+    if (!resolvedSpuId && dto.spuCode) {
+      const spu = await this.spusService.findByCode(dto.spuCode);
+      if (!spu) throw new NotFoundException('SPU 编码不存在');
+      resolvedSpuId = spu.id;
+    }
+
+    if (resolvedSpuId) {
+      await this.spusService.findById(resolvedSpuId);
+    }
 
     return this.repo.create({
-      spuId: dto.spuId,
+      spuId: resolvedSpuId ?? null,
       question: dto.question,
       answer: dto.answer,
+      questionType: dto.questionType,
+      attachmentUrl: dto.attachmentUrl ?? null,
       sortOrder: dto.sortOrder ?? 0,
       createdBy: operator,
       updatedBy: operator,

@@ -59,7 +59,9 @@ const menuItems = [
     children: [
       { key: '/master-data/product-categories', label: '产品分类' },
       { key: '/master-data/spus', label: 'SPU 管理' },
-      { key: '/products/skus', label: 'SKU 管理' },
+      { key: '/master-data/skus', label: 'SKU 管理' },
+      { key: '/master-data/certificates', label: '证书管理' },
+      { key: '/master-data/spu-faqs', label: 'FAQ 管理' },
     ],
   },
   {

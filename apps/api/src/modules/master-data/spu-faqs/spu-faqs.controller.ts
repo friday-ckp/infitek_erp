@@ -22,8 +22,13 @@ export class SpuFaqsController {
   constructor(private readonly spuFaqsService: SpuFaqsService) {}
 
   @Get()
-  findBySpu(@Query() query: QuerySpuFaqDto) {
-    return this.spuFaqsService.findBySpu(query.spuId);
+  findAll(@Query() query: QuerySpuFaqDto) {
+    return this.spuFaqsService.findAll(query);
+  }
+
+  @Get(':id')
+  findById(@Param('id', ParseIntPipe) id: number) {
+    return this.spuFaqsService.findById(id);
   }
 
   @Post()
