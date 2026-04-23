@@ -299,7 +299,7 @@ export default function SpuFormPage() {
         onFinish={async (values) => {
           const payload: CreateSpuPayload = {
             name: values.name,
-            categoryId: values.categoryId,
+            categoryId: Number(values.categoryId),
             unit: values.unit || undefined,
             manufacturerModel: values.manufacturerModel || undefined,
             customerWarrantyMonths: values.customerWarrantyMonths ?? undefined,

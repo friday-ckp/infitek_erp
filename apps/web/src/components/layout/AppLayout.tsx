@@ -21,6 +21,10 @@ const BREADCRUMB_MAP: Record<string, { label: string; parent?: string; parentLab
   '/master-data/warehouses': { label: '仓库管理', parent: '/master-data', parentLabel: '基础数据' },
   '/master-data/warehouses/create': { label: '新建仓库', parent: '/master-data/warehouses', parentLabel: '仓库管理' },
   '/master-data/product-categories': { label: '产品分类管理', parent: '/master-data', parentLabel: '基础数据' },
+  '/master-data/spus': { label: 'SPU 管理', parent: '/master-data/product', parentLabel: '产品管理' },
+  '/master-data/skus': { label: 'SKU 管理', parent: '/master-data/product', parentLabel: '产品管理' },
+  '/master-data/certificates': { label: '证书管理', parent: '/master-data/product', parentLabel: '产品管理' },
+  '/master-data/spu-faqs': { label: 'FAQ 管理', parent: '/master-data/product', parentLabel: '产品管理' },
 };
 
 function isValidToken(token: string | null): boolean {
