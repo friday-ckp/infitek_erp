@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星辰科技 ERP - SKU 详情/编辑页原型</title>
+<style>
+:root {
+  --primary: #4F46E5;
+  --primary-hover: #4338CA;
+  --primary-bg: #EEF2FF;
+  --text-main: #111827;
+  --text-muted: #6B7280;
+  --text-light: #9CA3AF;
+  --bg-app: #F9FAFB;
+  --border-base: #E5E7EB;
+  --border-light: #F3F4F6;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;font-size:14px;background:var(--bg-app);color:var(--text-main);-webkit-font-smoothing:antialiased}
+
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ===== SIDEBAR (from ux-design-directions) ===== */
+.sidebar{width:220px;min-width:220px;background:#fff;border-right:1px solid var(--border-base);display:flex;flex-direction:column;height:100%;overflow-y:auto;flex-shrink:0}
+.sidebar-logo{padding:24px 20px;border-bottom:1px solid var(--border-light)}
+.sidebar-logo .sys-name{color:var(--text-main);font-size:16px;font-weight:800;letter-spacing:-0.5px}
+.sidebar-logo .sys-sub{color:var(--text-light);font-size:10px;margin-top:2px;font-weight:600}
+.nav-group{padding:12px 0}
+.nav-item{display:flex;align-items:center;padding:10px 20px;color:var(--text-muted);cursor:pointer;transition:all .15s;font-size:14px;gap:10px;font-weight:600}
+.nav-item:hover{color:var(--text-main);background:var(--bg-app)}
+.nav-item.open{color:var(--text-main)}
+.nav-item .icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;opacity:0.6}
+.nav-item.open .icon{color:var(--primary);opacity:1}
+.nav-item .arrow{margin-left:auto;font-size:10px;color:var(--text-light);transition:transform .2s}
+.nav-item.open .arrow{transform:rotate(90deg)}
+.nav-sub{font-size:13px;padding:7px 20px 7px 48px;color:var(--text-muted);cursor:pointer;transition:all .15s;position:relative}
+.nav-sub:hover{color:var(--text-main)}
+.nav-sub.active{color:var(--primary);font-weight:700;background:var(--primary-bg)}
+.nav-sub.active::before{content:'';position:absolute;left:24px;top:50%;transform:translateY(-50%);width:4px;height:4px;border-radius:50%;background:var(--primary)}
+.sidebar-user{margin-top:auto;border-top:1px solid var(--border-light);padding:14px 16px;display:flex;align-items:center;gap:10px}
+.user-avatar{width:34px;height:34px;border-radius:8px;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:13px;font-weight:600;color:var(--text-main)}
+.user-role{font-size:11px;color:var(--text-muted);margin-top:1px}
+
+/* ===== MAIN AREA ===== */
+.main-area{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-app)}
+.topbar{background:#fff;border-bottom:1px solid var(--border-base);padding:0 28px;height:56px;display:flex;align-items:center;gap:12px;flex-shrink:0}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-muted)}
+.breadcrumb .sep{color:var(--text-light)}
+.breadcrumb a{color:var(--primary);cursor:pointer;text-decoration:none;font-weight:600}
+.breadcrumb a:hover{text-decoration:underline}
+.topbar-right{margin-left:auto;display:flex;gap:12px;align-items:center}
+.topbar-avatar{width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer}
+.content{flex:1;overflow-y:auto;padding:24px 28px}
+
+/* ===== TAGS & PILLS ===== */
+.tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;white-space:nowrap}
+.tag-blue{background:var(--primary-bg);color:var(--primary)}
+.tag-green{background:#DCFCE7;color:#15803D}
+.tag-orange{background:#FFEDD5;color:#9A3412}
+.tag-red{background:#FEE2E2;color:#B91C1C}
+.tag-gray{background:#F3F4F6;color:#4B5563}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700}
+.pill-blue{background:var(--primary-bg);color:var(--primary)}
+.pill-green{background:#DCFCE7;color:#15803D}
+.pill-orange{background:#FFEDD5;color:#9A3412}
+.pill::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+
+/* ===== BUTTONS ===== */
+.btn2-primary{padding:9px 20px;background:var(--primary);color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:700;transition:all .15s}
+.btn2-primary:hover{background:var(--primary-hover)}
+.btn2-default{padding:9px 20px;background:#fff;color:var(--text-main);border:1px solid var(--border-base);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.btn2-default:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-bg)}
+.btn2-danger{padding:9px 20px;background:#fff;color:#B91C1C;border:1px solid #FCA5A5;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.btn2-danger:hover{background:#FEE2E2;border-color:#EF4444}
+.btn2-link{background:none;border:none;color:var(--primary);cursor:pointer;font-size:13px;font-weight:600;padding:0}
+.btn2-link:hover{text-decoration:underline}
+.btn2-dashed{padding:9px 20px;background:#fff;color:var(--text-muted);border:1px dashed var(--border-base);border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;transition:all .15s}
+.btn2-dashed:hover{border-color:var(--primary);color:var(--primary)}
+
+/* ===== INFO CARD ===== */
+.info-card{background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid var(--border-base);margin-bottom:16px;overflow:hidden}
+.info-card-header{padding:14px 20px;border-bottom:1px solid var(--border-light);display:flex;align-items:center;justify-content:space-between}
+.info-card-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:8px}
+.info-card-title .dot{width:4px;height:16px;border-radius:2px;background:var(--primary);flex-shrink:0}
+
+/* ===== META GRID ===== */
+.meta-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0;padding:0}
+.meta-item{padding:14px 20px;border-right:1px solid var(--border-light);border-bottom:1px solid var(--border-light)}
+.meta-item:nth-child(3n){border-right:none}
+.meta-label{font-size:11px;color:var(--text-light);font-weight:700;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.meta-value{font-size:14px;font-weight:600;color:var(--text-main)}
+
+/* ===== DATA TABLE ===== */
+.data-table{width:100%;border-collapse:collapse}
+.data-table th{background:#F9FAFB;padding:10px 14px;text-align:left;font-size:12px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border-base);text-transform:uppercase}
+.data-table td{padding:12px 14px;border-bottom:1px solid var(--border-light);font-size:13px;vertical-align:middle}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:#FBFBFF}
+
+/* ===== TABS ===== */
+.tabs-bar{display:flex;gap:0;border-bottom:1px solid var(--border-base);padding:0 20px;background:#fff;border-radius:10px 10px 0 0}
+.tab-btn{padding:14px 18px;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;white-space:nowrap}
+.tab-btn:hover{color:var(--text-main)}
+.tab-btn.active{color:var(--primary);border-bottom-color:var(--primary);font-weight:700}
+.tab-body{padding:20px;background:#fff;border-radius:0 0 10px 10px;border:1px solid var(--border-base);border-top:none}
+
+/* ===== PAGE HEADER ===== */
+.page-title{font-size:24px;font-weight:800;margin-bottom:4px;color:var(--text-main);letter-spacing:-0.5px}
+.page-subtitle{color:var(--text-muted);font-size:14px;margin-bottom:20px}
+
+/* ===== SUMMARY CARD ===== */
+.summary-card{background:#fff;border-radius:10px;box-shadow:0 1px 2px rgba(0,0,0,0.05);border:1px solid var(--border-base);padding:20px 24px;margin-bottom:16px}
+.summary-top{display:flex;justify-content:space-between;align-items:flex-start}
+.summary-code{font-size:20px;font-weight:800;display:flex;align-items:center;gap:12px;letter-spacing:-0.5px}
+.summary-meta{display:flex;gap:28px;margin-top:10px;flex-wrap:wrap}
+.summary-meta-item{font-size:13px;color:var(--text-muted)}
+.summary-meta-item .ml{color:var(--text-light);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:2px}
+.summary-meta-item .mv{font-weight:600;color:var(--text-main)}
+
+/* ===== IMAGES ===== */
+.img-list{display:flex;gap:8px;flex-wrap:wrap}
+.img-thumb{width:72px;height:72px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700}
+
+/* ===== INFO TIP ===== */
+.info-tip{background:var(--primary-bg);border:1px solid #C7D2FE;border-radius:8px;padding:10px 16px;color:var(--primary);font-size:12px;font-weight:600;margin-top:14px}
+
+/* ===== FORM STYLES ===== */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:16px 28px;margin-bottom:16px}
+.form-row.col3{grid-template-columns:1fr 1fr 1fr}
+.form-row.full{grid-template-columns:1fr}
+.form-item{display:flex;flex-direction:column;gap:5px}
+.form-item label{font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px}
+.form-item label .req{color:#EF4444;margin-right:2px}
+.form-input{padding:8px 12px;border:1px solid var(--border-base);border-radius:8px;font-size:14px;font-weight:500;outline:none;transition:all .15s;background:#fff;color:var(--text-main)}
+.form-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-bg)}
+.form-input:disabled{background:var(--bg-app);color:var(--text-light);cursor:not-allowed}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%239CA3AF' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+textarea.form-input{min-height:56px;resize:vertical}
+.radio-group{display:flex;gap:16px;align-items:center;padding:8px 0}
+.radio-group label{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px;font-weight:500;color:var(--text-main);text-transform:none;letter-spacing:0}
+.radio-group input[type="radio"]{accent-color:var(--primary);width:16px;height:16px}
+.multi-tags{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px;border:1px solid var(--border-base);border-radius:8px;min-height:40px;background:#fff;cursor:pointer;align-items:center}
+.multi-tags .st{background:var(--primary-bg);color:var(--primary);padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:5px}
+.multi-tags .st .x{cursor:pointer;opacity:.6;font-size:10px}
+.multi-tags .st .x:hover{opacity:1}
+.upload-area{display:flex;gap:8px;flex-wrap:wrap}
+.upload-card{width:72px;height:72px;border-radius:8px;position:relative;overflow:hidden}
+.upload-card .rm{position:absolute;top:3px;right:3px;width:18px;height:18px;background:rgba(0,0,0,.5);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer}
+.upload-add{width:72px;height:72px;border:1px dashed var(--border-base);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-light);font-size:20px;transition:all .15s}
+.upload-add:hover{border-color:var(--primary);color:var(--primary)}
+.upload-add span{font-size:10px;font-weight:700;margin-top:2px}
+
+.cond-block{border:1px dashed #C7D2FE;border-radius:8px;padding:14px 16px;margin:4px 0 16px;background:#FAFAFF}
+.cond-label{font-size:11px;color:var(--primary);font-weight:700;margin-bottom:10px}
+
+.editable-table{width:100%;border-collapse:collapse}
+.editable-table th{background:#F9FAFB;padding:8px 6px;text-align:left;font-size:11px;font-weight:700;color:var(--text-muted);border-bottom:1px solid var(--border-base);text-transform:uppercase}
+.editable-table td{padding:4px 4px;border-bottom:1px solid var(--border-light)}
+.editable-table .form-input{width:100%;padding:6px 8px;font-size:13px}
+
+.form-footer{display:flex;justify-content:flex-end;gap:10px;padding:16px 20px;border-top:1px solid var(--border-light);background:#fff;border-radius:0 0 10px 10px}
+
+/* ===== MODE SWITCHER ===== */
+.mode-sw{position:fixed;top:12px;right:24px;z-index:100;display:flex;background:#fff;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,.12);overflow:hidden}
+.mode-sw div{padding:8px 20px;cursor:pointer;font-size:13px;font-weight:700;border:1px solid var(--border-base);transition:all .15s}
+.mode-sw div:first-child{border-radius:8px 0 0 8px}
+.mode-sw div:last-child{border-radius:0 8px 8px 0;border-left:none}
+.mode-sw div.on{background:var(--primary);color:#fff;border-color:var(--primary)}
+
+.hidden{display:none!important}
+.table-footer{padding:10px 14px;text-align:right;color:var(--text-light);font-size:12px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="app">
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo"><div class="sys-name">星辰科技 ERP</div><div class="sys-sub">INFITEK ENTERPRISE</div></div>
+  <div class="nav-group">
+    <div class="nav-item open">
+      <span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><path d="M8 1.5l6 3v6l-6 3-6-3v-6l6-3z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M8 1.5v13" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 4.5l6 3 6-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      产品管理<span class="arrow">&#9654;</span>
+    </div>
+    <div class="nav-sub">产品分类</div>
+    <div class="nav-sub">SPU 管理</div>
+    <div class="nav-sub active">SKU 管理</div>
+    <div class="nav-sub">FAQ 管理</div>
+    <div class="nav-sub">证书管理</div>
+  </div>
+  <div class="nav-group">
+    <div class="nav-item"><span class="icon"><svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3" fill="none"/><path d="M8 1.5v1.3M8 13.2v1.3M1.5 8h1.3M13.2 8h1.3M3.4 3.4l.9.9M11.7 11.7l.9.9M3.4 12.6l.9-.9M11.7 4.3l.9-.9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></span>基础数据<span class="arrow">&#9654;</span></div>
+  </div>
+  <div class="sidebar-user"><div class="user-avatar">CK</div><div class="user-info"><div class="user-name">产品专员</div><div class="user-role">Product Specialist</div></div></div>
+</div>
+
+<!-- MAIN AREA -->
+<div class="main-area">
+<!-- MODE SWITCHER -->
+<div class="mode-sw"><div class="on" onclick="sw('detail')" id="md">详情页</div><div onclick="sw('edit')" id="me">编辑页</div></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="breadcrumb"><a onclick="sw('detail')">产品管理</a><span class="sep">›</span><a onclick="sw('detail')">SKU 管理</a><span class="sep">›</span><span style="color:var(--text-main);font-weight:600" id="bc-title">SKU-20260423-001</span></div>
+  <div class="topbar-right"><div class="topbar-avatar">CK</div></div>
+</div>
+
+<div class="content">
+
+<!-- ==================== DETAIL MODE ==================== -->
+<div id="v-detail">
+  <!-- Summary Card -->
+  <div class="summary-card">
+    <div class="summary-top">
+      <div>
+        <div class="summary-code">SKU-20260423-001 <span class="pill pill-green">上架</span></div>
+        <div class="summary-meta">
+          <div class="summary-meta-item"><span class="ml">所属SPU</span><span class="mv">SPU-001 多功能电动工具</span></div>
+          <div class="summary-meta-item"><span class="ml">产品类型</span><span class="mv">主品</span></div>
+          <div class="summary-meta-item"><span class="ml">产品型号</span><span class="mv">DRL-X200</span></div>
+          <div class="summary-meta-item"><span class="ml">三级分类</span><span class="mv">电动工具 › 手持式 › 电钻</span></div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn2-default" onclick="sw('edit')">编辑</button>
+        <button class="btn2-danger">删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="info-card" style="overflow:visible">
+    <div class="tabs-bar" id="dt">
+      <div class="tab-btn active" onclick="dtab('basic',this)">基本信息</div>
+      <div class="tab-btn" onclick="dtab('spec',this)">规格参数</div>
+      <div class="tab-btn" onclick="dtab('pkg',this)">包装信息</div>
+      <div class="tab-btn" onclick="dtab('customs',this)">报关信息</div>
+      <div class="tab-btn" onclick="dtab('owner',this)">负责人信息</div>
+      <div class="tab-btn" onclick="dtab('cert',this)">证书资料</div>
+    </div>
+
+    <!-- Tab: 基本信息 -->
+    <div class="tab-body" id="d-basic" style="border-radius:0 0 10px 10px;border-top:none">
+      <div class="meta-grid">
+        <div class="meta-item"><div class="meta-label">SKU 编码</div><div class="meta-value" style="color:var(--primary)">SKU-20260423-001</div></div>
+        <div class="meta-item"><div class="meta-label">状态</div><div class="meta-value"><span class="pill pill-green">上架</span></div></div>
+        <div class="meta-item"><div class="meta-label">产品类型</div><div class="meta-value">主品</div></div>
+        <div class="meta-item"><div class="meta-label">所属 SPU</div><div class="meta-value">SPU-001 多功能电动工具</div></div>
+        <div class="meta-item"><div class="meta-label">产品型号</div><div class="meta-value">DRL-X200</div></div>
+        <div class="meta-item"><div class="meta-label">电参数</div><div class="meta-value">220V 50HZ</div></div>
+        <div class="meta-item"><div class="meta-label">中文名称</div><div class="meta-value">多功能电钻X200</div></div>
+        <div class="meta-item"><div class="meta-label">英文名称</div><div class="meta-value">Multi-function Drill X200</div></div>
+        <div class="meta-item"><div class="meta-label">单位</div><div class="meta-value">台</div></div>
+        <div class="meta-item" style="grid-column:span 3"><div class="meta-label">规格描述</div><div class="meta-value">220V/50Hz 多功能电钻，最大扭矩45N·m，无级变速，正反转</div></div>
+        <div class="meta-item"><div class="meta-label">一级分类</div><div class="meta-value">电动工具</div></div>
+        <div class="meta-item"><div class="meta-label">二级分类</div><div class="meta-value">手持式</div></div>
+        <div class="meta-item"><div class="meta-label">三级分类</div><div class="meta-value">电钻</div></div>
+        <div class="meta-item"><div class="meta-label">配件归属SKU</div><div class="meta-value" style="color:var(--text-light)">—</div></div>
+        <div class="meta-item"><div class="meta-label">特殊属性</div><div class="meta-value">否</div></div>
+        <div class="meta-item"><div class="meta-label">客户质保期</div><div class="meta-value">24 个月</div></div>
+        <div class="meta-item" style="grid-column:span 3"><div class="meta-label">禁止经营国家</div><div class="meta-value"><span class="tag tag-gray" style="margin-right:4px">伊朗</span><span class="tag tag-gray" style="margin-right:4px">朝鲜</span><span class="tag tag-gray">叙利亚</span></div></div>
+        <div class="meta-item" style="grid-column:span 3"><div class="meta-label">产品图片</div><div class="meta-value"><div class="img-list"><div class="img-thumb" style="background:linear-gradient(135deg,#667eea,#764ba2)">IMG 1</div><div class="img-thumb" style="background:linear-gradient(135deg,#f093fb,#f5576c)">IMG 2</div><div class="img-thumb" style="background:linear-gradient(135deg,#4facfe,#00f2fe)">IMG 3</div></div></div></div>
+        <div class="meta-item"><div class="meta-label">创建时间</div><div class="meta-value">2026-04-23 10:30</div></div>
+        <div class="meta-item"><div class="meta-label">更新时间</div><div class="meta-value">2026-04-23 14:20</div></div>
+        <div class="meta-item"><div class="meta-label">创建人</div><div class="meta-value">产品专员</div></div>
+      </div>
+    </div>
+
+    <!-- Tab: 规格参数 -->
+    <div class="tab-body hidden" id="d-spec">
+      <div class="meta-grid">
+        <div class="meta-item"><div class="meta-label">工作原理</div><div class="meta-value">电磁感应驱动</div></div>
+        <div class="meta-item"><div class="meta-label">材质</div><div class="meta-value">合金钢 + ABS外壳</div></div>
+        <div class="meta-item"><div class="meta-label">是否含插头</div><div class="meta-value">是</div></div>
+        <div class="meta-item" style="grid-column:span 3"><div class="meta-label">核心参数</div><div class="meta-value">最大扭矩45N·m，转速0-2800rpm，夹头范围1.5-13mm</div></div>
+        <div class="meta-item" style="grid-column:span 3"><div class="meta-label">产品用途</div><div class="meta-value">家用及工业钻孔、拧螺丝、搅拌等多功能用途</div></div>
+      </div>
+    </div>
+
+    <!-- Tab: 包装信息 -->
+    <div class="tab-body hidden" id="d-pkg">
+      <table class="data-table">
+        <thead><tr><th>包装类型</th><th>净重(KG)</th><th>毛重(KG)</th><th>长(CM)</th><th>宽(CM)</th><th>高(CM)</th><th>体积(CBM)</th><th>装箱数量</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600">内盒包装</td><td>2.500</td><td>3.200</td><td>35</td><td>25</td><td>15</td><td>0.0131</td><td>1</td></tr>
+          <tr><td style="font-weight:600">外箱包装</td><td>15.000</td><td>18.500</td><td>60</td><td>40</td><td>35</td><td>0.0840</td><td>6</td></tr>
+        </tbody>
+      </table>
+      <div class="table-footer">共 2 条记录</div>
+    </div>
+
+    <!-- Tab: 报关信息 -->
+    <div class="tab-body hidden" id="d-customs">
+      <div class="meta-grid">
+        <div class="meta-item"><div class="meta-label">HS 码</div><div class="meta-value" style="font-family:monospace;font-weight:700;color:#2563EB;background:#EFF6FF;display:inline-block;padding:2px 8px;border-radius:6px;border:1px solid #DBEAFE">84672190</div></div>
+        <div class="meta-item"><div class="meta-label">报关中文品名</div><div class="meta-value">电钻</div></div>
+        <div class="meta-item"><div class="meta-label">报关英文品名</div><div class="meta-value">Electric Drill</div></div>
+        <div class="meta-item"><div class="meta-label">申报价值(USD)</div><div class="meta-value">35.00</div></div>
+        <div class="meta-item"><div class="meta-label">退税率(%)</div><div class="meta-value">13.00</div></div>
+        <div class="meta-item"><div class="meta-label">是否需要检验</div><div class="meta-value">是</div></div>
+        <div class="meta-item"><div class="meta-label">报关信息维护</div><div class="meta-value"><span class="tag tag-green">已维护</span></div></div>
+        <div class="meta-item"><div class="meta-label">监管条件</div><div class="meta-value">A (入境货物通关单)</div></div>
+        <div class="meta-item"><div class="meta-label">—</div><div class="meta-value"></div></div>
+        <div class="meta-item" style="grid-column:span 3"><div class="meta-label">申报要素</div><div class="meta-value">品牌类型:有品牌, 出口享惠情况:适用协定税率, 用途:钻孔用, 类型:电钻, 电压:220V</div></div>
+      </div>
+    </div>
+
+    <!-- Tab: 负责人信息 -->
+    <div class="tab-body hidden" id="d-owner">
+      <div class="meta-grid">
+        <div class="meta-item"><div class="meta-label">采购负责人</div><div class="meta-value">张三</div></div>
+        <div class="meta-item"><div class="meta-label">产品负责人</div><div class="meta-value">李四</div></div>
+        <div class="meta-item"><div class="meta-label">—</div><div class="meta-value"></div></div>
+      </div>
+      <div class="info-tip">ℹ 负责人信息来源于产品三级分类「电钻」的关联配置，如需修改请前往产品分类管理。</div>
+    </div>
+
+    <!-- Tab: 证书资料 -->
+    <div class="tab-body hidden" id="d-cert">
+      <table class="data-table">
+        <thead><tr><th>证书编号</th><th>证书类型</th><th>证书名称</th><th>归属类型</th><th>有效期至</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td style="font-weight:600">CERT-2026-001</td><td><span class="tag tag-blue">CE</span></td><td>CE认证-电动工具系列</td><td>产品SPU归属</td><td>2028-06-30</td><td><button class="btn2-link">查看</button></td></tr>
+          <tr><td style="font-weight:600">CERT-2026-005</td><td><span class="tag tag-blue">ISO9001</span></td><td>质量管理体系认证</td><td><span class="tag tag-orange">通用归属</span></td><td>2029-03-15</td><td><button class="btn2-link">查看</button></td></tr>
+          <tr><td style="font-weight:600">CERT-2026-012</td><td><span class="tag tag-blue">IEC</span></td><td>IEC 60745检测报告</td><td>产品分类归属</td><td>2027-12-01</td><td><button class="btn2-link">查看</button></td></tr>
+        </tbody>
+      </table>
+      <div class="table-footer">共 3 条记录</div>
+      <div class="info-tip">ℹ 匹配规则：证书归属SPU编码与当前SKU所属SPU匹配 / 证书所属产品分类与三级分类匹配 / 证书归属类型为通用归属。</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== EDIT MODE ==================== -->
+<div id="v-edit" class="hidden">
+  <div class="info-card" style="overflow:visible">
+    <div class="tabs-bar" id="et">
+      <div class="tab-btn active" onclick="etab('basic',this)">基本信息</div>
+      <div class="tab-btn" onclick="etab('spec',this)">规格参数</div>
+      <div class="tab-btn" onclick="etab('pkg',this)">包装信息</div>
+      <div class="tab-btn" onclick="etab('customs',this)">报关信息</div>
+    </div>
+
+    <!-- Edit: 基本信息 -->
+    <div class="tab-body" id="e-basic">
+      <div class="form-row">
+        <div class="form-item"><label><span class="req">*</span>所属 SPU</label><select class="form-input form-select"><option>SPU-001 多功能电动工具</option><option>SPU-002 角磨机</option></select></div>
+        <div class="form-item"><label><span class="req">*</span>状态</label><select class="form-input form-select"><option>上架</option><option>下架可售</option><option>下架不可售</option><option>临拓</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label><span class="req">*</span>产品类型</label><select class="form-input form-select" id="ptSel" onchange="togAcc()"><option value="main">主品</option><option value="acc">配件</option><option value="con">耗材</option></select></div>
+        <div class="form-item"><label>产品型号</label><input class="form-input" value="DRL-X200"></div>
+      </div>
+      <div class="cond-block hidden" id="accBlock">
+        <div class="cond-label">▼ 产品类型为「配件」时必填</div>
+        <div class="form-row" style="margin-bottom:0"><div class="form-item"><label><span class="req">*</span>配件归属SKU</label><select class="form-input form-select"><option value="">请选择主品SKU</option><option>SKU-20260423-001 多功能电钻X200</option><option>SKU-20260420-003 角磨机G100</option></select></div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label>中文名称</label><input class="form-input" value="多功能电钻X200"></div>
+        <div class="form-item"><label>英文名称</label><input class="form-input" value="Multi-function Drill X200"></div>
+      </div>
+      <div class="form-row full"><div class="form-item"><label><span class="req">*</span>规格描述</label><textarea class="form-input">220V/50Hz 多功能电钻，最大扭矩45N·m，无级变速，正反转</textarea></div></div>
+      <div class="form-row">
+        <div class="form-item"><label>单位</label><select class="form-input form-select"><option>台</option><option>个</option><option>套</option></select></div>
+        <div class="form-item"><label>电参数</label><select class="form-input form-select"><option>220V 50HZ</option><option>110V 50HZ</option><option>110V 60HZ</option><option>220V 60HZ</option><option>380V 50HZ</option><option>380V 60HZ</option><option>/</option></select></div>
+      </div>
+      <div class="form-row col3">
+        <div class="form-item"><label>一级分类</label><select class="form-input form-select"><option>电动工具</option><option>手动工具</option></select></div>
+        <div class="form-item"><label>二级分类</label><select class="form-input form-select"><option>手持式</option><option>台式</option></select></div>
+        <div class="form-item"><label>三级分类</label><select class="form-input form-select"><option>电钻</option><option>电锤</option><option>冲击钻</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label>特殊属性</label><div class="radio-group"><label><input type="radio" name="sp" value="y"> 是</label><label><input type="radio" name="sp" value="n" checked> 否</label></div></div>
+        <div class="form-item"><label>客户质保期（月）</label><input class="form-input" type="number" value="24" min="0"></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-item"><label>禁止经营国家</label><div class="multi-tags"><span class="st">伊朗 <span class="x">×</span></span><span class="st">朝鲜 <span class="x">×</span></span><span class="st">叙利亚 <span class="x">×</span></span><span style="color:var(--text-light);font-size:12px">点击添加...</span></div></div>
+      </div>
+      <div class="form-row full">
+        <div class="form-item"><label>产品图片</label><div class="upload-area"><div class="upload-card"><div style="width:100%;height:100%;background:linear-gradient(135deg,#667eea,#764ba2)"></div><div class="rm">×</div></div><div class="upload-card"><div style="width:100%;height:100%;background:linear-gradient(135deg,#f093fb,#f5576c)"></div><div class="rm">×</div></div><div class="upload-card"><div style="width:100%;height:100%;background:linear-gradient(135deg,#4facfe,#00f2fe)"></div><div class="rm">×</div></div><div class="upload-add">+<span>上传</span></div></div></div>
+      </div>
+    </div>
+
+    <!-- Edit: 规格参数 -->
+    <div class="tab-body hidden" id="e-spec">
+      <div class="form-row">
+        <div class="form-item"><label>工作原理</label><input class="form-input" value="电磁感应驱动"></div>
+        <div class="form-item"><label>材质</label><input class="form-input" value="合金钢 + ABS外壳"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label>是否含插头</label><div class="radio-group"><label><input type="radio" name="pl" checked> 是</label><label><input type="radio" name="pl"> 否</label></div></div>
+        <div class="form-item"></div>
+      </div>
+      <div class="form-row full"><div class="form-item"><label>核心参数</label><textarea class="form-input">最大扭矩45N·m，转速0-2800rpm，夹头范围1.5-13mm</textarea></div></div>
+      <div class="form-row full"><div class="form-item"><label>产品用途</label><textarea class="form-input">家用及工业钻孔、拧螺丝、搅拌等多功能用途</textarea></div></div>
+    </div>
+
+    <!-- Edit: 包装信息 -->
+    <div class="tab-body hidden" id="e-pkg">
+      <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn2-dashed" onclick="addRow()">+ 添加包装</button></div>
+      <table class="editable-table" id="pkgTbl">
+        <thead><tr><th>包装类型</th><th>净重(KG)</th><th>毛重(KG)</th><th>长(CM)</th><th>宽(CM)</th><th>高(CM)</th><th>体积(CBM)</th><th>装箱数量</th><th>操作</th></tr></thead>
+        <tbody>
+          <tr><td><input class="form-input" value="内盒包装"></td><td><input class="form-input" type="number" value="2.500" step="0.001"></td><td><input class="form-input" type="number" value="3.200" step="0.001"></td><td><input class="form-input" type="number" value="35"></td><td><input class="form-input" type="number" value="25"></td><td><input class="form-input" type="number" value="15"></td><td><input class="form-input" value="0.0131" disabled></td><td><input class="form-input" type="number" value="1"></td><td><button class="btn2-link" style="color:#B91C1C">删除</button></td></tr>
+          <tr><td><input class="form-input" value="外箱包装"></td><td><input class="form-input" type="number" value="15.000" step="0.001"></td><td><input class="form-input" type="number" value="18.500" step="0.001"></td><td><input class="form-input" type="number" value="60"></td><td><input class="form-input" type="number" value="40"></td><td><input class="form-input" type="number" value="35"></td><td><input class="form-input" value="0.0840" disabled></td><td><input class="form-input" type="number" value="6"></td><td><button class="btn2-link" style="color:#B91C1C">删除</button></td></tr>
+        </tbody>
+      </table>
+      <div class="info-tip">ℹ 体积(CBM) = 长 × 宽 × 高 ÷ 1,000,000，由系统自动计算。</div>
+    </div>
+
+    <!-- Edit: 报关信息 -->
+    <div class="tab-body hidden" id="e-customs">
+      <div class="form-row">
+        <div class="form-item"><label><span class="req">*</span>HS 码</label><input class="form-input" value="84672190"></div>
+        <div class="form-item"><label><span class="req">*</span>报关中文品名</label><input class="form-input" value="电钻"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label><span class="req">*</span>报关英文品名</label><input class="form-input" value="Electric Drill"></div>
+        <div class="form-item"><label>申报价值参考(USD)</label><input class="form-input" type="number" value="35.00" step="0.01"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label>退税率(%)</label><input class="form-input" type="number" value="13.00" step="0.01"></div>
+        <div class="form-item"><label>是否需要检验</label><div class="radio-group"><label><input type="radio" name="insp" checked> 是</label><label><input type="radio" name="insp"> 否</label></div></div>
+      </div>
+      <div class="form-row">
+        <div class="form-item"><label>报关信息是否维护</label><div class="radio-group"><label><input type="radio" name="mt" checked> 是</label><label><input type="radio" name="mt"> 否</label></div></div>
+        <div class="form-item"><label>监管条件</label><input class="form-input" value="A (入境货物通关单)"></div>
+      </div>
+      <div class="form-row full"><div class="form-item"><label>申报要素</label><textarea class="form-input">品牌类型:有品牌, 出口享惠情况:适用协定税率, 用途:钻孔用, 类型:电钻, 电压:220V</textarea></div></div>
+    </div>
+
+    <div class="form-footer">
+      <button class="btn2-default" onclick="sw('detail')">取消</button>
+      <button class="btn2-primary" onclick="sw('detail')">保存</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end content -->
+</div><!-- end main-area -->
+</div><!-- end app -->
+
+<script>
+function sw(m){
+  document.getElementById('v-detail').classList.toggle('hidden',m!=='detail');
+  document.getElementById('v-edit').classList.toggle('hidden',m!=='edit');
+  document.getElementById('md').classList.toggle('on',m==='detail');
+  document.getElementById('me').classList.toggle('on',m==='edit');
+  document.getElementById('bc-title').textContent=m==='edit'?'编辑 SKU-20260423-001':'SKU-20260423-001';
+}
+function dtab(id,el){
+  document.querySelectorAll('#dt .tab-btn').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  ['basic','spec','pkg','customs','owner','cert'].forEach(k=>{var e=document.getElementById('d-'+k);if(e)e.classList.toggle('hidden',k!==id)});
+}
+function etab(id,el){
+  document.querySelectorAll('#et .tab-btn').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  ['basic','spec','pkg','customs'].forEach(k=>{var e=document.getElementById('e-'+k);if(e)e.classList.toggle('hidden',k!==id)});
+}
+function togAcc(){document.getElementById('accBlock').classList.toggle('hidden',document.getElementById('ptSel').value!=='acc')}
+function addRow(){
+  var tb=document.querySelector('#pkgTbl tbody'),tr=document.createElement('tr');
+  tr.innerHTML='<td><input class="form-input" placeholder="包装类型"></td><td><input class="form-input" type="number" step="0.001" placeholder="0"></td><td><input class="form-input" type="number" step="0.001" placeholder="0"></td><td><input class="form-input" type="number" placeholder="0"></td><td><input class="form-input" type="number" placeholder="0"></td><td><input class="form-input" type="number" placeholder="0"></td><td><input class="form-input" value="0.0000" disabled></td><td><input class="form-input" type="number" placeholder="0"></td><td><button class="btn2-link" style="color:#B91C1C" onclick="this.closest(\'tr\').remove()">删除</button></td>';
+  tb.appendChild(tr);
+}
+</script>
+</body>
+</html>
