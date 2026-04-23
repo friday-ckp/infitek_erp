@@ -1,0 +1,247 @@
+.certificate-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.certificate-breadcrumb-link {
+  padding: 0 !important;
+  height: auto;
+}
+
+.certificate-summary-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  padding: 20px 24px;
+}
+
+.certificate-summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.certificate-summary-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.certificate-summary-code {
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.certificate-summary-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.certificate-summary-meta {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.certificate-summary-meta-item {
+  min-width: 0;
+}
+
+.certificate-summary-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.certificate-summary-meta-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.certificate-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.certificate-pill-success {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.certificate-pill-error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.certificate-info-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.certificate-info-tabs .ant-tabs-nav {
+  padding: 0 16px;
+  margin: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.certificate-tab-body {
+  padding: 16px 20px 20px;
+}
+
+.certificate-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.certificate-meta-item {
+  min-width: 0;
+}
+
+.certificate-meta-item.full {
+  grid-column: span 3;
+}
+
+.certificate-meta-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.certificate-meta-value {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.certificate-meta-value.empty {
+  color: #9ca3af;
+}
+
+.certificate-data-table {
+  margin-top: 14px;
+}
+
+.certificate-data-table-footer {
+  margin-top: 8px;
+  text-align: right;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.certificate-info-tip {
+  margin-top: 12px;
+  border: 1px dashed #c7d2fe;
+  background: #fafaff;
+  color: #4b5563;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+}
+
+.certificate-form-page .ant-form-item-label > label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.certificate-form-tab {
+  padding: 16px 20px 20px;
+}
+
+.certificate-cond-block {
+  border: 1px dashed #c7d2fe;
+  background: #fafaff;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.certificate-cond-label {
+  margin-bottom: 8px;
+  color: #6b7280;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.certificate-file-hint {
+  margin-top: 8px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.certificate-form-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: #fff;
+  border-top: 1px solid #e5e7eb;
+  padding: 12px 20px;
+}
+
+@media (max-width: 1200px) {
+  .certificate-summary-meta {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .certificate-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .certificate-meta-item.full {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .certificate-summary-header {
+    flex-direction: column;
+  }
+
+  .certificate-summary-actions {
+    width: 100%;
+  }
+
+  .certificate-summary-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .certificate-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .certificate-meta-item.full {
+    grid-column: span 1;
+  }
+}

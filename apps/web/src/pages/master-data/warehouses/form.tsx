@@ -1,5 +1,13 @@
-import { Button, Card, Cascader, Form, Result, Skeleton, Space } from 'antd';
-import { ProForm, ProFormSelect, ProFormSwitch, ProFormText, ProFormTextArea } from '@ant-design/pro-components';
+import { useRef } from 'react';
+import { Breadcrumb, Button, Cascader, Result, Skeleton } from 'antd';
+import {
+  ProForm,
+  ProFormSelect,
+  ProFormSwitch,
+  ProFormText,
+  ProFormTextArea,
+  type ProFormInstance,
+} from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { WarehouseStatus } from '@infitek/shared';
@@ -11,6 +19,7 @@ import {
   type CreateWarehousePayload,
   type UpdateWarehousePayload,
 } from '../../../api/warehouses.api';
+import '../master-page.css';
 
 const statusOptions: Array<{ label: string; value: WarehouseStatus }> = [
   { label: '启用', value: 'active' as WarehouseStatus },
@@ -34,8 +43,7 @@ export default function WarehouseFormPage() {
   const { id } = useParams();
   const warehouseId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
-
-  const [form] = Form.useForm();
+  const formRef = useRef<ProFormInstance>(undefined);
 
   const detailQuery = useQuery({
     queryKey: ['warehouse-detail', warehouseId],
@@ -65,11 +73,7 @@ export default function WarehouseFormPage() {
       <Result
         status="404"
         title="仓库不存在"
-        extra={
-          <Button type="primary" onClick={() => navigate('/master-data/warehouses')}>
-            返回列表
-          </Button>
-        }
+        extra={<Button type="primary" onClick={() => navigate('/master-data/warehouses')}>返回列表</Button>}
       />
     );
   }
@@ -85,12 +89,8 @@ export default function WarehouseFormPage() {
         title="仓库详情加载失败"
         subTitle="请检查网络或稍后重试"
         extra={[
-          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>
-            重试
-          </Button>,
-          <Button key="back" onClick={() => navigate('/master-data/warehouses')}>
-            返回列表
-          </Button>,
+          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>重试</Button>,
+          <Button key="back" onClick={() => navigate('/master-data/warehouses')}>返回列表</Button>,
         ]}
       />
     );
@@ -99,7 +99,27 @@ export default function WarehouseFormPage() {
   const data = detailQuery.data;
 
   return (
-    <Card title={isEdit ? '编辑仓库' : '新建仓库'}>
+    <div className="master-page master-form-page">
+      <Breadcrumb
+        items={[
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/warehouses')}>
+                主数据
+              </Button>
+            ),
+          },
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/warehouses')}>
+                仓库管理
+              </Button>
+            ),
+          },
+          { title: isEdit ? `编辑 ${data?.name || ''}` : '新建仓库' },
+        ]}
+      />
+
       <ProForm<{
         name: string;
         address?: string;
@@ -111,22 +131,9 @@ export default function WarehouseFormPage() {
         ownership?: string;
         isVirtual?: boolean;
       }>
-        form={form}
-        grid
-        rowProps={{ gutter: [16, 0] }}
-        colProps={{ span: 12 }}
+        formRef={formRef}
+        submitter={false}
         loading={detailQuery.isLoading}
-        submitter={{
-          render: (_, dom) => (
-            <Space>
-              <Button onClick={() => navigate('/master-data/warehouses')}>取消</Button>
-              {dom[1]}
-            </Space>
-          ),
-          searchConfig: {
-            submitText: isEdit ? '保存' : '创建',
-          },
-        }}
         initialValues={
           data
             ? {
@@ -168,71 +175,94 @@ export default function WarehouseFormPage() {
           return true;
         }}
       >
-        <ProFormText
-          name="name"
-          label="仓库名称"
-          placeholder="请输入仓库名称"
-          rules={[
-            { required: true, message: '请输入仓库名称' },
-            { max: 100, message: '仓库名称最多 100 个字符' },
-          ]}
-        />
-        <ProFormTextArea
-          name="address"
-          label="仓库地址"
-          placeholder="请输入仓库地址（可选）"
-          fieldProps={{ rows: 2 }}
-          rules={[{ max: 255, message: '仓库地址最多 255 个字符' }]}
-        />
-        <ProFormText
-          name="warehouseCode"
-          label="仓库编号"
-          placeholder="如不填写，后续可手动维护"
-          rules={[{ max: 50, message: '仓库编号最多 50 个字符' }]}
-        />
-        <ProFormSelect
-          name="warehouseType"
-          label="仓库类型"
-          options={warehouseTypeOptions}
-          placeholder="请选择仓库类型（可选）"
-        />
-        <ProFormText
-          name="supplierName"
-          label="关联供应商"
-          placeholder="供应商档案完善后可关联（暂不可用）"
-          disabled
-          tooltip="供应商管理模块（Epic 4）完成后启用"
-        />
-        <Form.Item name="defaultShipArea" label="默认发运省市">
-          <Cascader
-            options={chinaRegions}
-            placeholder="请选择省/市（可选）"
-          />
-        </Form.Item>
-        <ProFormSelect
-          name="ownership"
-          label="仓库归属"
-          options={ownershipOptions}
-          rules={[{ required: true, message: '请选择仓库归属' }]}
-        />
-        <ProFormSwitch
-          name="isVirtual"
-          label="是否虚拟仓"
-          tooltip="虚拟仓不实际存储货物，仅用于系统记账"
-          fieldProps={{
-            checkedChildren: '是',
-            unCheckedChildren: '否',
-          }}
-        />
-        {isEdit ? (
-          <ProFormSelect
-            name="status"
-            label="状态"
-            options={statusOptions}
-            rules={[{ required: true, message: '请选择状态' }]}
-          />
-        ) : null}
+        <div className="master-info-card">
+          <div className="master-form-body">
+            <ProForm.Group>
+              <ProFormText
+                name="name"
+                label="仓库名称"
+                width="md"
+                placeholder="请输入仓库名称"
+                rules={[
+                  { required: true, message: '请输入仓库名称' },
+                  { max: 100, message: '仓库名称最多 100 个字符' },
+                ]}
+              />
+              <ProFormText
+                name="warehouseCode"
+                label="仓库编号"
+                width="sm"
+                placeholder="如不填写，后续可手动维护"
+                rules={[{ max: 50, message: '仓库编号最多 50 个字符' }]}
+              />
+              <ProFormSelect
+                name="warehouseType"
+                label="仓库类型"
+                width="sm"
+                options={warehouseTypeOptions}
+                placeholder="请选择仓库类型"
+              />
+            </ProForm.Group>
+
+            <ProForm.Group>
+              <ProFormSelect
+                name="ownership"
+                label="仓库归属"
+                width="sm"
+                options={ownershipOptions}
+                rules={[{ required: true, message: '请选择仓库归属' }]}
+              />
+              <ProFormText
+                name="supplierName"
+                label="关联供应商"
+                width="md"
+                placeholder="供应商档案完善后可关联（暂不可用）"
+                disabled
+                tooltip="供应商管理模块（Epic 4）完成后启用"
+              />
+              <ProFormSwitch
+                name="isVirtual"
+                label="是否虚拟仓"
+                fieldProps={{
+                  checkedChildren: '是',
+                  unCheckedChildren: '否',
+                }}
+              />
+              {isEdit ? (
+                <ProFormSelect
+                  name="status"
+                  label="状态"
+                  width="sm"
+                  options={statusOptions}
+                  rules={[{ required: true, message: '请选择状态' }]}
+                />
+              ) : null}
+            </ProForm.Group>
+
+            <ProForm.Item name="defaultShipArea" label="默认发运省市">
+              <Cascader options={chinaRegions} placeholder="请选择省/市（可选）" />
+            </ProForm.Item>
+
+            <ProFormTextArea
+              name="address"
+              label="仓库地址"
+              placeholder="请输入仓库地址（可选）"
+              fieldProps={{ rows: 2 }}
+              rules={[{ max: 255, message: '仓库地址最多 255 个字符' }]}
+            />
+          </div>
+          <div className="master-form-footer">
+            <Button onClick={() => navigate('/master-data/warehouses')}>取消</Button>
+            <Button
+              type="primary"
+              loading={createMutation.isPending || updateMutation.isPending}
+              onClick={() => formRef.current?.submit?.()}
+            >
+              {isEdit ? '保存' : '创建'}
+            </Button>
+          </div>
+        </div>
       </ProForm>
-    </Card>
+    </div>
   );
 }

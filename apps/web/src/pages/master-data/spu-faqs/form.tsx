@@ -1,9 +1,7 @@
 import { useRef, useState } from 'react';
-import { Button, Result, Skeleton, Space, Upload, message } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { Breadcrumb, Button, Result, Skeleton, Upload, message } from 'antd';
 import type { UploadFile } from 'antd';
 import {
-  ProCard,
   ProForm,
   ProFormSelect,
   ProFormText,
@@ -16,13 +14,13 @@ import {
   QUESTION_TYPE_OPTIONS,
   createSpuFaq,
   getSpuFaqById,
-  getFaqAttachmentUrl,
   updateSpuFaq,
   uploadFaqAttachment,
   type CreateSpuFaqPayload,
-  type UpdateSpuFaqPayload,
   type SpuFaqQuestionType,
+  type UpdateSpuFaqPayload,
 } from '../../../api/spu-faqs.api';
+import '../master-page.css';
 
 export default function SpuFaqFormPage() {
   const navigate = useNavigate();
@@ -67,8 +65,8 @@ export default function SpuFaqFormPage() {
       const result = await uploadFaqAttachment(file);
       setUploadedKey(result.key);
       message.success('附件上传成功', 3);
-    } catch (e: any) {
-      message.error(e?.message ?? '附件上传失败', 5);
+    } catch (error: any) {
+      message.error(error?.message ?? '附件上传失败', 5);
       setFileList([]);
     } finally {
       setUploading(false);
@@ -85,20 +83,51 @@ export default function SpuFaqFormPage() {
     );
   }
 
-  if (isEdit && detailQuery.isLoading) return <Skeleton active />;
+  if (isEdit && detailQuery.isLoading) {
+    return <Skeleton active />;
+  }
+
+  if (isEdit && detailQuery.isError && !detailQuery.data) {
+    return (
+      <Result
+        status="error"
+        title="FAQ 详情加载失败"
+        subTitle="请检查网络或稍后重试"
+        extra={[
+          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>重试</Button>,
+          <Button key="back" onClick={() => navigate('/master-data/spu-faqs')}>返回列表</Button>,
+        ]}
+      />
+    );
+  }
 
   const detail = detailQuery.data;
 
   return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
+    <div className="master-page master-form-page">
+      <Breadcrumb
+        items={[
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/spu-faqs')}>
+                主数据
+              </Button>
+            ),
+          },
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/spu-faqs')}>
+                FAQ 管理
+              </Button>
+            ),
+          },
+          { title: isEdit ? '编辑 FAQ' : '新建 FAQ' },
+        ]}
+      />
+
       <ProForm
         formRef={formRef}
-        layout="vertical"
-        submitter={{
-          searchConfig: { submitText: isEdit ? '保存修改' : '创建 FAQ', resetText: '取消' },
-          onReset: () => navigate('/master-data/spu-faqs'),
-          submitButtonProps: { loading: createMutation.isPending || updateMutation.isPending },
-        }}
+        submitter={false}
         initialValues={
           isEdit && detail
             ? {
@@ -133,75 +162,83 @@ export default function SpuFaqFormPage() {
           return true;
         }}
       >
-        <ProCard title="基础信息" bordered style={{ marginBottom: 16 }}>
-          <ProForm.Group>
-            <ProFormSelect
-              name="questionType"
-              label="问题类型"
-              placeholder="请选择问题类型"
-              width="md"
-              options={QUESTION_TYPE_OPTIONS}
-              rules={[{ required: true, message: '请选择问题类型' }]}
-            />
-            <ProFormText
-              name="spuCode"
-              label="SPU 编码"
-              placeholder="请输入 SPU 编码（可选）"
-              width="sm"
-              rules={[{ max: 30, message: 'SPU 编码最多 30 个字符' }]}
-            />
-          </ProForm.Group>
-          <ProFormText
-            name="question"
-            label="问题"
-            placeholder="请输入问题内容"
-            width="xl"
-            rules={[
-              { required: true, message: '请输入问题' },
-              { max: 500, message: '问题最多 500 个字符' },
-            ]}
-            fieldProps={{ showCount: true, maxLength: 500 }}
-          />
-          <ProFormTextArea
-            name="answer"
-            label="回答"
-            placeholder="请输入回答内容"
-            width="xl"
-            rules={[{ required: true, message: '请输入回答' }]}
-            fieldProps={{ rows: 6, autoSize: { minRows: 4, maxRows: 12 } }}
-          />
-        </ProCard>
+        <div className="master-info-card">
+          <div className="master-form-body">
+            <ProForm.Group>
+              <ProFormSelect
+                name="questionType"
+                label="问题类型"
+                placeholder="请选择问题类型"
+                width="md"
+                options={QUESTION_TYPE_OPTIONS}
+                rules={[{ required: true, message: '请选择问题类型' }]}
+              />
+              <ProFormText
+                name="spuCode"
+                label="SPU 编码"
+                placeholder="请输入 SPU 编码（可选）"
+                width="sm"
+                rules={[{ max: 30, message: 'SPU 编码最多 30 个字符' }]}
+              />
+            </ProForm.Group>
 
-        <ProCard title="附件" bordered>
-          <ProForm.Item label="上传附件">
-            <Upload
-              fileList={fileList}
-              maxCount={1}
-              accept=".pdf,.jpg,.jpeg,.png"
-              beforeUpload={(file) => {
-                setFileList([file as unknown as UploadFile]);
-                handleUpload(file);
-                return false;
-              }}
-              onRemove={() => {
-                setFileList([]);
-                setUploadedKey(null);
-              }}
+            <ProFormText
+              name="question"
+              label="问题"
+              placeholder="请输入问题内容"
+              width="xl"
+              rules={[
+                { required: true, message: '请输入问题' },
+                { max: 500, message: '问题最多 500 个字符' },
+              ]}
+              fieldProps={{ showCount: true, maxLength: 500 }}
+            />
+
+            <ProFormTextArea
+              name="answer"
+              label="回答"
+              placeholder="请输入回答内容"
+              width="xl"
+              rules={[{ required: true, message: '请输入回答' }]}
+              fieldProps={{ rows: 6, autoSize: { minRows: 4, maxRows: 12 } }}
+            />
+
+            <ProForm.Item label="上传附件">
+              <Upload
+                fileList={fileList}
+                maxCount={1}
+                accept=".pdf,.jpg,.jpeg,.png"
+                beforeUpload={(file) => {
+                  setFileList([file as unknown as UploadFile]);
+                  handleUpload(file);
+                  return false;
+                }}
+                onRemove={() => {
+                  setFileList([]);
+                  setUploadedKey(null);
+                }}
+              >
+                <Button loading={uploading}>
+                  {isEdit && detail?.attachmentUrl ? '替换附件' : '选择文件（PDF / 图片）'}
+                </Button>
+              </Upload>
+              {isEdit && detail?.attachmentUrl && !uploadedKey ? (
+                <div className="master-info-tip">当前已有附件，上传新文件将替换。</div>
+              ) : null}
+            </ProForm.Item>
+          </div>
+          <div className="master-form-footer">
+            <Button onClick={() => navigate('/master-data/spu-faqs')}>取消</Button>
+            <Button
+              type="primary"
+              loading={createMutation.isPending || updateMutation.isPending}
+              onClick={() => formRef.current?.submit?.()}
             >
-              <Button icon={<UploadOutlined />} loading={uploading}>
-                {isEdit && detail?.attachmentUrl
-                  ? '替换附件'
-                  : '选择文件（PDF / 图片）'}
-              </Button>
-            </Upload>
-            {isEdit && detail?.attachmentUrl && !uploadedKey && (
-              <div style={{ marginTop: 8, fontSize: 12, color: '#6B7280' }}>
-                当前已有附件，上传新文件将替换
-              </div>
-            )}
-          </ProForm.Item>
-        </ProCard>
+              {isEdit ? '保存' : '创建'}
+            </Button>
+          </div>
+        </div>
       </ProForm>
-    </Space>
+    </div>
   );
 }

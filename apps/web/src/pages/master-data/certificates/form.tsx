@@ -1,9 +1,9 @@
 import { useRef, useState } from 'react';
-import { Button, Result, Skeleton, Space, TreeSelect, Upload, message } from 'antd';
+import { Breadcrumb, Button, Result, Skeleton, Tabs, TreeSelect, Upload, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
+import type { TabsProps } from 'antd/es';
 import {
-  ProCard,
   ProForm,
   ProFormDatePicker,
   ProFormDependency,
@@ -24,6 +24,7 @@ import {
 } from '../../../api/certificates.api';
 import { getSpus } from '../../../api/spus.api';
 import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
+import './certificate-page.css';
 
 const CERTIFICATE_TYPE_OPTIONS = [
   'CE', 'FDA', 'IEC第三方检测报告', 'DOC',
@@ -160,191 +161,248 @@ export default function CertificateFormPage() {
     }
   };
 
-  return (
-    <ProForm
-      formRef={formRef}
-      title={isEdit ? '编辑证书' : '新建证书'}
-      loading={detailQuery.isLoading}
-      submitter={{
-        searchConfig: { submitText: isEdit ? '保存' : '创建' },
-        render: (_, dom) => (
-          <Space>
-            <Button onClick={() => navigate(-1)}>取消</Button>
-            {dom[1]}
-          </Space>
-        ),
-      }}
-      initialValues={initialValues}
-      onFinish={async (values) => {
-        const fileKey = uploadedFileKey ?? detailQuery.data?.fileKey ?? undefined;
-        const fileName = uploadedFileName ?? detailQuery.data?.fileName ?? undefined;
+  const tabItems: TabsProps['items'] = [
+    {
+      key: 'basic',
+      label: '基础信息',
+      children: (
+        <div className="certificate-form-tab">
+          <ProForm.Group>
+            <ProFormText
+              name="certificateNo"
+              label="证书编号"
+              placeholder="请输入证书编号（可选，不填则自动生成）"
+              width="sm"
+              rules={[{ max: 30, message: '证书编号最多 30 个字符' }]}
+            />
+            <ProFormText
+              name="certificateName"
+              label="证书名称"
+              placeholder="请输入证书名称"
+              width="md"
+              rules={[
+                { required: true, message: '请输入证书名称' },
+                { max: 200, message: '证书名称最多 200 个字符' },
+              ]}
+            />
+            <ProFormSelect
+              name="certificateType"
+              label="证书类型"
+              placeholder="请选择证书类型"
+              width="sm"
+              options={CERTIFICATE_TYPE_OPTIONS}
+              rules={[{ required: true, message: '请选择证书类型' }]}
+            />
+            <ProFormText
+              name="directive"
+              label="指令法规"
+              placeholder="请输入指令法规（可选）"
+              width="md"
+              rules={[{ max: 200, message: '指令法规最多 200 个字符' }]}
+            />
+          </ProForm.Group>
 
-        const payload: CreateCertificatePayload = {
-          certificateNo: values.certificateNo || undefined,
-          certificateName: values.certificateName,
-          certificateType: values.certificateType,
-          directive: values.directive || undefined,
-          issueDate: values.issueDate || undefined,
-          validFrom: values.validFrom,
-          validUntil: values.validUntil,
-          issuingAuthority: values.issuingAuthority,
-          remarks: values.remarks || undefined,
-          attributionType: values.attributionType || undefined,
-          categoryId: values.attributionType === '产品分类归属' && values.categoryId ? Number(values.categoryId) : undefined,
-          fileKey,
-          fileName,
-          spuIds: values.attributionType === '产品SPU归属' && values.spuIds?.length ? values.spuIds.map(Number) : undefined,
-        };
-
-        if (isEdit) {
-          await updateMutation.mutateAsync(payload as UpdateCertificatePayload);
-        } else {
-          await createMutation.mutateAsync(payload);
-        }
-        return true;
-      }}
-    >
-      <ProCard title="基础信息" bordered style={{ marginBottom: 16 }}>
-        <ProForm.Group>
-          <ProFormText
-            name="certificateNo"
-            label="证书编号"
-            placeholder="请输入证书编号（可选，不填则自动生成）"
-            width="sm"
-            rules={[{ max: 30, message: '证书编号最多 30 个字符' }]}
-          />
-          <ProFormText
-            name="certificateName"
-            label="证书名称"
-            placeholder="请输入证书名称"
-            width="md"
-            rules={[
-              { required: true, message: '请输入证书名称' },
-              { max: 200, message: '证书名称最多 200 个字符' },
-            ]}
-          />
+          <ProForm.Group>
+            <ProFormDatePicker name="issueDate" label="发证日期" placeholder="请选择发证日期（可选）" width="sm" />
+            <ProFormDatePicker
+              name="validFrom"
+              label="有效期起"
+              placeholder="请选择开始日期"
+              width="sm"
+              rules={[{ required: true, message: '请选择有效期起始日期' }]}
+            />
+            <ProFormDatePicker
+              name="validUntil"
+              label="有效期止"
+              placeholder="请选择截止日期"
+              width="sm"
+              rules={[{ required: true, message: '请选择有效期截止日期' }]}
+            />
+            <ProFormText
+              name="issuingAuthority"
+              label="发证机构"
+              placeholder="请输入发证机构名称"
+              width="md"
+              rules={[
+                { required: true, message: '请输入发证机构' },
+                { max: 200, message: '发证机构最多 200 个字符' },
+              ]}
+            />
+          </ProForm.Group>
+        </div>
+      ),
+    },
+    {
+      key: 'relation',
+      label: '归属与附件',
+      children: (
+        <div className="certificate-form-tab">
           <ProFormSelect
-            name="certificateType"
-            label="证书类型"
-            placeholder="请选择证书类型"
+            name="attributionType"
+            label="归属类型"
+            placeholder="请选择归属类型"
             width="sm"
-            options={CERTIFICATE_TYPE_OPTIONS}
-            rules={[{ required: true, message: '请选择证书类型' }]}
-          />
-          <ProFormText
-            name="directive"
-            label="指令法规"
-            placeholder="请输入指令法规（可选）"
-            width="md"
-            rules={[{ max: 200, message: '指令法规最多 200 个字符' }]}
-          />
-        </ProForm.Group>
-      </ProCard>
-
-      <ProCard title="有效期信息" bordered style={{ marginBottom: 16 }}>
-        <ProForm.Group>
-          <ProFormDatePicker name="issueDate" label="发证日期" placeholder="请选择发证日期（可选）" width="sm" />
-          <ProFormDatePicker name="validFrom" label="有效期起" placeholder="请选择开始日期" width="sm" rules={[{ required: true, message: '请选择有效期起始日期' }]} />
-          <ProFormDatePicker name="validUntil" label="有效期止" placeholder="请选择截止日期" width="sm" rules={[{ required: true, message: '请选择有效期截止日期' }]} />
-        </ProForm.Group>
-      </ProCard>
-
-      <ProCard title="发证机构" bordered style={{ marginBottom: 16 }}>
-        <ProForm.Group>
-          <ProFormText
-            name="issuingAuthority"
-            label="发证机构"
-            placeholder="请输入发证机构名称"
-            width="md"
-            rules={[
-              { required: true, message: '请输入发证机构' },
-              { max: 200, message: '发证机构最多 200 个字符' },
-            ]}
-          />
-        </ProForm.Group>
-      </ProCard>
-
-      <ProCard title="证书文件" bordered style={{ marginBottom: 16 }}>
-        <ProForm.Item label="上传证书文件">
-          <Upload
-            fileList={fileList}
-            maxCount={1}
-            accept=".pdf,.jpg,.jpeg,.png"
-            beforeUpload={(file) => {
-              setFileList([file as unknown as UploadFile]);
-              handleUpload(file);
-              return false;
+            options={ATTRIBUTION_TYPE_OPTIONS}
+            fieldProps={{
+              onChange: () => {
+                formRef.current?.setFieldsValue({ spuIds: undefined, categoryId: undefined });
+              },
             }}
-            onRemove={() => {
-              setFileList([]);
-              setUploadedFileKey(null);
-              setUploadedFileName(null);
+          />
+          <ProFormDependency name={['attributionType']}>
+            {({ attributionType }) => {
+              if (attributionType === '产品SPU归属') {
+                return (
+                  <div className="certificate-cond-block">
+                    <div className="certificate-cond-label">▼ 当前归属为「产品SPU归属」，请选择关联 SPU</div>
+                    <ProFormSelect
+                      name="spuIds"
+                      label="关联 SPU"
+                      placeholder="请选择关联的 SPU（可多选）"
+                      width="xl"
+                      mode="multiple"
+                      options={spuOptions}
+                      fieldProps={{ optionFilterProp: 'label', loading: spusQuery.isLoading }}
+                      rules={[{ required: true, message: '请选择关联的 SPU' }]}
+                    />
+                  </div>
+                );
+              }
+              if (attributionType === '产品分类归属') {
+                return (
+                  <div className="certificate-cond-block">
+                    <div className="certificate-cond-label">▼ 当前归属为「产品分类归属」，请选择三级分类</div>
+                    <ProForm.Item
+                      name="categoryId"
+                      label="所属产品分类"
+                      rules={[{ required: true, message: '请选择所属产品分类' }]}
+                    >
+                      <TreeSelect
+                        placeholder="请选择三级分类"
+                        treeData={categoryTreeData}
+                        loading={categoryTreeQuery.isLoading}
+                        showSearch
+                        treeNodeFilterProp="title"
+                        style={{ width: 420 }}
+                        dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+                        allowClear
+                      />
+                    </ProForm.Item>
+                  </div>
+                );
+              }
+              return null;
             }}
-          >
-            <Button icon={<UploadOutlined />} loading={uploading}>
-              {isEdit && detailQuery.data?.fileName ? `替换文件（当前：${detailQuery.data.fileName}）` : '选择文件'}
+          </ProFormDependency>
+
+          <ProForm.Item label="上传证书文件">
+            <Upload
+              fileList={fileList}
+              maxCount={1}
+              accept=".pdf,.jpg,.jpeg,.png"
+              beforeUpload={(file) => {
+                setFileList([file as unknown as UploadFile]);
+                handleUpload(file);
+                return false;
+              }}
+              onRemove={() => {
+                setFileList([]);
+                setUploadedFileKey(null);
+                setUploadedFileName(null);
+              }}
+            >
+              <Button icon={<UploadOutlined />} loading={uploading}>
+                {isEdit && detailQuery.data?.fileName ? `替换文件（当前：${detailQuery.data.fileName}）` : '选择文件'}
+              </Button>
+            </Upload>
+            <div className="certificate-file-hint">
+              支持 `pdf/jpg/png`，上传后将存储到 OSS，不在本地持久化。
+            </div>
+          </ProForm.Item>
+          <ProFormTextArea name="remarks" label="证书说明" placeholder="请输入证书说明（可选）" width="xl" />
+        </div>
+      ),
+    },
+  ];
+
+  return (
+    <div className="certificate-page certificate-form-page">
+      <Breadcrumb
+        items={[
+          {
+            title: (
+              <Button
+                type="link"
+                className="certificate-breadcrumb-link"
+                onClick={() => navigate('/master-data/certificates')}
+              >
+                主数据
+              </Button>
+            ),
+          },
+          {
+            title: (
+              <Button
+                type="link"
+                className="certificate-breadcrumb-link"
+                onClick={() => navigate('/master-data/certificates')}
+              >
+                产品证书库
+              </Button>
+            ),
+          },
+          { title: isEdit ? `编辑 ${detailQuery.data?.certificateNo || ''}` : '新建证书' },
+        ]}
+      />
+
+      <ProForm
+        formRef={formRef}
+        loading={detailQuery.isLoading}
+        submitter={false}
+        initialValues={initialValues}
+        onFinish={async (values) => {
+          const fileKey = uploadedFileKey ?? detailQuery.data?.fileKey ?? undefined;
+          const fileName = uploadedFileName ?? detailQuery.data?.fileName ?? undefined;
+
+          const payload: CreateCertificatePayload = {
+            certificateNo: values.certificateNo || undefined,
+            certificateName: values.certificateName,
+            certificateType: values.certificateType,
+            directive: values.directive || undefined,
+            issueDate: values.issueDate || undefined,
+            validFrom: values.validFrom,
+            validUntil: values.validUntil,
+            issuingAuthority: values.issuingAuthority,
+            remarks: values.remarks || undefined,
+            attributionType: values.attributionType || undefined,
+            categoryId: values.attributionType === '产品分类归属' && values.categoryId ? Number(values.categoryId) : undefined,
+            fileKey,
+            fileName,
+            spuIds: values.attributionType === '产品SPU归属' && values.spuIds?.length ? values.spuIds.map(Number) : undefined,
+          };
+
+          if (isEdit) {
+            await updateMutation.mutateAsync(payload as UpdateCertificatePayload);
+          } else {
+            await createMutation.mutateAsync(payload);
+          }
+          return true;
+        }}
+      >
+        <div className="certificate-info-card">
+          <Tabs className="certificate-info-tabs" defaultActiveKey="basic" items={tabItems} />
+          <div className="certificate-form-footer">
+            <Button onClick={() => navigate(-1)}>取消</Button>
+            <Button
+              type="primary"
+              loading={createMutation.isPending || updateMutation.isPending}
+              onClick={() => formRef.current?.submit?.()}
+            >
+              {isEdit ? '保存' : '创建'}
             </Button>
-          </Upload>
-        </ProForm.Item>
-      </ProCard>
-
-      <ProCard title="资料归属信息" bordered style={{ marginBottom: 16 }}>
-        <ProFormSelect
-          name="attributionType"
-          label="归属类型"
-          placeholder="请选择归属类型"
-          width="sm"
-          options={ATTRIBUTION_TYPE_OPTIONS}
-          fieldProps={{
-            onChange: () => {
-              formRef.current?.setFieldsValue({ spuIds: undefined, categoryId: undefined });
-            },
-          }}
-        />
-        <ProFormDependency name={['attributionType']}>
-          {({ attributionType }) => {
-            if (attributionType === '产品SPU归属') {
-              return (
-                <ProFormSelect
-                  name="spuIds"
-                  label="关联 SPU"
-                  placeholder="请选择关联的 SPU（可多选）"
-                  width="xl"
-                  mode="multiple"
-                  options={spuOptions}
-                  fieldProps={{ optionFilterProp: 'label', loading: spusQuery.isLoading }}
-                  rules={[{ required: true, message: '请选择关联的 SPU' }]}
-                />
-              );
-            }
-            if (attributionType === '产品分类归属') {
-              return (
-                <ProForm.Item
-                  name="categoryId"
-                  label="所属产品分类"
-                  rules={[{ required: true, message: '请选择所属产品分类' }]}
-                >
-                  <TreeSelect
-                    placeholder="请选择三级分类"
-                    treeData={categoryTreeData}
-                    loading={categoryTreeQuery.isLoading}
-                    showSearch
-                    treeNodeFilterProp="title"
-                    style={{ width: 400 }}
-                    dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
-                    allowClear
-                  />
-                </ProForm.Item>
-              );
-            }
-            return null;
-          }}
-        </ProFormDependency>
-      </ProCard>
-
-      <ProCard title="其他" bordered>
-        <ProFormTextArea name="remarks" label="证书说明" placeholder="请输入证书说明（可选）" width="xl" />
-      </ProCard>
-    </ProForm>
+          </div>
+        </div>
+      </ProForm>
+    </div>
   );
 }

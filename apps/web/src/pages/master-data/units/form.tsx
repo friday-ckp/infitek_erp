@@ -1,8 +1,10 @@
-import { Button, Card, Result, Skeleton, Space } from 'antd';
+import { useRef } from 'react';
+import { Breadcrumb, Button, Result, Skeleton } from 'antd';
 import {
   ProForm,
   ProFormSelect,
   ProFormText,
+  type ProFormInstance,
 } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,6 +16,7 @@ import {
   type CreateUnitPayload,
   type UpdateUnitPayload,
 } from '../../../api/units.api';
+import '../master-page.css';
 
 const statusOptions: Array<{ label: string; value: UnitStatus }> = [
   { label: '启用', value: 'active' as UnitStatus },
@@ -25,8 +28,8 @@ export default function UnitFormPage() {
   const queryClient = useQueryClient();
   const { id } = useParams();
   const unitId = id ? Number(id) : undefined;
-
   const isEdit = Boolean(id);
+  const formRef = useRef<ProFormInstance>(undefined);
 
   const detailQuery = useQuery({
     queryKey: ['unit-detail', unitId],
@@ -56,11 +59,7 @@ export default function UnitFormPage() {
       <Result
         status="404"
         title="单位不存在"
-        extra={
-          <Button type="primary" onClick={() => navigate('/master-data/units')}>
-            返回列表
-          </Button>
-        }
+        extra={<Button type="primary" onClick={() => navigate('/master-data/units')}>返回列表</Button>}
       />
     );
   }
@@ -76,43 +75,43 @@ export default function UnitFormPage() {
         title="单位详情加载失败"
         subTitle="请检查网络或稍后重试"
         extra={[
-          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>
-            重试
-          </Button>,
-          <Button key="back" onClick={() => navigate('/master-data/units')}>
-            返回列表
-          </Button>,
+          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>重试</Button>,
+          <Button key="back" onClick={() => navigate('/master-data/units')}>返回列表</Button>,
         ]}
       />
     );
   }
 
   return (
-    <Card title={isEdit ? '编辑单位' : '新建单位'}>
+    <div className="master-page master-form-page">
+      <Breadcrumb
+        items={[
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/units')}>
+                主数据
+              </Button>
+            ),
+          },
+          {
+            title: (
+              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/units')}>
+                单位管理
+              </Button>
+            ),
+          },
+          { title: isEdit ? `编辑 ${detailQuery.data?.code || ''}` : '新建单位' },
+        ]}
+      />
+
       <ProForm<{
         code: string;
         name: string;
         status?: UnitStatus;
       }>
-        grid
-        rowProps={{ gutter: [16, 0] }}
-        colProps={{ span: 12 }}
+        formRef={formRef}
+        submitter={false}
         loading={detailQuery.isLoading}
-        submitter={{
-          searchConfig: {
-            submitText: isEdit ? '保存' : '创建',
-            resetText: '取消',
-          },
-          resetButtonProps: {
-            onClick: () => navigate('/master-data/units'),
-          },
-          render: (_, dom) => (
-            <Space>
-              <Button onClick={() => navigate('/master-data/units')}>取消</Button>
-              {dom[1]}
-            </Space>
-          ),
-        }}
         initialValues={
           detailQuery.data
             ? {
@@ -131,7 +130,6 @@ export default function UnitFormPage() {
             });
             return true;
           }
-
           await createMutation.mutateAsync({
             code: values.code,
             name: values.name,
@@ -139,33 +137,52 @@ export default function UnitFormPage() {
           return true;
         }}
       >
-        <ProFormText
-          name="name"
-          label="单位名称"
-          placeholder="请输入单位名称"
-          rules={[
-            { required: true, message: '请输入单位名称' },
-            { max: 100, message: '单位名称最多 100 个字符' },
-          ]}
-        />
-        <ProFormText
-          name="code"
-          label="单位编码"
-          placeholder="请输入单位编码"
-          rules={[
-            { required: true, message: '请输入单位编码' },
-            { max: 50, message: '单位编码最多 50 个字符' },
-          ]}
-        />
-        {isEdit ? (
-          <ProFormSelect
-            name="status"
-            label="状态"
-            options={statusOptions}
-            rules={[{ required: true, message: '请选择状态' }]}
-          />
-        ) : null}
+        <div className="master-info-card">
+          <div className="master-form-body">
+            <ProForm.Group>
+              <ProFormText
+                name="name"
+                label="单位名称"
+                placeholder="请输入单位名称"
+                width="md"
+                rules={[
+                  { required: true, message: '请输入单位名称' },
+                  { max: 100, message: '单位名称最多 100 个字符' },
+                ]}
+              />
+              <ProFormText
+                name="code"
+                label="单位编码"
+                placeholder="请输入单位编码"
+                width="sm"
+                rules={[
+                  { required: true, message: '请输入单位编码' },
+                  { max: 50, message: '单位编码最多 50 个字符' },
+                ]}
+              />
+              {isEdit ? (
+                <ProFormSelect
+                  name="status"
+                  label="状态"
+                  width="sm"
+                  options={statusOptions}
+                  rules={[{ required: true, message: '请选择状态' }]}
+                />
+              ) : null}
+            </ProForm.Group>
+          </div>
+          <div className="master-form-footer">
+            <Button onClick={() => navigate('/master-data/units')}>取消</Button>
+            <Button
+              type="primary"
+              loading={createMutation.isPending || updateMutation.isPending}
+              onClick={() => formRef.current?.submit?.()}
+            >
+              {isEdit ? '保存' : '创建'}
+            </Button>
+          </div>
+        </div>
       </ProForm>
-    </Card>
+    </div>
   );
 }
