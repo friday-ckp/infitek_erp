@@ -40,13 +40,13 @@ export default function SkuFormPage() {
 
   const spusQuery = useQuery({
     queryKey: ['spus-options'],
-    queryFn: () => getSpus({ pageSize: 200 }),
+    queryFn: () => getSpus({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
   });
 
   const unitsQuery = useQuery({
     queryKey: ['units-options'],
-    queryFn: () => getUnits({ pageSize: 200 }),
+    queryFn: () => getUnits({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
   });
 

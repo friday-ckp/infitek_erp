@@ -30,7 +30,7 @@ export default function SkusListPage() {
 
   const spusQuery = useQuery({
     queryKey: ['spus-options'],
-    queryFn: () => getSpus({ pageSize: 500 }),
+    queryFn: () => getSpus({ pageSize: 100 }),
     staleTime: 5 * 60 * 1000,
   });
 

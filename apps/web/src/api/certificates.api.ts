@@ -48,6 +48,7 @@ export interface CertificatesListData {
 }
 
 export interface CreateCertificatePayload {
+  certificateNo?: string;
   certificateName: string;
   certificateType: string;
   directive?: string;

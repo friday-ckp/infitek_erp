@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react';
-import { Button, Result, Skeleton, Space, Upload, message } from 'antd';
+import { Button, Result, Skeleton, Space, TreeSelect, Upload, message } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import {
   ProCard,
   ProForm,
   ProFormDatePicker,
+  ProFormDependency,
   ProFormSelect,
   ProFormText,
   ProFormTextArea,
@@ -22,6 +23,27 @@ import {
   type UpdateCertificatePayload,
 } from '../../../api/certificates.api';
 import { getSpus } from '../../../api/spus.api';
+import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
+
+const CERTIFICATE_TYPE_OPTIONS = [
+  'CE', 'FDA', 'IEC第三方检测报告', 'DOC',
+  'IS09001', 'ISO14001', 'ISO45001', 'ISO13485', '其它',
+].map((v) => ({ label: v, value: v }));
+
+const ATTRIBUTION_TYPE_OPTIONS = [
+  { label: '通用归属', value: '通用归属' },
+  { label: '产品SPU归属', value: '产品SPU归属' },
+  { label: '产品分类归属', value: '产品分类归属' },
+];
+
+function buildCategoryTreeData(nodes: ProductCategoryNode[]): any[] {
+  return nodes.map((n) => ({
+    title: n.name,
+    value: n.id,
+    selectable: n.level === 3,
+    children: n.children?.length ? buildCategoryTreeData(n.children) : undefined,
+  }));
+}
 
 export default function CertificateFormPage() {
   const navigate = useNavigate();
@@ -44,7 +66,13 @@ export default function CertificateFormPage() {
 
   const spusQuery = useQuery({
     queryKey: ['spus-options'],
-    queryFn: () => getSpus({ pageSize: 200 }),
+    queryFn: () => getSpus({ pageSize: 100 }),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const categoryTreeQuery = useQuery({
+    queryKey: ['product-category-tree'],
+    queryFn: getProductCategoryTree,
     staleTime: 5 * 60 * 1000,
   });
 
@@ -97,8 +125,11 @@ export default function CertificateFormPage() {
     value: s.id,
   }));
 
+  const categoryTreeData = buildCategoryTreeData(categoryTreeQuery.data ?? []);
+
   const initialValues = detailQuery.data
     ? {
+        certificateNo: detailQuery.data.certificateNo ?? undefined,
         certificateName: detailQuery.data.certificateName,
         certificateType: detailQuery.data.certificateType,
         directive: detailQuery.data.directive ?? undefined,
@@ -108,6 +139,7 @@ export default function CertificateFormPage() {
         issuingAuthority: detailQuery.data.issuingAuthority,
         remarks: detailQuery.data.remarks ?? undefined,
         attributionType: detailQuery.data.attributionType ?? undefined,
+        categoryId: detailQuery.data.categoryId ?? undefined,
         spuIds: detailQuery.data.spus.map((s) => s.id),
       }
     : {};
@@ -148,6 +180,7 @@ export default function CertificateFormPage() {
         const fileName = uploadedFileName ?? detailQuery.data?.fileName ?? undefined;
 
         const payload: CreateCertificatePayload = {
+          certificateNo: values.certificateNo || undefined,
           certificateName: values.certificateName,
           certificateType: values.certificateType,
           directive: values.directive || undefined,
@@ -157,9 +190,10 @@ export default function CertificateFormPage() {
           issuingAuthority: values.issuingAuthority,
           remarks: values.remarks || undefined,
           attributionType: values.attributionType || undefined,
+          categoryId: values.attributionType === '产品分类归属' && values.categoryId ? Number(values.categoryId) : undefined,
           fileKey,
           fileName,
-          spuIds: values.spuIds?.length ? values.spuIds : undefined,
+          spuIds: values.attributionType === '产品SPU归属' && values.spuIds?.length ? values.spuIds.map(Number) : undefined,
         };
 
         if (isEdit) {
@@ -173,6 +207,13 @@ export default function CertificateFormPage() {
       <ProCard title="基础信息" bordered style={{ marginBottom: 16 }}>
         <ProForm.Group>
           <ProFormText
+            name="certificateNo"
+            label="证书编号"
+            placeholder="请输入证书编号（可选，不填则自动生成）"
+            width="sm"
+            rules={[{ max: 30, message: '证书编号最多 30 个字符' }]}
+          />
+          <ProFormText
             name="certificateName"
             label="证书名称"
             placeholder="请输入证书名称"
@@ -182,15 +223,13 @@ export default function CertificateFormPage() {
               { max: 200, message: '证书名称最多 200 个字符' },
             ]}
           />
-          <ProFormText
+          <ProFormSelect
             name="certificateType"
             label="证书类型"
-            placeholder="如 CE、FCC、ROHS 等"
+            placeholder="请选择证书类型"
             width="sm"
-            rules={[
-              { required: true, message: '请输入证书类型' },
-              { max: 50, message: '证书类型最多 50 个字符' },
-            ]}
+            options={CERTIFICATE_TYPE_OPTIONS}
+            rules={[{ required: true, message: '请选择证书类型' }]}
           />
           <ProFormText
             name="directive"
@@ -199,38 +238,14 @@ export default function CertificateFormPage() {
             width="md"
             rules={[{ max: 200, message: '指令法规最多 200 个字符' }]}
           />
-          <ProFormText
-            name="attributionType"
-            label="归属类型"
-            placeholder="请输入归属类型（可选）"
-            width="sm"
-            rules={[{ max: 50, message: '归属类型最多 50 个字符' }]}
-          />
         </ProForm.Group>
       </ProCard>
 
       <ProCard title="有效期信息" bordered style={{ marginBottom: 16 }}>
         <ProForm.Group>
-          <ProFormDatePicker
-            name="issueDate"
-            label="发证日期"
-            placeholder="请选择发证日期（可选）"
-            width="sm"
-          />
-          <ProFormDatePicker
-            name="validFrom"
-            label="有效期起"
-            placeholder="请选择开始日期"
-            width="sm"
-            rules={[{ required: true, message: '请选择有效期起始日期' }]}
-          />
-          <ProFormDatePicker
-            name="validUntil"
-            label="有效期止"
-            placeholder="请选择截止日期"
-            width="sm"
-            rules={[{ required: true, message: '请选择有效期截止日期' }]}
-          />
+          <ProFormDatePicker name="issueDate" label="发证日期" placeholder="请选择发证日期（可选）" width="sm" />
+          <ProFormDatePicker name="validFrom" label="有效期起" placeholder="请选择开始日期" width="sm" rules={[{ required: true, message: '请选择有效期起始日期' }]} />
+          <ProFormDatePicker name="validUntil" label="有效期止" placeholder="请选择截止日期" width="sm" rules={[{ required: true, message: '请选择有效期截止日期' }]} />
         </ProForm.Group>
       </ProCard>
 
@@ -273,25 +288,62 @@ export default function CertificateFormPage() {
         </ProForm.Item>
       </ProCard>
 
-      <ProCard title="关联 SPU" bordered style={{ marginBottom: 16 }}>
+      <ProCard title="资料归属信息" bordered style={{ marginBottom: 16 }}>
         <ProFormSelect
-          name="spuIds"
-          label="适用 SPU"
-          placeholder="请选择关联的 SPU（可多选）"
-          width="xl"
-          mode="multiple"
-          options={spuOptions}
-          fieldProps={{ optionFilterProp: 'label', loading: spusQuery.isLoading }}
+          name="attributionType"
+          label="归属类型"
+          placeholder="请选择归属类型"
+          width="sm"
+          options={ATTRIBUTION_TYPE_OPTIONS}
+          fieldProps={{
+            onChange: () => {
+              formRef.current?.setFieldsValue({ spuIds: undefined, categoryId: undefined });
+            },
+          }}
         />
+        <ProFormDependency name={['attributionType']}>
+          {({ attributionType }) => {
+            if (attributionType === '产品SPU归属') {
+              return (
+                <ProFormSelect
+                  name="spuIds"
+                  label="关联 SPU"
+                  placeholder="请选择关联的 SPU（可多选）"
+                  width="xl"
+                  mode="multiple"
+                  options={spuOptions}
+                  fieldProps={{ optionFilterProp: 'label', loading: spusQuery.isLoading }}
+                  rules={[{ required: true, message: '请选择关联的 SPU' }]}
+                />
+              );
+            }
+            if (attributionType === '产品分类归属') {
+              return (
+                <ProForm.Item
+                  name="categoryId"
+                  label="所属产品分类"
+                  rules={[{ required: true, message: '请选择所属产品分类' }]}
+                >
+                  <TreeSelect
+                    placeholder="请选择三级分类"
+                    treeData={categoryTreeData}
+                    loading={categoryTreeQuery.isLoading}
+                    showSearch
+                    treeNodeFilterProp="title"
+                    style={{ width: 400 }}
+                    dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
+                    allowClear
+                  />
+                </ProForm.Item>
+              );
+            }
+            return null;
+          }}
+        </ProFormDependency>
       </ProCard>
 
       <ProCard title="其他" bordered>
-        <ProFormTextArea
-          name="remarks"
-          label="证书说明"
-          placeholder="请输入证书说明（可选）"
-          width="xl"
-        />
+        <ProFormTextArea name="remarks" label="证书说明" placeholder="请输入证书说明（可选）" width="xl" />
       </ProCard>
     </ProForm>
   );
