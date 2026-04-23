@@ -94,13 +94,17 @@ export default function SkusListPage() {
       {
         title: '状态',
         dataIndex: 'status',
-        width: 80,
-        render: (_, record) =>
-          record.status === 'active' ? (
-            <Tag color="success">启用</Tag>
-          ) : (
-            <Tag>停用</Tag>
-          ),
+        width: 100,
+        render: (_, record) => {
+          const map: Record<string, { color: string; text: string }> = {
+            '上架': { color: 'success', text: '上架' },
+            '下架可售': { color: 'warning', text: '下架可售' },
+            '下架不可售': { color: 'default', text: '下架不可售' },
+            '临拓': { color: 'processing', text: '临拓' },
+          };
+          const s = map[record.status] ?? { color: 'default', text: record.status };
+          return <Tag color={s.color}>{s.text}</Tag>;
+        },
       },
       {
         title: '创建时间',

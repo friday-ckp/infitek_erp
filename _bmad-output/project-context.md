@@ -186,20 +186,31 @@ token: {
 4. 固定表头数据表格（行高 48px，首列单据编号蓝色链接，状态列彩色 Tag，操作列固定右侧）
 5. 底部分页器（10/20/50 可切换）+ "共 N 条记录"
 
-### 详情页标准（UX-DR05）
+### 详情页标准（UX-DR05）— 已升级
 
-1. 顶部操作区（面包屑 + 按钮组）
-2. 状态信息栏（编号 + 状态 Tag）
-3. 信息分组卡片（ProDescriptions 两列布局）
-4. 操作记录时间线（ActivityTimeline）
+> 完整规范见 `_bmad-output/planning-artifacts/ux-std-detail-edit-page.md`
+> 原型参考 `_bmad-output/prototypes/sku-detail-edit-prototype.html`
 
-### 表单页标准（UX-DR06）
+1. Topbar 面包屑导航（`模块名 › 列表名 › 记录标识`）
+2. 摘要卡片（Summary Card）：编码 + 状态 pill + 3-5 个核心摘要字段 + 操作按钮组
+3. Tab 分组内容区（info-card + tabs-bar + tab-body）
+4. 数据展示使用三列 `meta-grid` 网格（替代原两列 ProDescriptions）
+5. 子表数据使用 `data-table` 展示
+6. 只读关联 Tab 附 `info-tip` 说明数据来源
+7. 所有状态字段使用 pill/tag 样式，禁止纯文字
 
-- 简单表单（<10 字段）：单卡片 2 列
-- 中等表单（10-30 字段）：分组卡片 2 列
-- 复杂表单（>30 字段）：分组卡片 + 可折叠
-- 必填字段红色星号
-- 关联实体用 EntitySearchSelect 组件
+### 表单页标准（UX-DR06）— 已升级
+
+> 完整规范见 `_bmad-output/planning-artifacts/ux-std-detail-edit-page.md`
+
+- 整页编辑模式：独立编辑页（`/:id/edit`），保留 Tab 分组，去掉只读关联 Tab
+- 表单默认两列布局（`form-row`），三级联动用三列（`form-row col3`），长文本占满整行（`form-row full`）
+- 条件显示字段使用 `cond-block` 虚线边框样式
+- 子表使用可编辑表格（`editable-table`），支持增删行
+- 底部固定"取消 + 保存"按钮
+- 简单模块（<10 字段）：无需 Tab，单卡片即可
+- 中等模块（10-30 字段）：2-3 个 Tab
+- 复杂模块（>30 字段）：4-6 个 Tab
 
 ### 状态色彩映射（全系统统一，UX-DR07）
 
