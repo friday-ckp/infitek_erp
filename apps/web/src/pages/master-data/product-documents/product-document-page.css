@@ -10,6 +10,21 @@
   height: auto;
 }
 
+.pd-page .ant-breadcrumb {
+  color: #6b7280;
+}
+
+.pd-page .ant-breadcrumb-link,
+.pd-page .ant-breadcrumb-separator,
+.pd-page .ant-breadcrumb li:last-child {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.pd-page .pd-breadcrumb-link {
+  color: #2563eb;
+}
+
 .pd-summary-card {
   background: #fff;
   border: 1px solid #e5e7eb;

@@ -25,6 +25,7 @@ import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/p
 import { getCountries } from '../../../api/countries.api';
 import { getSpus } from '../../../api/spus.api';
 import antdStatic from '../../../utils/antdStatic';
+import '../master-page.css';
 import './product-document-page.css';
 
 function buildTreeData(nodes: ProductCategoryNode[], filterLevel?: number): any[] {
