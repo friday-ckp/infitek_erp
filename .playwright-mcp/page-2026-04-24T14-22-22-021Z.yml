@@ -1,0 +1,210 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: 预览页面：
+    - button "列表页" [ref=e4] [cursor=pointer]
+    - button "详情页" [ref=e5] [cursor=pointer]
+    - button "编辑页" [ref=e6] [cursor=pointer]
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: 星辰科技 ERP
+        - generic [ref=e11]: INFITEK ENTERPRISE
+      - generic [ref=e13] [cursor=pointer]:
+        - img [ref=e15]
+        - text: 销售管理
+        - generic [ref=e18]: ▶
+      - generic [ref=e20] [cursor=pointer]:
+        - img [ref=e22]
+        - text: 商务管理
+        - generic [ref=e26]: ▶
+      - generic [ref=e28] [cursor=pointer]:
+        - img [ref=e30]
+        - text: 采购管理
+        - generic [ref=e33]: ▶
+      - generic [ref=e34]:
+        - generic [ref=e35] [cursor=pointer]:
+          - img [ref=e37]
+          - text: 产品管理
+          - generic [ref=e40]: ▶
+        - generic [ref=e41] [cursor=pointer]: 产品分类
+        - generic [ref=e42] [cursor=pointer]: SPU 管理
+        - generic [ref=e43] [cursor=pointer]: SKU 管理
+        - generic [ref=e44] [cursor=pointer]: 证书管理
+        - generic [ref=e45] [cursor=pointer]: FAQ 管理
+      - generic [ref=e47] [cursor=pointer]:
+        - img [ref=e49]
+        - text: 库存管理
+        - generic [ref=e53]: ▶
+      - generic [ref=e55] [cursor=pointer]:
+        - img [ref=e57]
+        - text: 财务管理
+        - generic [ref=e60]: ▶
+      - generic [ref=e62] [cursor=pointer]:
+        - img [ref=e64]
+        - text: 基础数据
+        - generic [ref=e67]: ▶
+      - generic [ref=e68]:
+        - generic [ref=e69]: FR
+        - generic [ref=e70]:
+          - generic [ref=e71]: Friday
+          - generic [ref=e72]: 管理员
+    - generic [ref=e73]:
+      - generic [ref=e74]:
+        - generic [ref=e75]:
+          - generic [ref=e76] [cursor=pointer]: 产品管理
+          - generic [ref=e77]: ›
+          - generic [ref=e78]: SPU 管理
+        - generic [ref=e79]:
+          - img [ref=e81] [cursor=pointer]
+          - generic [ref=e83] [cursor=pointer]: FR
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - generic [ref=e86]:
+            - generic [ref=e87]: SPU 管理
+            - generic [ref=e88]: 标准产品单元，管理产品基础信息与变体
+          - button "新建 SPU" [ref=e89] [cursor=pointer]:
+            - img [ref=e90]
+            - text: 新建 SPU
+        - generic [ref=e92]:
+          - generic [ref=e93]:
+            - generic [ref=e94]: 📦
+            - generic [ref=e95]:
+              - generic [ref=e96]: 1,284
+              - generic [ref=e97]: SPU 总数
+          - generic [ref=e98]:
+            - generic [ref=e99]: ✅
+            - generic [ref=e100]:
+              - generic [ref=e101]: 1,156
+              - generic [ref=e102]: 已分类
+          - generic [ref=e103]:
+            - generic [ref=e104]: ⏳
+            - generic [ref=e105]:
+              - generic [ref=e106]: "128"
+              - generic [ref=e107]: 待分类
+          - generic [ref=e108]:
+            - generic [ref=e109]: 📅
+            - generic [ref=e110]:
+              - generic [ref=e111]: "23"
+              - generic [ref=e112]: 本月新增
+        - generic [ref=e113]:
+          - generic [ref=e114]:
+            - img [ref=e115]
+            - text: 搜索 SPU 名称 / 编码...
+          - generic [ref=e118] [cursor=pointer]:
+            - img [ref=e119]
+            - text: 筛选
+          - generic [ref=e121]:
+            - text: 分类：电子元件
+            - generic [ref=e122] [cursor=pointer]: ×
+          - generic [ref=e123]:
+            - text: 供应商：华为技术
+            - generic [ref=e124] [cursor=pointer]: ×
+          - generic [ref=e126]: 共 1,284 条
+        - generic [ref=e127]:
+          - table [ref=e128]:
+            - rowgroup [ref=e129]:
+              - row "SPU 编码 SPU 名称 所属分类 供应商 单位 状态 创建时间 操作" [ref=e130]:
+                - columnheader "SPU 编码" [ref=e131]
+                - columnheader "SPU 名称" [ref=e132]
+                - columnheader "所属分类" [ref=e133]
+                - columnheader "供应商" [ref=e134]
+                - columnheader "单位" [ref=e135]
+                - columnheader "状态" [ref=e136]
+                - columnheader "创建时间" [ref=e137]
+                - columnheader "操作" [ref=e138]
+            - rowgroup [ref=e139]:
+              - row "SPU-2024-001 华为 5G 基站天线模块 通信设备 / 天线 华为技术 套 已分类 2024-03-15 查看 编辑" [ref=e140]:
+                - cell "SPU-2024-001" [ref=e141]
+                - cell "华为 5G 基站天线模块" [ref=e142]
+                - cell "通信设备 / 天线" [ref=e143]
+                - cell "华为技术" [ref=e144]
+                - cell "套" [ref=e145]
+                - cell "已分类" [ref=e146]:
+                  - generic [ref=e147]: 已分类
+                - cell "2024-03-15" [ref=e148]
+                - cell "查看 编辑" [ref=e149]:
+                  - generic [ref=e150]:
+                    - button "查看" [ref=e151] [cursor=pointer]
+                    - button "编辑" [ref=e152] [cursor=pointer]
+              - row "SPU-2024-002 中兴光纤收发器 SFP+ 网络设备 / 光模块 中兴通讯 个 已分类 2024-03-18 查看 编辑" [ref=e153]:
+                - cell "SPU-2024-002" [ref=e154]
+                - cell "中兴光纤收发器 SFP+" [ref=e155]
+                - cell "网络设备 / 光模块" [ref=e156]
+                - cell "中兴通讯" [ref=e157]
+                - cell "个" [ref=e158]
+                - cell "已分类" [ref=e159]:
+                  - generic [ref=e160]: 已分类
+                - cell "2024-03-18" [ref=e161]
+                - cell "查看 编辑" [ref=e162]:
+                  - generic [ref=e163]:
+                    - button "查看" [ref=e164] [cursor=pointer]
+                    - button "编辑" [ref=e165] [cursor=pointer]
+              - row "SPU-2024-003 工业级以太网交换机 24口 网络设备 / 交换机 思科系统 台 已分类 2024-03-20 查看 编辑" [ref=e166]:
+                - cell "SPU-2024-003" [ref=e167]
+                - cell "工业级以太网交换机 24口" [ref=e168]
+                - cell "网络设备 / 交换机" [ref=e169]
+                - cell "思科系统" [ref=e170]
+                - cell "台" [ref=e171]
+                - cell "已分类" [ref=e172]:
+                  - generic [ref=e173]: 已分类
+                - cell "2024-03-20" [ref=e174]
+                - cell "查看 编辑" [ref=e175]:
+                  - generic [ref=e176]:
+                    - button "查看" [ref=e177] [cursor=pointer]
+                    - button "编辑" [ref=e178] [cursor=pointer]
+              - row "SPU-2024-004 服务器内存条 DDR5 32GB — 三星电子 条 待分类 2024-03-22 查看 编辑" [ref=e179]:
+                - cell "SPU-2024-004" [ref=e180]
+                - cell "服务器内存条 DDR5 32GB" [ref=e181]
+                - cell "—" [ref=e182]
+                - cell "三星电子" [ref=e183]
+                - cell "条" [ref=e184]
+                - cell "待分类" [ref=e185]:
+                  - generic [ref=e186]: 待分类
+                - cell "2024-03-22" [ref=e187]
+                - cell "查看 编辑" [ref=e188]:
+                  - generic [ref=e189]:
+                    - button "查看" [ref=e190] [cursor=pointer]
+                    - button "编辑" [ref=e191] [cursor=pointer]
+              - row "SPU-2024-005 UPS 不间断电源 10KVA 电源设备 / UPS 施耐德电气 台 已分类 2024-03-25 查看 编辑" [ref=e192]:
+                - cell "SPU-2024-005" [ref=e193]
+                - cell "UPS 不间断电源 10KVA" [ref=e194]
+                - cell "电源设备 / UPS" [ref=e195]
+                - cell "施耐德电气" [ref=e196]
+                - cell "台" [ref=e197]
+                - cell "已分类" [ref=e198]:
+                  - generic [ref=e199]: 已分类
+                - cell "2024-03-25" [ref=e200]
+                - cell "查看 编辑" [ref=e201]:
+                  - generic [ref=e202]:
+                    - button "查看" [ref=e203] [cursor=pointer]
+                    - button "编辑" [ref=e204] [cursor=pointer]
+              - row "SPU-2024-006 光缆熔接机 FSM-80S 施工工具 / 熔接 藤仓 台 待分类 2024-03-28 查看 编辑" [ref=e205]:
+                - cell "SPU-2024-006" [ref=e206]
+                - cell "光缆熔接机 FSM-80S" [ref=e207]
+                - cell "施工工具 / 熔接" [ref=e208]
+                - cell "藤仓" [ref=e209]
+                - cell "台" [ref=e210]
+                - cell "待分类" [ref=e211]:
+                  - generic [ref=e212]: 待分类
+                - cell "2024-03-28" [ref=e213]
+                - cell "查看 编辑" [ref=e214]:
+                  - generic [ref=e215]:
+                    - button "查看" [ref=e216] [cursor=pointer]
+                    - button "编辑" [ref=e217] [cursor=pointer]
+          - generic [ref=e218]:
+            - generic [ref=e219]: 显示 1–20 条，共 1,284 条
+            - generic [ref=e220]:
+              - generic [ref=e221]:
+                - text: 每页
+                - combobox [ref=e222] [cursor=pointer]:
+                  - option "10 条"
+                  - option "20 条" [selected]
+                  - option "50 条"
+              - generic [ref=e223]:
+                - generic [ref=e224] [cursor=pointer]: ‹
+                - generic [ref=e225] [cursor=pointer]: "1"
+                - generic [ref=e226] [cursor=pointer]: "2"
+                - generic [ref=e227] [cursor=pointer]: "3"
+                - generic [ref=e228] [cursor=pointer]: …
+                - generic [ref=e229] [cursor=pointer]: "65"
+                - generic [ref=e230] [cursor=pointer]: ›

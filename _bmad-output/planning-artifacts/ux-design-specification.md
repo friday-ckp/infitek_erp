@@ -934,34 +934,74 @@ flowchart TD
 
 ### Form Patterns
 
-**表单布局规则：**
+> **版本说明**：编辑页布局已根据 2026-04-24 确认的 HTML 原型（`ui-preview.html`）更新。
 
-| 表单复杂度 | 字段数 | 布局方式 |
-|-----------|--------|---------|
-| 简单表单 | < 10 | 单卡片，2 列栅格 |
-| 中等表单 | 10-30 | 分组卡片，每组 2 列栅格 |
-| 复杂表单 | > 30 | 分组卡片 + 可折叠，核心组默认展开，其他折叠 |
+**编辑页标准结构：**
 
-**分组卡片命名规范（以销售订单为例）：**
+```
+EditPage
+├── 页头（Page Header）
+│   ├── 左：页面标题「编辑 [模块名]」+ 副标题（编号 · 名称）
+│   └── 右：（无按钮，操作在底部固定栏）
+├── 主体布局（flex，gap: 20px，padding-bottom: 80px）
+│   ├── 左侧：锚点导航（160px 固定，sticky，同详情页规范）
+│   └── 右侧：分区表单（flex column，gap: 16px）
+│       ├── 表单分区卡片 1（基础信息）
+│       ├── 表单分区卡片 2（业务信息）
+│       └── 表单分区卡片 N
+└── 底部固定操作栏（Form Footer）
+    ├── 左：最后更新信息（12px / gray-400）
+    └── 右：取消按钮（Default）+ 保存按钮（Primary）
+```
 
-- 基础信息（订单编号、订单来源、PO 号等）
-- 客户信息（客户名称、运抵国、收货地址等）
-- 产品明细（子表格：SKU/数量/单价/金额）
-- 收发货信息（发货仓库、运输方式、贸易术语等）
-- 附加信息（备注、附件）
+**表单分区卡片（Form Section）：**
 
-**字段交互规则：**
+- 背景白色，`border: 1px solid #E2E8F0`，圆角 `12px`，`overflow: hidden`
+- 卡片头部：`padding: 14px 20px`，`border-bottom: 1px solid #F1F5F9`，flex 行，`gap: 8px`
+  - 彩色圆点（`8px`，语义色）+ 分区标题（`14px / 700 / #1E293B`）
+- 内容区：`padding: 20px`
 
-- **必填字段**：标签后红色星号 *，提交时校验
-- **自动填充**：选择关联实体后灰色底展示自动填充字段（不可编辑），Tooltip 说明"由 [SKU] 自动带入"
-- **关联选择**：使用 EntitySearchSelect 组件，弹出搜索面板选择
-- **子表格**：产品明细等使用可编辑表格，支持添加行/删除行/拖拽排序
-- **金额计算**：数量 x 单价自动计算行金额，合计自动汇总，不可手动修改
+**表单字段网格：**
 
-**表单状态规则：**
+- 3 列网格：`grid-template-columns: repeat(3, 1fr)`，`gap: 16px 20px`
+- 跨列：`span 2` 或 `span 3`（长文本字段、textarea）
 
-- **新建模式**：所有字段可编辑，系统自动生成编号（如 SO-2026-XXXX）
-- **编辑模式**：仅草稿态可编辑核心字段，已确认后仅可编辑备注等非核心字段
+**字段标签：**
+
+- `12px / 600 / #475569`，必填字段后红色星号 `*`（`color: #EF4444`）
+
+**输入框（Form Input）：**
+
+- `padding: 8px 12px`，`border: 1px solid #E2E8F0`，圆角 `6px`，`font-size: 13px`
+- 聚焦态：`border-color: #2563EB`，`box-shadow: 0 0 0 3px rgba(37,99,235,0.1)`
+- 只读/禁用态：`background: #F8FAFC / color: #94A3B8`
+
+**下拉选择（Form Select）：**
+
+- 同输入框规格，右侧 chevron 图标，`appearance: none`
+
+**多行文本（Textarea）：**
+
+- 同输入框规格，`min-height: 72px`，`resize: vertical`
+
+**提示文字（Form Hint）：**
+
+- `11px / #94A3B8`，位于输入框下方
+
+**底部固定操作栏（Form Footer）：**
+
+- `position: fixed; bottom: 0; left: 220px; right: 0; z-index: 10`
+- 背景白色，`border-top: 1px solid #E2E8F0`，`padding: 12px 24px`
+- 左侧：最后更新信息，`12px / #94A3B8`
+- 右侧：取消（Default）+ 保存更改（Primary，带勾图标）
+
+**表单复杂度分级（沿用）：**
+
+| 复杂度 | 字段数 | 布局方式 |
+|--------|--------|---------|
+| 简单 | < 10 | 单分区卡片，3 列网格 |
+| 中等 | 10–30 | 2–3 个分区卡片，3 列网格 |
+| 复杂 | > 30 | 多分区卡片 + 左侧锚点导航，核心分区默认展开 |
 - **查看模式**：所有字段只读，展示为 ProDescriptions 描述列表
 
 ### Navigation Patterns
@@ -991,60 +1031,122 @@ flowchart TD
 
 ### List Page Patterns
 
+> **版本说明**：本节已根据 2026-04-24 确认的 HTML 原型（`ui-preview.html`）更新，替代旧版规范。
+
 **列表页标准结构（从上到下）：**
 
-1. **页面标题 + 操作按钮**：左侧标题（如"销售订单"），右侧 Primary 按钮（新建 + 导入/导出）
-2. **搜索筛选区**：
-   - 快捷搜索栏：单一搜索框，支持按编号/名称模糊搜索（debounce 300ms）
-   - 高级筛选区（默认折叠）：展开后显示多条件组合筛选（状态/日期范围/关联实体等）
-   - 已选筛选条件 Tag 化展示在搜索栏下方，每个 Tag 可单独删除，支持"清除全部"
-3. **数据表格**：
-   - 固定表头，内容区滚动
-   - 行高 48px，确保可点击区域足够
-   - 首列为单据编号（蓝色链接），点击进入详情
-   - 状态列使用彩色 Tag 标签
-   - 操作列固定在右侧（查看 | 编辑 | 更多）
-4. **底部分页**：右侧分页器（10/20/50 每页可切换）+ 左侧"共 N 条记录"
+```
+ListPage
+├── 页头区（Page Header）
+│   ├── 左：页面标题（20px/700）+ 副标题说明（13px/gray-500）
+│   └── 右：Primary 新建按钮（带 + 图标）
+├── 统计卡片行（Stat Row，4 列等宽）
+│   └── StatCard × 4（图标 + 数值 + 标签）
+├── 工具栏（Toolbar）
+│   ├── 搜索框（280px，debounce 300ms）
+│   ├── 筛选按钮
+│   ├── 已激活筛选 Tag（胶囊形，可删除）
+│   └── 右侧：总条数文字
+└── 数据表格 + 分页
+```
 
-**表格列配置：**
+**统计卡片行（Stat Row）：**
 
-- 每个列表页预设合理的默认展示列（不超过 8 列）
-- 数字列右对齐，使用等宽数字（tabular-nums）
-- 金额列显示千分位 + 币种符号
-- 日期列统一格式：YYYY-MM-DD
-- 超长文本截断 + Tooltip 展示全文
+- 4 列等宽网格，`gap: 12px`，位于页头与工具栏之间
+- 每张 StatCard：白色背景，`border: 1px solid #E2E8F0`，圆角 `8px`，内边距 `16px 20px`
+- 卡片内容：左侧图标容器（40×40px，圆角 8px，彩色浅色背景）+ 右侧数值区
+- 数值：`22px / 700 / #0F172A`；标签：`12px / #64748B`
+- 图标背景色按语义：蓝 `#EFF6FF`、绿 `#ECFDF5`、橙 `#FFFBEB`、灰 `#F1F5F9`
 
-**批量操作：**
+**工具栏（Toolbar）：**
 
-- 表格首列复选框支持全选/反选
-- 选中记录后底部浮现批量操作栏（已选 N 项 | 批量确认 | 批量导出 | 取消选择）
+- 搜索框：`280px`，左侧搜索图标，`border: 1px solid #E2E8F0`，圆角 `6px`，聚焦时蓝色边框 + `box-shadow: 0 0 0 3px rgba(37,99,235,0.1)`
+- 筛选按钮：Default 样式，带漏斗图标
+- 已激活筛选 Tag：`background: #EFF6FF`，`border: 1px solid #BFDBFE`，`border-radius: 999px`，`color: #2563EB`，右侧 × 可删除
+- 总条数：右对齐，`12px / #94A3B8`
+
+**数据表格：**
+
+- 容器：白色背景，`border: 1px solid #E2E8F0`，圆角 `12px`，`overflow: hidden`
+- 表头：`background: #F8FAFC`，`border-bottom: 1px solid #E2E8F0`，字号 `11px / 700 / #64748B`，`text-transform: uppercase`，`letter-spacing: 0.5px`，内边距 `10px 16px`
+- 行：`border-bottom: 1px solid #F1F5F9`，hover 背景 `#F8FAFC`，行高约 48px
+- 单元格：`13px / #334155`，内边距 `12px 16px`，超长文本 `ellipsis`
+- 编号列：`font-weight: 600 / color: #2563EB`，可点击，hover 下划线
+- 状态列：胶囊 Tag（`border-radius: 999px`），颜色按语义
+- 操作列：固定右侧，hover 时显示（`opacity: 0 → 1`），Ghost 按钮样式
+
+**分页（Pagination）：**
+
+- 布局：左侧「显示 X–Y 条，共 N 条」；右侧「每页 [下拉] + 页码按钮组」
+- 每页下拉选项：10 / 20 / 50 条
+- 页码按钮：`30×30px`，圆角 `6px`，`border: 1px solid #E2E8F0`；激活态：`background: #2563EB / color: white`
+- 容器：`border-top: 1px solid #F1F5F9`，内边距 `12px 16px`
 
 ### Detail Page Patterns
 
+> **版本说明**：本节已根据 2026-04-24 确认的 HTML 原型（`ui-preview.html`）更新，替代旧版规范。
+
 **详情页标准结构（从上到下）：**
 
-1. **顶部操作区**：
-   - 左侧：面包屑导航
-   - 右侧：操作按钮组（编辑 / 状态推进 / 更多操作）
-2. **状态信息栏**：
-   - 单据编号 + 状态 Tag 标签
-   - FlowProgress 流程进度条（仅交易单据）
-   - SmartButton 关联单据计数器行
-3. **KPI 摘要行**（仅关键单据）：
-   - StatCard 组件展示 3-5 个核心指标
-4. **信息分组卡片**：
-   - 基础信息卡片（ProDescriptions 两列布局）
-   - 产品明细卡片（数据表格，含 InventoryIndicator 等定制列）
-   - 收发货/物流信息卡片
-   - 附件/备注卡片
-5. **操作记录**：
-   - ActivityTimeline 组件展示操作历史
+```
+DetailPage
+├── Hero 卡片（Summary Card）
+│   ├── 顶部：编号 + 名称 + 状态 Tag + 操作按钮组（编辑/删除）
+│   └── 底部元信息行：4 个关键字段横向展示（分类/单位/供应商/时间等）
+└── 主体布局（flex，gap: 20px）
+    ├── 左侧：锚点导航（160px 固定，sticky）
+    └── 右侧：分区内容流（flex column，gap: 16px）
+        ├── 分区卡片 1（基础信息）
+        ├── 分区卡片 2（供应/开票/业务信息）
+        ├── 分区卡片 3（关联子表格，如 SKU 变体）
+        └── 分区卡片 N（操作记录）
+```
 
-**信息分组折叠规则：**
+**Hero 卡片（Summary Card）：**
 
-- 核心信息卡片（基础信息、产品明细）默认展开
-- 辅助信息卡片（附件、备注、操作记录）默认展开但在视觉上位于页面下方
-- 信息密度极高时（如发货需求 50+ 字段），非核心分组可折叠
+- 背景白色，`border: 1px solid #E2E8F0`，圆角 `12px`，内边距 `20px 24px`，`box-shadow: 0 1px 2px rgba(0,0,0,0.05)`
+- 顶部行：
+  - 左侧：编号标签（`11px / 700 / #94A3B8 / uppercase`）+ 名称（`22px / 800 / #0F172A`）+ 状态 Tag（胶囊形）
+  - 右侧：操作按钮组（编辑 Default + 删除 Danger）
+- 底部元信息行：`border-top: 1px solid #F1F5F9`，`margin-top: 16px`，`padding-top: 16px`，flex 横向排列
+  - 每项：标签 `11px / 600 / #94A3B8 / uppercase`，值 `14px / 600 / #1E293B`
+
+**左侧锚点导航（Anchor Nav）：**
+
+- 宽度 `160px`，`position: sticky; top: 0`
+- 容器：白色背景，`border: 1px solid #E2E8F0`，圆角 `12px`，`overflow: hidden`
+- 每个锚点项：`padding: 10px 14px`，`font-size: 13px`，`border-left: 3px solid transparent`
+- 默认态：`color: #64748B`；hover：`background: #F8FAFC / color: #334155`
+- 激活态：`background: #EFF6FF / color: #2563EB / border-left-color: #2563EB / font-weight: 600`
+- 左侧小圆点：`6px`，`border-radius: 50%`，`background: currentColor`，`opacity: 0.5`
+
+**分区卡片（Section Card）：**
+
+- 背景白色，`border: 1px solid #E2E8F0`，圆角 `12px`，`overflow: hidden`
+- 卡片头部：`padding: 14px 20px`，`border-bottom: 1px solid #F1F5F9`，flex 两端对齐
+  - 左：分区标题（`14px / 700 / #1E293B`）+ 彩色圆点（`8px`，语义色）
+  - 右：可选操作按钮（如「+ 新建 SKU」）
+- 卡片内容区：`padding: 16px 20px`
+
+**字段网格（Field Grid）：**
+
+- 3 列网格：`grid-template-columns: repeat(3, 1fr)`，`gap: 16px 20px`
+- 字段标签：`11px / 600 / #94A3B8 / uppercase / letter-spacing: 0.4px`，`margin-bottom: 4px`
+- 字段值：`14px / 500 / #1E293B`；空值：`color: #CBD5E1`，显示「—」
+- 跨列字段：`grid-column: span 2` 或 `span 3`
+
+**内嵌子表格（Inline Table）：**
+
+- 用于关联子记录（如 SKU 变体、FAQ 等）
+- 表头：`background: #F8FAFC`，`border-bottom: 1px solid #E2E8F0`，`11px / 700 / #94A3B8 / uppercase`
+- 行：`border-bottom: 1px solid #F1F5F9`，hover `background: #F8FAFC`，内边距 `10px 12px`
+
+**操作记录（Timeline）：**
+
+- 竖向时间线，`gap: 0`，每项 `padding-bottom: 20px`
+- 圆点：`10px`，最新项蓝色（`#2563EB`，外圈 `box-shadow: 0 0 0 2px #2563EB`），历史项灰色
+- 连接线：`1px solid #E2E8F0`，从圆点底部延伸
+- 操作文字：`13px / 600 / #1E293B`；时间/操作人：`12px / #94A3B8`
 
 ### Modal & Overlay Patterns
 
@@ -1494,3 +1596,4 @@ DetailPanel（flex column，gap: 14px）
 |------|---------|---------|
 | 全局侧边栏 | `_bmad-output/planning-artifacts/sidebar-final-light-pill.html` | 2026-04-21 |
 | 产品分类管理页 | `_bmad-output/planning-artifacts/category-v1-tree-card.html` | 2026-04-21 |
+| 列表页 / 详情页 / 编辑页 | `ui-preview.html` | 2026-04-24 |

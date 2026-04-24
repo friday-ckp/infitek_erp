@@ -1,0 +1,205 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: 预览页面：
+    - button "列表页" [ref=e4] [cursor=pointer]
+    - button "详情页" [active] [ref=e5] [cursor=pointer]
+    - button "编辑页" [ref=e6] [cursor=pointer]
+  - generic [ref=e228]:
+    - generic [ref=e229]:
+      - generic [ref=e230]:
+        - generic [ref=e231]: 星辰科技 ERP
+        - generic [ref=e232]: INFITEK ENTERPRISE
+      - generic [ref=e234] [cursor=pointer]:
+        - img [ref=e236]
+        - text: 销售管理
+        - generic [ref=e239]: ▶
+      - generic [ref=e241] [cursor=pointer]:
+        - img [ref=e243]
+        - text: 商务管理
+        - generic [ref=e246]: ▶
+      - generic [ref=e248] [cursor=pointer]:
+        - img [ref=e250]
+        - text: 采购管理
+        - generic [ref=e252]: ▶
+      - generic [ref=e253]:
+        - generic [ref=e254] [cursor=pointer]:
+          - img [ref=e256]
+          - text: 产品管理
+          - generic [ref=e259]: ▶
+        - generic [ref=e260] [cursor=pointer]: 产品分类
+        - generic [ref=e261] [cursor=pointer]: SPU 管理
+        - generic [ref=e262] [cursor=pointer]: SKU 管理
+        - generic [ref=e263] [cursor=pointer]: 证书管理
+        - generic [ref=e264] [cursor=pointer]: FAQ 管理
+      - generic [ref=e266] [cursor=pointer]:
+        - img [ref=e268]
+        - text: 库存管理
+        - generic [ref=e271]: ▶
+      - generic [ref=e273] [cursor=pointer]:
+        - img [ref=e275]
+        - text: 财务管理
+        - generic [ref=e277]: ▶
+      - generic [ref=e279] [cursor=pointer]:
+        - img [ref=e281]
+        - text: 基础数据
+        - generic [ref=e284]: ▶
+      - generic [ref=e285]:
+        - generic [ref=e286]: FR
+        - generic [ref=e287]:
+          - generic [ref=e288]: Friday
+          - generic [ref=e289]: 管理员
+    - generic [ref=e290]:
+      - generic [ref=e291]:
+        - generic [ref=e292]:
+          - generic [ref=e293] [cursor=pointer]: 产品管理
+          - generic [ref=e294]: ›
+          - generic [ref=e295] [cursor=pointer]: SPU 管理
+          - generic [ref=e296]: ›
+          - generic [ref=e297]: SPU-2024-001
+        - generic [ref=e298]:
+          - generic [ref=e299] [cursor=pointer]: 🔔
+          - generic [ref=e300] [cursor=pointer]: FR
+      - generic [ref=e301]:
+        - generic [ref=e302]:
+          - generic [ref=e303]:
+            - generic [ref=e304]:
+              - generic [ref=e305]: SPU-2024-001
+              - generic [ref=e306]:
+                - generic [ref=e307]: 华为 5G 基站天线模块
+                - generic [ref=e308]: 已分类
+            - generic [ref=e309]:
+              - button "编辑" [ref=e310] [cursor=pointer]:
+                - img [ref=e311]
+                - text: 编辑
+              - button "删除" [ref=e314] [cursor=pointer]
+          - generic [ref=e315]:
+            - generic [ref=e316]:
+              - generic [ref=e317]: 所属分类
+              - generic [ref=e318]: 通信设备 / 天线
+            - generic [ref=e319]:
+              - generic [ref=e320]: 单位
+              - generic [ref=e321]: 套
+            - generic [ref=e322]:
+              - generic [ref=e323]: 供应商
+              - generic [ref=e324]: 华为技术有限公司
+            - generic [ref=e325]:
+              - generic [ref=e326]: 创建时间
+              - generic [ref=e327]: 2024-03-15
+        - generic [ref=e328]:
+          - generic [ref=e330]:
+            - generic [ref=e331] [cursor=pointer]: 基础信息
+            - generic [ref=e333] [cursor=pointer]: 供应与开票
+            - generic [ref=e335] [cursor=pointer]: SKU 变体
+            - generic [ref=e337] [cursor=pointer]: FAQ
+            - generic [ref=e339] [cursor=pointer]: 操作记录
+          - generic [ref=e341]:
+            - generic [ref=e342]:
+              - generic [ref=e344]: 基础信息
+              - generic [ref=e347]:
+                - generic [ref=e348]:
+                  - generic [ref=e349]: SPU 编码
+                  - generic [ref=e350]: SPU-2024-001
+                - generic [ref=e351]:
+                  - generic [ref=e352]: SPU 名称
+                  - generic [ref=e353]: 华为 5G 基站天线模块
+                - generic [ref=e354]:
+                  - generic [ref=e355]: 所属分类
+                  - generic [ref=e356]: 通信设备 / 天线
+                - generic [ref=e357]:
+                  - generic [ref=e358]: 单位
+                  - generic [ref=e359]: 套
+                - generic [ref=e360]:
+                  - generic [ref=e361]: 一级分类编号
+                  - generic [ref=e362]: TC-001
+                - generic [ref=e363]:
+                  - generic [ref=e364]: 二级分类编号
+                  - generic [ref=e365]: TC-001-02
+                - generic [ref=e366]:
+                  - generic [ref=e367]: 三级分类编号
+                  - generic [ref=e368]: —
+                - generic [ref=e369]:
+                  - generic [ref=e370]: 创建时间
+                  - generic [ref=e371]: 2024-03-15 09:30
+                - generic [ref=e372]:
+                  - generic [ref=e373]: 更新时间
+                  - generic [ref=e374]: 2024-04-10 14:22
+            - generic [ref=e375]:
+              - generic [ref=e377]: 供应与开票
+              - generic [ref=e380]:
+                - generic [ref=e381]:
+                  - generic [ref=e382]: 供应商
+                  - generic [ref=e383]: 华为技术有限公司
+                - generic [ref=e384]:
+                  - generic [ref=e385]: 厂家型号
+                  - generic [ref=e386]: AAU5613
+                - generic [ref=e387]:
+                  - generic [ref=e388]: 客户质保期（月）
+                  - generic [ref=e389]: "24"
+                - generic [ref=e390]:
+                  - generic [ref=e391]: 采购质保期（月）
+                  - generic [ref=e392]: "12"
+                - generic [ref=e393]:
+                  - generic [ref=e394]: 开票品名
+                  - generic [ref=e395]: 5G 天线模块
+                - generic [ref=e396]:
+                  - generic [ref=e397]: 开票单位
+                  - generic [ref=e398]: 套
+                - generic [ref=e399]:
+                  - generic [ref=e400]: 开票型号
+                  - generic [ref=e401]: AAU5613-B
+                - generic [ref=e402]:
+                  - generic [ref=e403]: 禁止经营国家
+                  - generic [ref=e404]: 美国、加拿大、澳大利亚
+                - generic [ref=e405]:
+                  - generic [ref=e406]: 供应商质保说明
+                  - generic [ref=e407]: 产品自出货日起 12 个月内，因制造缺陷导致的故障，供应商负责免费维修或更换。人为损坏不在保修范围内。
+            - generic [ref=e408]:
+              - generic [ref=e409]:
+                - generic [ref=e410]: SKU 变体
+                - button "+ 新建 SKU" [ref=e412] [cursor=pointer]
+              - table [ref=e414]:
+                - rowgroup [ref=e415]:
+                  - row "SKU 编码 规格描述 HS 码 净重(KG) 状态 操作" [ref=e416]:
+                    - columnheader "SKU 编码" [ref=e417]
+                    - columnheader "规格描述" [ref=e418]
+                    - columnheader "HS 码" [ref=e419]
+                    - columnheader "净重(KG)" [ref=e420]
+                    - columnheader "状态" [ref=e421]
+                    - columnheader "操作" [ref=e422]
+                - rowgroup [ref=e423]:
+                  - row "SKU-001-A 64T64R 3.5GHz 200W 8517.62.00 18.5 启用 查看" [ref=e424]:
+                    - cell "SKU-001-A" [ref=e425] [cursor=pointer]
+                    - cell "64T64R 3.5GHz 200W" [ref=e426]
+                    - cell "8517.62.00" [ref=e427]
+                    - cell "18.5" [ref=e428]
+                    - cell "启用" [ref=e429]:
+                      - generic [ref=e430]: 启用
+                    - cell "查看" [ref=e431]:
+                      - button "查看" [ref=e432] [cursor=pointer]
+                  - row "SKU-001-B 32T32R 2.6GHz 160W 8517.62.00 15.2 启用 查看" [ref=e433]:
+                    - cell "SKU-001-B" [ref=e434] [cursor=pointer]
+                    - cell "32T32R 2.6GHz 160W" [ref=e435]
+                    - cell "8517.62.00" [ref=e436]
+                    - cell "15.2" [ref=e437]
+                    - cell "启用" [ref=e438]:
+                      - generic [ref=e439]: 启用
+                    - cell "查看" [ref=e440]:
+                      - button "查看" [ref=e441] [cursor=pointer]
+                  - row "SKU-001-C 16T16R 1.8GHz 80W 8517.62.00 9.8 停用 查看" [ref=e442]:
+                    - cell "SKU-001-C" [ref=e443] [cursor=pointer]
+                    - cell "16T16R 1.8GHz 80W" [ref=e444]
+                    - cell "8517.62.00" [ref=e445]
+                    - cell "9.8" [ref=e446]
+                    - cell "停用" [ref=e447]:
+                      - generic [ref=e448]: 停用
+                    - cell "查看" [ref=e449]:
+                      - button "查看" [ref=e450] [cursor=pointer]
+            - generic [ref=e451]:
+              - generic [ref=e453]: 操作记录
+              - generic [ref=e456]:
+                - generic [ref=e461]:
+                  - generic [ref=e462]: 更新记录
+                  - generic [ref=e463]: 操作人：friday · 2024-04-10 14:22
+                - generic [ref=e467]:
+                  - generic [ref=e468]: 创建记录
+                  - generic [ref=e469]: 操作人：admin · 2024-03-15 09:30

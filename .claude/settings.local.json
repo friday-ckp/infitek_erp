@@ -28,7 +28,10 @@
       "Bash(/usr/local/bin/node --version)",
       "Bash(/usr/local/bin/node -e \":*)",
       "Bash(git -C:*)",
-      "Bash(pnpm --filter web build)"
+      "Bash(pnpm --filter web build)",
+      "mcp__plugin_playwright_playwright__browser_resize",
+      "mcp__plugin_playwright_playwright__browser_click",
+      "mcp__plugin_playwright_playwright__browser_evaluate"
     ]
   }
 }

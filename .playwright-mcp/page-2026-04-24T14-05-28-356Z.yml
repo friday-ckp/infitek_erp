@@ -1,0 +1,144 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]: 预览页面：
+    - button "列表页" [ref=e4] [cursor=pointer]
+    - button "详情页" [ref=e5] [cursor=pointer]
+    - button "编辑页" [active] [ref=e6] [cursor=pointer]
+  - generic [ref=e470]:
+    - generic [ref=e471]:
+      - generic [ref=e472]:
+        - generic [ref=e473]: 星辰科技 ERP
+        - generic [ref=e474]: INFITEK ENTERPRISE
+      - generic [ref=e476] [cursor=pointer]:
+        - img [ref=e478]
+        - text: 销售管理
+        - generic [ref=e481]: ▶
+      - generic [ref=e483] [cursor=pointer]:
+        - img [ref=e485]
+        - text: 商务管理
+        - generic [ref=e487]: ▶
+      - generic [ref=e489] [cursor=pointer]:
+        - img [ref=e491]
+        - text: 采购管理
+        - generic [ref=e493]: ▶
+      - generic [ref=e494]:
+        - generic [ref=e495] [cursor=pointer]:
+          - img [ref=e497]
+          - text: 产品管理
+          - generic [ref=e500]: ▶
+        - generic [ref=e501] [cursor=pointer]: 产品分类
+        - generic [ref=e502] [cursor=pointer]: SPU 管理
+        - generic [ref=e503] [cursor=pointer]: SKU 管理
+        - generic [ref=e504] [cursor=pointer]: 证书管理
+        - generic [ref=e505] [cursor=pointer]: FAQ 管理
+      - generic [ref=e507] [cursor=pointer]:
+        - img [ref=e509]
+        - text: 库存管理
+        - generic [ref=e512]: ▶
+      - generic [ref=e514] [cursor=pointer]:
+        - img [ref=e516]
+        - text: 财务管理
+        - generic [ref=e518]: ▶
+      - generic [ref=e520] [cursor=pointer]:
+        - img [ref=e522]
+        - text: 基础数据
+        - generic [ref=e525]: ▶
+      - generic [ref=e526]:
+        - generic [ref=e527]: FR
+        - generic [ref=e528]:
+          - generic [ref=e529]: Friday
+          - generic [ref=e530]: 管理员
+    - generic [ref=e531]:
+      - generic [ref=e532]:
+        - generic [ref=e533]:
+          - generic [ref=e534] [cursor=pointer]: 产品管理
+          - generic [ref=e535]: ›
+          - generic [ref=e536] [cursor=pointer]: SPU 管理
+          - generic [ref=e537]: ›
+          - generic [ref=e538] [cursor=pointer]: SPU-2024-001
+          - generic [ref=e539]: ›
+          - generic [ref=e540]: 编辑
+        - generic [ref=e542] [cursor=pointer]: FR
+      - generic [ref=e543]:
+        - generic [ref=e545]:
+          - generic [ref=e546]: 编辑 SPU
+          - generic [ref=e547]: SPU-2024-001 · 华为 5G 基站天线模块
+        - generic [ref=e548]:
+          - generic [ref=e550]:
+            - generic [ref=e551] [cursor=pointer]: 基础信息
+            - generic [ref=e553] [cursor=pointer]: 供应与开票
+            - generic [ref=e555] [cursor=pointer]: 分类编号
+          - generic [ref=e557]:
+            - generic [ref=e558]:
+              - generic [ref=e561]: 基础信息
+              - generic [ref=e563]:
+                - generic [ref=e564]:
+                  - generic [ref=e565]: SPU 编码 *
+                  - textbox [ref=e566]: SPU-2024-001
+                  - generic [ref=e567]: 编码自动生成，不可修改
+                - generic [ref=e568]:
+                  - generic [ref=e569]: SPU 名称 *
+                  - textbox [ref=e570]: 华为 5G 基站天线模块
+                - generic [ref=e571]:
+                  - generic [ref=e572]: 所属分类 *
+                  - combobox [ref=e573] [cursor=pointer]:
+                    - option "通信设备 / 天线" [selected]
+                - generic [ref=e574]:
+                  - generic [ref=e575]: 单位
+                  - combobox [ref=e576] [cursor=pointer]:
+                    - option "套" [selected]
+                    - option "个"
+                    - option "台"
+            - generic [ref=e577]:
+              - generic [ref=e580]: 供应与开票
+              - generic [ref=e582]:
+                - generic [ref=e583]:
+                  - generic [ref=e584]: 供应商
+                  - textbox [ref=e585]: 华为技术有限公司
+                - generic [ref=e586]:
+                  - generic [ref=e587]: 厂家型号
+                  - textbox [ref=e588]: AAU5613
+                - generic [ref=e589]:
+                  - generic [ref=e590]: 公司主体
+                  - combobox [ref=e591] [cursor=pointer]:
+                    - option "Infitek 深圳" [selected]
+                - generic [ref=e592]:
+                  - generic [ref=e593]: 客户质保期（月）
+                  - spinbutton [ref=e594]: "24"
+                - generic [ref=e595]:
+                  - generic [ref=e596]: 采购质保期（月）
+                  - spinbutton [ref=e597]: "12"
+                - generic [ref=e599]:
+                  - generic [ref=e600]: 开票品名
+                  - textbox [ref=e601]: 5G 天线模块
+                - generic [ref=e602]:
+                  - generic [ref=e603]: 开票单位
+                  - textbox [ref=e604]: 套
+                - generic [ref=e605]:
+                  - generic [ref=e606]: 开票型号
+                  - textbox [ref=e607]: AAU5613-B
+                - generic [ref=e608]:
+                  - generic [ref=e609]: 禁止经营国家
+                  - textbox [ref=e610]: 美国、加拿大、澳大利亚
+                  - generic [ref=e611]: 多个国家用顿号分隔
+                - generic [ref=e612]:
+                  - generic [ref=e613]: 供应商质保说明
+                  - textbox [ref=e614]: 产品自出货日起 12 个月内，因制造缺陷导致的故障，供应商负责免费维修或更换。人为损坏不在保修范围内。
+            - generic [ref=e615]:
+              - generic [ref=e618]: 分类编号
+              - generic [ref=e620]:
+                - generic [ref=e621]:
+                  - generic [ref=e622]: 一级分类编号
+                  - textbox [ref=e623]: TC-001
+                - generic [ref=e624]:
+                  - generic [ref=e625]: 二级分类编号
+                  - textbox [ref=e626]: TC-001-02
+                - generic [ref=e627]:
+                  - generic [ref=e628]: 三级分类编号
+                  - textbox "选填" [ref=e629]
+    - generic [ref=e630]:
+      - generic [ref=e631]: 最后更新：2024-04-10 14:22 · friday
+      - button "取消" [ref=e632] [cursor=pointer]
+      - button "保存更改" [ref=e633] [cursor=pointer]:
+        - img [ref=e634]
+        - text: 保存更改
