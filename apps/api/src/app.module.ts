@@ -24,6 +24,7 @@ import { SkusModule } from './modules/master-data/skus/skus.module';
 import { SpuFaqsModule } from './modules/master-data/spu-faqs/spu-faqs.module';
 import { CertificatesModule } from './modules/master-data/certificates/certificates.module';
 import { ProductDocumentsModule } from './modules/master-data/product-documents/product-documents.module';
+import { ContractTemplatesModule } from './modules/master-data/contract-templates/contract-templates.module';
 import { CustomersModule } from './modules/master-data/customers/customers.module';
 import databaseConfig from './config/database.config';
 
@@ -55,6 +56,7 @@ import databaseConfig from './config/database.config';
     SpuFaqsModule,
     CertificatesModule,
     ProductDocumentsModule,
+    ContractTemplatesModule,
     FilesModule,
   ],
   controllers: [AppController],
