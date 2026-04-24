@@ -150,10 +150,6 @@ export class ProductDocumentsService {
   }
 
   async create(dto: CreateProductDocumentDto, operator?: string) {
-    if (!dto.fileKey || !dto.fileName) {
-      throw new BadRequestException('请先上传资料文件');
-    }
-
     await this.validateCountry(dto.countryId ?? null);
     await this.validateAttribution(dto.attributionType, this.normalizeScope(dto));
 
@@ -195,10 +191,6 @@ export class ProductDocumentsService {
       fileKey: 'fileKey' in dto ? dto.fileKey ?? null : doc.fileKey,
       fileName: 'fileName' in dto ? dto.fileName ?? null : doc.fileName,
     };
-
-    if (!nextState.fileKey || !nextState.fileName) {
-      throw new BadRequestException('资料文件不能为空');
-    }
 
     await this.validateCountry(nextState.countryId);
     await this.validateAttribution(nextState.attributionType, this.normalizeScope(nextState));

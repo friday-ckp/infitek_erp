@@ -308,11 +308,6 @@ export default function ProductDocumentFormPage() {
             return false;
           }
 
-          if (!fileKey || !fileName) {
-            antdStatic.message?.error('请先上传资料文件');
-            return false;
-          }
-
           const payload: CreateProductDocumentPayload = {
             documentName: values.documentName,
             documentType: values.documentType,
@@ -323,8 +318,8 @@ export default function ProductDocumentFormPage() {
             categoryLevel2Id: values.attributionType === 'category_l2' && values.categoryLevel2Id ? Number(values.categoryLevel2Id) : null,
             categoryLevel3Id: values.attributionType === 'category_l3' && values.categoryLevel3Id ? Number(values.categoryLevel3Id) : null,
             spuId: values.attributionType === 'product' && values.spuId ? Number(values.spuId) : null,
-            fileKey,
-            fileName,
+            fileKey: fileKey && fileName ? fileKey : undefined,
+            fileName: fileKey && fileName ? fileName : undefined,
           };
 
           if (isEdit) {

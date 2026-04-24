@@ -131,17 +131,23 @@ describe('ProductDocumentsService', () => {
       expect(result.fileUrl).toBe(signedUrl);
     });
 
-    it('未上传文件时 → BadRequestException', async () => {
-      await expect(
-        service.create(
-          {
-            documentName: '测试资料',
-            documentType: ProductDocumentType.SPEC_SHEET,
-            attributionType: ProductDocumentAttributionType.GENERAL,
-          },
-          'admin',
-        ),
-      ).rejects.toThrow(BadRequestException);
+    it('未上传文件时也可创建资料', async () => {
+      repoMock.create.mockReturnValue({ ...baseDoc });
+      repoMock.save.mockResolvedValue({ ...baseDoc });
+      filesServiceMock.getSignedUrl.mockResolvedValue(null);
+
+      const result = await service.create(
+        {
+          documentName: '测试资料',
+          documentType: ProductDocumentType.SPEC_SHEET,
+          attributionType: ProductDocumentAttributionType.GENERAL,
+        },
+        'admin',
+      );
+
+      expect(result.fileKey).toBeNull();
+      expect(result.fileName).toBeNull();
+      expect(result.fileUrl).toBeNull();
     });
 
     it('一级分类归属必须选择一级分类', async () => {
@@ -226,10 +232,14 @@ describe('ProductDocumentsService', () => {
       await expect(service.update(999, { documentName: '新名称' }, 'admin')).rejects.toThrow(NotFoundException);
     });
 
-    it('更新后缺少文件信息 → BadRequestException', async () => {
+    it('无文件资料也可更新其它字段', async () => {
       repoMock.findById.mockResolvedValue({ ...baseDoc, fileKey: null, fileName: null });
+      repoMock.save.mockResolvedValue({ ...baseDoc, documentName: '新名称', fileKey: null, fileName: null });
+      filesServiceMock.getSignedUrl.mockResolvedValue(null);
 
-      await expect(service.update(1, { documentName: '新名称' }, 'admin')).rejects.toThrow(BadRequestException);
+      const result = await service.update(1, { documentName: '新名称' }, 'admin');
+      expect(result.documentName).toBe('新名称');
+      expect(result.fileUrl).toBeNull();
     });
 
     it('替换文件时会删除旧 OSS 文件', async () => {
