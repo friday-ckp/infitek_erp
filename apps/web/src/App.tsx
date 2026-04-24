@@ -24,6 +24,9 @@ import CountryFormPage from './pages/master-data/countries/form';
 import CompaniesListPage from './pages/master-data/companies/index';
 import CompanyDetailPage from './pages/master-data/companies/detail';
 import CompanyFormPage from './pages/master-data/companies/form';
+import SuppliersListPage from './pages/master-data/suppliers/index';
+import SupplierDetailPage from './pages/master-data/suppliers/detail';
+import SupplierFormPage from './pages/master-data/suppliers/form';
 import ProductCategoriesPage from './pages/master-data/product-categories/index';
 import ProductCategoryFormPage from './pages/master-data/product-categories/form';
 import SpusListPage from './pages/master-data/spus/index';
@@ -125,6 +128,10 @@ function App() {
                 <Route path="/master-data/companies/create" element={<CompanyFormPage />} />
                 <Route path="/master-data/companies/:id" element={<CompanyDetailPage />} />
                 <Route path="/master-data/companies/:id/edit" element={<CompanyFormPage />} />
+                <Route path="/master-data/suppliers" element={<SuppliersListPage />} />
+                <Route path="/master-data/suppliers/create" element={<SupplierFormPage />} />
+                <Route path="/master-data/suppliers/:id" element={<SupplierDetailPage />} />
+                <Route path="/master-data/suppliers/:id/edit" element={<SupplierFormPage />} />
                 <Route path="/master-data/product-categories" element={<ProductCategoriesPage />} />
                 <Route path="/master-data/product-categories/create" element={<ProductCategoryFormPage />} />
                 <Route path="/master-data/product-categories/:id/edit" element={<ProductCategoryFormPage />} />
