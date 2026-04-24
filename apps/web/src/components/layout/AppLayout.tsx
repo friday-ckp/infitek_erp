@@ -133,6 +133,15 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     editLabel: '编辑币种',
   }),
   ...createCrudBreadcrumbRoutes({
+    basePath: '/master-data/contract-templates',
+    sectionLabel: '基础数据',
+    sectionPath: BASIC_DATA_SECTION_PATH,
+    listLabel: '合同条款范本',
+    createLabel: '新建条款范本',
+    detailLabel: '条款范本详情',
+    editLabel: '编辑条款范本',
+  }),
+  ...createCrudBreadcrumbRoutes({
     basePath: '/master-data/warehouses',
     sectionLabel: '基础数据',
     sectionPath: BASIC_DATA_SECTION_PATH,

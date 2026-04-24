@@ -14,11 +14,17 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
   'application/pdf',
+  'application/msword',
+  'application/vnd.ms-excel',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   'video/mp4',
 ]);
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const ALLOWED_FOLDERS = new Set(['certificates', 'documents', 'general', 'faqs', 'product-documents']);
+const ALLOWED_FOLDERS = new Set(['certificates', 'documents', 'general', 'faqs', 'product-documents', 'contract-templates']);
 
 @Injectable()
 export class FilesService {
@@ -151,6 +157,18 @@ export class FilesService {
         return '.webp';
       case 'application/pdf':
         return '.pdf';
+      case 'application/msword':
+        return '.doc';
+      case 'application/vnd.ms-excel':
+        return '.xls';
+      case 'application/vnd.ms-powerpoint':
+        return '.ppt';
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return '.docx';
+      case 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':
+        return '.xlsx';
+      case 'application/vnd.openxmlformats-officedocument.presentationml.presentation':
+        return '.pptx';
       case 'video/mp4':
         return '.mp4';
       default:
@@ -167,7 +185,8 @@ export class FilesService {
   }
 
   private isValidKeyFormat(key: string): boolean {
-    const keyPattern = /^(prod|dev)\/(certificates|documents|general|faqs|product-documents)\/\d{4}-\d{2}\/[0-9a-f-]+\.(jpg|png|webp|pdf|mp4|bin)$/i;
+    const keyPattern =
+      /^(prod|dev)\/(certificates|documents|general|faqs|product-documents|contract-templates)\/\d{4}-\d{2}\/[0-9a-f-]+\.(jpg|png|webp|pdf|doc|docx|xls|xlsx|ppt|pptx|mp4|bin)$/i;
     return keyPattern.test(key);
   }
 }

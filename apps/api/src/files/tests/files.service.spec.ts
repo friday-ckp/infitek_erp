@@ -155,6 +155,22 @@ describe('FilesService', () => {
       expect(result.key).toMatch(/^prod\/product-documents\/\d{4}-\d{2}\/[0-9a-f-]+\.mp4$/);
     });
 
+    it('应允许合同模板目录上传 docx 文件', async () => {
+      mockPut.mockResolvedValue({ name: 'prod/contract-templates/2026-04/mock-id.docx' });
+      const file = {
+        originalname: 'contract-template.docx',
+        mimetype: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        size: 1024,
+        buffer: Buffer.from('docx'),
+      } as Express.Multer.File;
+
+      const result = await service.upload(file, 'contract-templates');
+
+      expect(result.filename).toBe('contract-template.docx');
+      expect(result.key).toMatch(/^prod\/contract-templates\/\d{4}-\d{2}\/[0-9a-f-]+\.docx$/);
+      expect(mockPut).toHaveBeenCalledWith(expect.stringMatching(/^prod\/contract-templates\//), file.buffer);
+    });
+
     it('OSS 上传失败时应抛出 500', async () => {
       mockPut.mockRejectedValue(new Error('oss failed'));
       const file = {
@@ -206,6 +222,12 @@ describe('FilesService', () => {
       mockDelete.mockResolvedValue({});
       await expect(service.delete('prod/product-documents/2026-04/a.mp4')).resolves.toBeUndefined();
       expect(mockDelete).toHaveBeenCalledWith('prod/product-documents/2026-04/a.mp4');
+    });
+
+    it('应允许删除 contract-templates 下的 docx 文件', async () => {
+      mockDelete.mockResolvedValue({});
+      await expect(service.delete('prod/contract-templates/2026-04/a.docx')).resolves.toBeUndefined();
+      expect(mockDelete).toHaveBeenCalledWith('prod/contract-templates/2026-04/a.docx');
     });
 
     it('key 为空时应抛出 400', async () => {

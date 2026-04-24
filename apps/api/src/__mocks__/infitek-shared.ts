@@ -131,6 +131,16 @@ export const ProductDocumentAttributionType = {
 export type ProductDocumentAttributionType =
   (typeof ProductDocumentAttributionType)[keyof typeof ProductDocumentAttributionType];
 
+export const ContractTemplateStatus = {
+  PENDING_SUBMIT: 'pending_submit',
+  IN_REVIEW: 'in_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  VOIDED: 'voided',
+} as const;
+export type ContractTemplateStatus =
+  (typeof ContractTemplateStatus)[keyof typeof ContractTemplateStatus];
+
 // types
 export interface ApiResponse<T = unknown> {
   success: boolean;
