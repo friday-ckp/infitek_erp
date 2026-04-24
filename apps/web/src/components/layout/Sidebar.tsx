@@ -140,13 +140,17 @@ function getInitials(name: string) {
   return name ? name.slice(0, 2).toUpperCase() : 'U';
 }
 
+function isChildRouteActive(currentPath: string, childPath: string): boolean {
+  return currentPath === childPath || currentPath.startsWith(`${childPath}/`);
+}
+
 export default function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
 
   const defaultOpen = menuItems
-    .filter((item) => item.children.some((c) => c.key === location.pathname))
+    .filter((item) => item.children.some((c) => isChildRouteActive(location.pathname, c.key)))
     .map((item) => item.key);
   const [openKeys, setOpenKeys] = useState<string[]>(defaultOpen);
   const [hoveredFooterBtn, setHoveredFooterBtn] = useState<string | null>(null);
@@ -164,7 +168,7 @@ export default function Sidebar() {
 
   const renderMenuGroup = (item: typeof menuItems[0]) => {
     const isOpen = openKeys.includes(item.key);
-    const hasActiveChild = item.children.some((c) => c.key === location.pathname);
+    const hasActiveChild = item.children.some((c) => isChildRouteActive(location.pathname, c.key));
 
     if (item.disabled) {
       return (
@@ -206,7 +210,7 @@ export default function Sidebar() {
         }}>
           <div style={{ padding: '3px 0 6px 0' }}>
             {item.children.map((child) => {
-              const isActive = location.pathname === child.key;
+              const isActive = isChildRouteActive(location.pathname, child.key);
               return (
                 <ChildItem
                   key={child.key}

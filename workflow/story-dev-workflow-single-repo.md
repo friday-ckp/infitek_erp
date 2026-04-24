@@ -164,7 +164,14 @@ git branch -d story/{epic}-{story}-{slug}
 
 ### 2. Create Story File
 
-When Story is `backlog`, run `bmad-create-story` (working directory is the repository root where `_bmad-output/` resides); the branch is the current `BRANCH` in `$BACKEND_ROOT`. When creating a story, you need to ask the user whether there is a field list reference for the existing function. When the user chooses the reference, list the fields first and give it to the user for confirmation, otherwise it will be executed directly.
+When Story is `backlog`, run `bmad-create-story` (working directory is the repository root where `_bmad-output/` resides); the branch is the current `BRANCH` in `$BACKEND_ROOT`.
+
+### 2.a. Field List Reference Check
+
+After the story file is created, ask the user whether there is a field list reference for the existing function:
+
+- **If the user chooses to reference**: List all relevant fields first and present them to the user for confirmation before proceeding.
+- **If the user declines or there is no reference**: Execute directly without this step.
 
 ### 3. Implement Story
 
