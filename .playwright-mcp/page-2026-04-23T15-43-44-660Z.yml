@@ -1,0 +1,278 @@
+- generic [ref=e60]:
+  - generic [ref=e61]:
+    - generic [ref=e62]:
+      - img [ref=e64]
+      - generic [ref=e66]:
+        - generic [ref=e67]: 星辰科技 ERP
+        - generic [ref=e68]: INFITEK ENTERPRISE
+    - navigation [ref=e69]:
+      - generic [ref=e70]: 业务模块
+      - generic [ref=e71]:
+        - generic [ref=e72] [cursor=pointer]:
+          - img [ref=e74]
+          - generic [ref=e77]: 销售管理
+          - img [ref=e79]
+        - generic [ref=e82] [cursor=pointer]: 销售订单
+      - generic [ref=e83]:
+        - generic [ref=e84] [cursor=pointer]:
+          - img [ref=e86]
+          - generic [ref=e90]: 商务管理
+          - img [ref=e92]
+        - generic [ref=e95] [cursor=pointer]: 发货需求
+      - generic [ref=e96]:
+        - generic [ref=e97] [cursor=pointer]:
+          - img [ref=e99]
+          - generic [ref=e102]: 采购管理
+          - img [ref=e104]
+        - generic [ref=e107] [cursor=pointer]: 采购订单
+      - generic [ref=e108]:
+        - generic [ref=e109] [cursor=pointer]:
+          - img [ref=e111]
+          - generic [ref=e114]: 产品管理
+          - img [ref=e116]
+        - generic [ref=e118]:
+          - generic [ref=e119] [cursor=pointer]: 产品分类
+          - generic [ref=e120] [cursor=pointer]: SPU 管理
+          - generic [ref=e121] [cursor=pointer]: SKU 管理
+          - generic [ref=e122] [cursor=pointer]: 证书管理
+          - generic [ref=e123] [cursor=pointer]: FAQ 管理
+      - generic [ref=e124]:
+        - generic [ref=e125] [cursor=pointer]:
+          - img [ref=e127]
+          - generic [ref=e131]: 库存管理
+          - img [ref=e133]
+        - generic [ref=e136] [cursor=pointer]: 库存查询
+      - generic [ref=e138]: 系统功能
+      - generic:
+        - generic:
+          - generic:
+            - img
+          - generic: 财务管理
+          - generic: 即将上线
+      - generic [ref=e139]:
+        - generic [ref=e140] [cursor=pointer]:
+          - img [ref=e142]
+          - generic [ref=e145]: 基础数据
+          - img [ref=e147]
+        - generic [ref=e149]:
+          - generic [ref=e150] [cursor=pointer]: 单位管理
+          - generic [ref=e151] [cursor=pointer]: 公司主体
+          - generic [ref=e152] [cursor=pointer]: 用户管理
+          - generic [ref=e153] [cursor=pointer]: 仓库管理
+          - generic [ref=e154] [cursor=pointer]: 币种管理
+          - generic [ref=e155] [cursor=pointer]: 国家/地区
+          - generic [ref=e156] [cursor=pointer]: 供应商
+          - generic [ref=e157] [cursor=pointer]: 客户
+    - generic [ref=e158]:
+      - generic [ref=e159]: AD
+      - generic [ref=e160]:
+        - generic [ref=e161]: admin
+        - generic [ref=e162]: 管理员
+      - generic [ref=e163]:
+        - button "设置" [ref=e164] [cursor=pointer]:
+          - img [ref=e165]
+        - button "退出登录" [ref=e168] [cursor=pointer]:
+          - img [ref=e169]
+  - generic [ref=e172]:
+    - generic [ref=e173]:
+      - navigation [ref=e174]:
+        - list [ref=e175]:
+          - listitem [ref=e176]:
+            - generic [ref=e177]: 基础数据
+          - listitem [ref=e178]: ›
+          - listitem [ref=e179]:
+            - generic [ref=e180]: 用户管理
+      - generic [ref=e181]:
+        - img "bell" [ref=e183] [cursor=pointer]:
+          - img [ref=e184]
+        - generic [ref=e186] [cursor=pointer]: AD
+    - main [ref=e187]:
+      - generic [ref=e188]:
+        - generic [ref=e189]:
+          - heading "用户管理" [level=2] [ref=e190]
+          - button "plus 新建用户" [ref=e191] [cursor=pointer]:
+            - img "plus" [ref=e193]:
+              - img [ref=e194]
+            - generic [ref=e197]: 新建用户
+        - generic [ref=e198]:
+          - generic [ref=e199]:
+            - img "search" [ref=e201]:
+              - img [ref=e202]
+            - textbox "搜索用户名或姓名" [ref=e204]
+          - generic [ref=e206] [cursor=pointer]:
+            - generic [ref=e208]:
+              - combobox [ref=e210]
+              - generic: 全部状态
+            - generic:
+              - img:
+                - img
+          - button "search 查询" [ref=e211] [cursor=pointer]:
+            - img "search" [ref=e213]:
+              - img [ref=e214]
+            - generic [ref=e216]: 查询
+          - button "reload 重置" [ref=e217] [cursor=pointer]:
+            - img "reload" [ref=e219]:
+              - img [ref=e220]
+            - generic [ref=e222]: 重置
+        - generic [ref=e226]:
+          - table [ref=e230]:
+            - rowgroup [ref=e231]:
+              - row "用户名 姓名 账号状态 创建时间 更新时间 操作" [ref=e232]:
+                - columnheader "用户名" [ref=e233]
+                - columnheader "姓名" [ref=e234]
+                - columnheader "账号状态" [ref=e235]
+                - columnheader "创建时间" [ref=e236]
+                - columnheader "更新时间" [ref=e237]
+                - columnheader "操作" [ref=e238]
+            - rowgroup [ref=e239]:
+              - row "111 friday111 停用 2026/4/19 08:18:40 2026/4/23 20:59:56 查看 编辑" [ref=e240]:
+                - cell "111" [ref=e241]
+                - cell "friday111" [ref=e242]
+                - cell "停用" [ref=e243]:
+                  - generic [ref=e244]: 停用
+                - cell "2026/4/19 08:18:40" [ref=e245]
+                - cell "2026/4/23 20:59:56" [ref=e246]
+                - cell "查看 编辑" [ref=e247]:
+                  - generic [ref=e248]:
+                    - generic [ref=e249]: 查看
+                    - generic [ref=e250]: 编辑
+              - row "测试的 小陈同学 活跃 2026/4/18 16:12:37 2026/4/18 16:12:37 查看 编辑 停用" [ref=e251]:
+                - cell "测试的" [ref=e252]
+                - cell "小陈同学" [ref=e253]
+                - cell "活跃" [ref=e254]:
+                  - generic [ref=e255]: 活跃
+                - cell "2026/4/18 16:12:37" [ref=e256]
+                - cell "2026/4/18 16:12:37" [ref=e257]
+                - cell "查看 编辑 停用" [ref=e258]:
+                  - generic [ref=e259]:
+                    - generic [ref=e260]: 查看
+                    - generic [ref=e261]: 编辑
+                    - generic [ref=e262]: 停用
+              - row "real_dbg_1776442332745 Real Debug User 活跃 2026/4/18 00:12:15 2026/4/18 00:12:15 查看 编辑 停用" [ref=e263]:
+                - cell "real_dbg_1776442332745" [ref=e264]
+                - cell "Real Debug User" [ref=e265]
+                - cell "活跃" [ref=e266]:
+                  - generic [ref=e267]: 活跃
+                - cell "2026/4/18 00:12:15" [ref=e268]
+                - cell "2026/4/18 00:12:15" [ref=e269]
+                - cell "查看 编辑 停用" [ref=e270]:
+                  - generic [ref=e271]:
+                    - generic [ref=e272]: 查看
+                    - generic [ref=e273]: 编辑
+                    - generic [ref=e274]: 停用
+              - row "testuser_1776429810980 Test User 活跃 2026/4/17 20:43:32 2026/4/17 20:43:32 查看 编辑 停用" [ref=e275]:
+                - cell "testuser_1776429810980" [ref=e276]
+                - cell "Test User" [ref=e277]
+                - cell "活跃" [ref=e278]:
+                  - generic [ref=e279]: 活跃
+                - cell "2026/4/17 20:43:32" [ref=e280]
+                - cell "2026/4/17 20:43:32" [ref=e281]
+                - cell "查看 编辑 停用" [ref=e282]:
+                  - generic [ref=e283]:
+                    - generic [ref=e284]: 查看
+                    - generic [ref=e285]: 编辑
+                    - generic [ref=e286]: 停用
+              - row "testuser_1776429465683 Test User 活跃 2026/4/17 20:37:46 2026/4/17 20:37:46 查看 编辑 停用" [ref=e287]:
+                - cell "testuser_1776429465683" [ref=e288]
+                - cell "Test User" [ref=e289]
+                - cell "活跃" [ref=e290]:
+                  - generic [ref=e291]: 活跃
+                - cell "2026/4/17 20:37:46" [ref=e292]
+                - cell "2026/4/17 20:37:46" [ref=e293]
+                - cell "查看 编辑 停用" [ref=e294]:
+                  - generic [ref=e295]:
+                    - generic [ref=e296]: 查看
+                    - generic [ref=e297]: 编辑
+                    - generic [ref=e298]: 停用
+              - row "testuser_1776429133324 Test User 活跃 2026/4/17 20:32:14 2026/4/17 20:32:14 查看 编辑 停用" [ref=e299]:
+                - cell "testuser_1776429133324" [ref=e300]
+                - cell "Test User" [ref=e301]
+                - cell "活跃" [ref=e302]:
+                  - generic [ref=e303]: 活跃
+                - cell "2026/4/17 20:32:14" [ref=e304]
+                - cell "2026/4/17 20:32:14" [ref=e305]
+                - cell "查看 编辑 停用" [ref=e306]:
+                  - generic [ref=e307]:
+                    - generic [ref=e308]: 查看
+                    - generic [ref=e309]: 编辑
+                    - generic [ref=e310]: 停用
+              - row "testuser_1776428856002 Test User 活跃 2026/4/17 20:27:37 2026/4/17 20:27:37 查看 编辑 停用" [ref=e311]:
+                - cell "testuser_1776428856002" [ref=e312]
+                - cell "Test User" [ref=e313]
+                - cell "活跃" [ref=e314]:
+                  - generic [ref=e315]: 活跃
+                - cell "2026/4/17 20:27:37" [ref=e316]
+                - cell "2026/4/17 20:27:37" [ref=e317]
+                - cell "查看 编辑 停用" [ref=e318]:
+                  - generic [ref=e319]:
+                    - generic [ref=e320]: 查看
+                    - generic [ref=e321]: 编辑
+                    - generic [ref=e322]: 停用
+              - row "testuser_1776428722288 Test User 活跃 2026/4/17 20:25:23 2026/4/17 20:25:23 查看 编辑 停用" [ref=e323]:
+                - cell "testuser_1776428722288" [ref=e324]
+                - cell "Test User" [ref=e325]
+                - cell "活跃" [ref=e326]:
+                  - generic [ref=e327]: 活跃
+                - cell "2026/4/17 20:25:23" [ref=e328]
+                - cell "2026/4/17 20:25:23" [ref=e329]
+                - cell "查看 编辑 停用" [ref=e330]:
+                  - generic [ref=e331]:
+                    - generic [ref=e332]: 查看
+                    - generic [ref=e333]: 编辑
+                    - generic [ref=e334]: 停用
+              - row "testuser_1776428434020 Test User 活跃 2026/4/17 20:20:35 2026/4/17 20:20:35 查看 编辑 停用" [ref=e335]:
+                - cell "testuser_1776428434020" [ref=e336]
+                - cell "Test User" [ref=e337]
+                - cell "活跃" [ref=e338]:
+                  - generic [ref=e339]: 活跃
+                - cell "2026/4/17 20:20:35" [ref=e340]
+                - cell "2026/4/17 20:20:35" [ref=e341]
+                - cell "查看 编辑 停用" [ref=e342]:
+                  - generic [ref=e343]:
+                    - generic [ref=e344]: 查看
+                    - generic [ref=e345]: 编辑
+                    - generic [ref=e346]: 停用
+              - row "testuser_1776421363005 Test User 活跃 2026/4/17 18:22:44 2026/4/17 18:22:44 查看 编辑 停用" [ref=e347]:
+                - cell "testuser_1776421363005" [ref=e348]
+                - cell "Test User" [ref=e349]
+                - cell "活跃" [ref=e350]:
+                  - generic [ref=e351]: 活跃
+                - cell "2026/4/17 18:22:44" [ref=e352]
+                - cell "2026/4/17 18:22:44" [ref=e353]
+                - cell "查看 编辑 停用" [ref=e354]:
+                  - generic [ref=e355]:
+                    - generic [ref=e356]: 查看
+                    - generic [ref=e357]: 编辑
+                    - generic [ref=e358]: 停用
+              - row "admin 系统管理员 活跃 2026/4/17 11:06:20 2026/4/17 11:14:44 查看 编辑 停用" [ref=e359]:
+                - cell "admin" [ref=e360]
+                - cell "系统管理员" [ref=e361]
+                - cell "活跃" [ref=e362]:
+                  - generic [ref=e363]: 活跃
+                - cell "2026/4/17 11:06:20" [ref=e364]
+                - cell "2026/4/17 11:14:44" [ref=e365]
+                - cell "查看 编辑 停用" [ref=e366]:
+                  - generic [ref=e367]:
+                    - generic [ref=e368]: 查看
+                    - generic [ref=e369]: 编辑
+                    - generic [ref=e370]: 停用
+          - list [ref=e371]:
+            - listitem [ref=e372]: 共 11 条
+            - listitem "Previous Page" [ref=e373]:
+              - button "left" [disabled] [ref=e374]:
+                - img "left" [ref=e375]:
+                  - img [ref=e376]
+            - listitem "1" [ref=e378] [cursor=pointer]:
+              - generic [ref=e379]: "1"
+            - listitem "Next Page" [ref=e380]:
+              - button "right" [disabled] [ref=e381]:
+                - img "right" [ref=e382]:
+                  - img [ref=e383]
+            - listitem [ref=e385]:
+              - generic "Page Size" [ref=e386] [cursor=pointer]:
+                - generic [ref=e388]:
+                  - combobox "Page Size" [ref=e390]
+                  - generic "20 / page" [ref=e391]
+                - generic:
+                  - img:
+                    - img

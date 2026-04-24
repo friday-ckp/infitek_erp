@@ -101,7 +101,7 @@ export default function SpuDetailPage() {
 
   const data = query.data;
   const categoryName = data && categoryTreeQuery.data
-    ? findCategoryName(categoryTreeQuery.data, data.categoryId)
+    ? (findCategoryName(categoryTreeQuery.data, data.categoryId) || '—')
     : '—';
   const summaryStatusClass = data?.categoryId ? 'spu-pill-blue' : 'spu-pill-gray';
   const summaryStatusText = data?.categoryId ? '已分类' : '待分类';
