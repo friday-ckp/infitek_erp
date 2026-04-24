@@ -18,12 +18,14 @@ import { CurrenciesModule } from './modules/master-data/currencies/currencies.mo
 import { CountriesModule } from './modules/master-data/countries/countries.module';
 import { CompaniesModule } from './modules/master-data/companies/companies.module';
 import { ProductCategoriesModule } from './modules/master-data/product-categories/product-categories.module';
+import { SuppliersModule } from './modules/master-data/suppliers/suppliers.module';
 import { SpusModule } from './modules/master-data/spus/spus.module';
 import { SkusModule } from './modules/master-data/skus/skus.module';
 import { SpuFaqsModule } from './modules/master-data/spu-faqs/spu-faqs.module';
 import { CertificatesModule } from './modules/master-data/certificates/certificates.module';
 import { ProductDocumentsModule } from './modules/master-data/product-documents/product-documents.module';
 import { ContractTemplatesModule } from './modules/master-data/contract-templates/contract-templates.module';
+import { CustomersModule } from './modules/master-data/customers/customers.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -46,7 +48,9 @@ import databaseConfig from './config/database.config';
     CurrenciesModule,
     CountriesModule,
     CompaniesModule,
+    CustomersModule,
     ProductCategoriesModule,
+    SuppliersModule,
     SpusModule,
     SkusModule,
     SpuFaqsModule,
