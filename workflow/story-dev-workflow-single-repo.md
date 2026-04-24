@@ -173,6 +173,16 @@ After the story file is created, ask the user whether there is a field list refe
 - **If the user chooses to reference**: List all relevant fields first and present them to the user for confirmation before proceeding.
 - **If the user declines or there is no reference**: Execute directly without this step.
 
+### 2.b. List Search Fields & Display Fields Confirmation
+
+If the story involves a list page, ask the user to confirm the following two items before proceeding:
+
+1. **Search fields**: Which fields should appear in the search/filter bar? List candidates and wait for user confirmation.
+2. **List display fields**: Which columns should be shown in the list table? List candidates and wait for user confirmation.
+
+- **If the user confirms or adjusts**: Use the confirmed fields as the implementation spec.
+- **If the user declines or the story has no list page**: Skip this step and proceed directly.
+
 ### 3. Implement Story
 
 In **`$BACKEND_ROOT`**, run `bmad-dev-story`; follow `project-context.md` conventions.

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/chenkangping/ai_study/infitek_erp/packages/shared/**)",
+      "Bash(npm run *)",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_console_messages"
+    ]
+  }
+}
