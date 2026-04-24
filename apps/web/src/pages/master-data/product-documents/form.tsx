@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Breadcrumb, Button, Result, Select, Skeleton, TreeSelect, Upload, message } from 'antd';
+import { Breadcrumb, Button, Result, Select, Skeleton, TreeSelect, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import {
@@ -24,6 +24,7 @@ import {
 import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
 import { getCountries } from '../../../api/countries.api';
 import { getSpus } from '../../../api/spus.api';
+import antdStatic from '../../../utils/antdStatic';
 import './product-document-page.css';
 
 function buildTreeData(nodes: ProductCategoryNode[], filterLevel?: number): any[] {
@@ -78,7 +79,7 @@ export default function ProductDocumentFormPage() {
     mutationFn: (payload: CreateProductDocumentPayload) => createProductDocument(payload),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['product-documents'] });
-      message.success('资料创建成功', 3);
+      antdStatic.message?.success('资料创建成功', 3);
       navigate(`/master-data/product-documents/${data.id}`);
     },
   });
@@ -88,7 +89,7 @@ export default function ProductDocumentFormPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-documents'] });
       queryClient.invalidateQueries({ queryKey: ['product-document-detail', docId] });
-      message.success('资料更新成功', 3);
+      antdStatic.message?.success('资料更新成功', 3);
       navigate(`/master-data/product-documents/${docId}`);
     },
   });
@@ -173,10 +174,10 @@ export default function ProductDocumentFormPage() {
       const result = await uploadProductDocumentFile(file);
       setUploadedFileKey(result.key);
       setUploadedFileName(file.name);
-      message.success('文件上传成功');
+      antdStatic.message?.success('文件上传成功');
       return true;
     } catch {
-      message.error('文件上传失败');
+      antdStatic.message?.error('文件上传失败');
       setFileList([]);
       return false;
     } finally {
@@ -303,12 +304,12 @@ export default function ProductDocumentFormPage() {
           const fileName = uploadedFileName ?? detailQuery.data?.fileName ?? undefined;
 
           if (uploading) {
-            message.warning('文件上传中，请稍后再保存');
+            antdStatic.message?.warning('文件上传中，请稍后再保存');
             return false;
           }
 
           if (!fileKey || !fileName) {
-            message.error('请先上传资料文件');
+            antdStatic.message?.error('请先上传资料文件');
             return false;
           }
 
@@ -335,7 +336,7 @@ export default function ProductDocumentFormPage() {
         }}
         onFinishFailed={({ errorFields }) => {
           if (errorFields.length > 0) {
-            message.error(errorFields[0]?.errors?.[0] || '请先完善必填信息');
+            antdStatic.message?.error(errorFields[0]?.errors?.[0] || '请先完善必填信息');
           }
         }}
       >
