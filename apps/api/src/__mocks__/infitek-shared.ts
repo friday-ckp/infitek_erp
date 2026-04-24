@@ -108,6 +108,29 @@ export const SpuFaqQuestionType = {
 export type SpuFaqQuestionType =
   (typeof SpuFaqQuestionType)[keyof typeof SpuFaqQuestionType];
 
+export const ProductDocumentType = {
+  BROCHURE: 'brochure',
+  SPEC_SHEET: 'spec_sheet',
+  CERTIFICATE: 'certificate',
+  IMAGE: 'image',
+  VIDEO: 'video',
+  CUSTOMS_DOCS: 'customs_docs',
+  QUOTATION: 'quotation',
+  OTHER: 'other',
+} as const;
+export type ProductDocumentType =
+  (typeof ProductDocumentType)[keyof typeof ProductDocumentType];
+
+export const ProductDocumentAttributionType = {
+  GENERAL: 'general',
+  CATEGORY_L1: 'category_l1',
+  CATEGORY_L2: 'category_l2',
+  CATEGORY_L3: 'category_l3',
+  PRODUCT: 'product',
+} as const;
+export type ProductDocumentAttributionType =
+  (typeof ProductDocumentAttributionType)[keyof typeof ProductDocumentAttributionType];
+
 // types
 export interface ApiResponse<T = unknown> {
   success: boolean;

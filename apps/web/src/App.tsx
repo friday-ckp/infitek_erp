@@ -37,6 +37,9 @@ import CertificateDetailPage from './pages/master-data/certificates/detail';
 import CertificateFormPage from './pages/master-data/certificates/form';
 import SpuFaqsListPage from './pages/master-data/spu-faqs/index';
 import SpuFaqFormPage from './pages/master-data/spu-faqs/form';
+import ProductDocumentsListPage from './pages/master-data/product-documents/index';
+import ProductDocumentDetailPage from './pages/master-data/product-documents/detail';
+import ProductDocumentFormPage from './pages/master-data/product-documents/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -144,6 +147,10 @@ function App() {
                 <Route path="/master-data/spu-faqs" element={<SpuFaqsListPage />} />
                 <Route path="/master-data/spu-faqs/create" element={<SpuFaqFormPage />} />
                 <Route path="/master-data/spu-faqs/:id/edit" element={<SpuFaqFormPage />} />
+                <Route path="/master-data/product-documents" element={<ProductDocumentsListPage />} />
+                <Route path="/master-data/product-documents/create" element={<ProductDocumentFormPage />} />
+                <Route path="/master-data/product-documents/:id" element={<ProductDocumentDetailPage />} />
+                <Route path="/master-data/product-documents/:id/edit" element={<ProductDocumentFormPage />} />
               </Route>
 
               {/* 兜底重定向 */}

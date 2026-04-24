@@ -25,6 +25,7 @@ const BREADCRUMB_MAP: Record<string, { label: string; parent?: string; parentLab
   '/master-data/skus': { label: 'SKU 管理', parent: '/master-data/product', parentLabel: '产品管理' },
   '/master-data/certificates': { label: '证书管理', parent: '/master-data/product', parentLabel: '产品管理' },
   '/master-data/spu-faqs': { label: 'FAQ 管理', parent: '/master-data/product', parentLabel: '产品管理' },
+  '/master-data/product-documents': { label: '资料管理', parent: '/master-data/product', parentLabel: '产品管理' },
 };
 
 function isValidToken(token: string | null): boolean {
