@@ -72,11 +72,11 @@ export interface CreateProductDocumentPayload {
   documentType: string;
   content?: string;
   attributionType: string;
-  countryId?: number;
-  categoryLevel1Id?: number;
-  categoryLevel2Id?: number;
-  categoryLevel3Id?: number;
-  spuId?: number;
+  countryId?: number | null;
+  categoryLevel1Id?: number | null;
+  categoryLevel2Id?: number | null;
+  categoryLevel3Id?: number | null;
+  spuId?: number | null;
   fileKey?: string;
   fileName?: string;
 }
