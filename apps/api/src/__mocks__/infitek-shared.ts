@@ -108,6 +108,40 @@ export const SpuFaqQuestionType = {
 export type SpuFaqQuestionType =
   (typeof SpuFaqQuestionType)[keyof typeof SpuFaqQuestionType];
 
+export const SupplierStatus = {
+  COOPERATING: '合作',
+  ELIMINATED: '淘汰',
+  TEMPORARY: '临拓',
+} as const;
+export type SupplierStatus =
+  (typeof SupplierStatus)[keyof typeof SupplierStatus];
+
+export const SupplierInvoiceType = {
+  NORMAL: '普票',
+  VAT_13: '13%专票',
+  VAT_7: '7%专票',
+  VAT_1: '1%专票',
+} as const;
+export type SupplierInvoiceType =
+  (typeof SupplierInvoiceType)[keyof typeof SupplierInvoiceType];
+
+export const SupplierSettlementType = {
+  MONTHLY: '月结',
+  BEFORE_SHIPMENT: '发货前结算',
+  HALF_MONTHLY: '半月结',
+  INVOICE_BASED: '票结',
+} as const;
+export type SupplierSettlementType =
+  (typeof SupplierSettlementType)[keyof typeof SupplierSettlementType];
+
+export const SupplierSettlementDateType = {
+  ORDER_DATE: '采购下单日期',
+  RECEIPT_DATE: '采购入库日期',
+  INVOICE_DATE: '采购开票日期',
+} as const;
+export type SupplierSettlementDateType =
+  (typeof SupplierSettlementDateType)[keyof typeof SupplierSettlementDateType];
+
 export const ProductDocumentType = {
   BROCHURE: 'brochure',
   SPEC_SHEET: 'spec_sheet',
@@ -143,6 +177,16 @@ export const LogisticsProviderStatus = {
 } as const;
 export type LogisticsProviderStatus =
   (typeof LogisticsProviderStatus)[keyof typeof LogisticsProviderStatus];
+
+export const ContractTemplateStatus = {
+  PENDING_SUBMIT: 'pending_submit',
+  IN_REVIEW: 'in_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  VOIDED: 'voided',
+} as const;
+export type ContractTemplateStatus =
+  (typeof ContractTemplateStatus)[keyof typeof ContractTemplateStatus];
 
 // types
 export interface ApiResponse<T = unknown> {
