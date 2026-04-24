@@ -109,6 +109,8 @@ const menuItems = [
       { key: '/master-data/warehouses', label: '仓库管理' },
       { key: '/master-data/currencies', label: '币种管理' },
       { key: '/master-data/countries', label: '国家/地区' },
+      { key: '/master-data/ports', label: '港口信息' },
+      { key: '/master-data/logistics-providers', label: '物流供应商管理' },
       { key: '/master-data/contract-templates', label: '合同条款范本' },
       { key: '/master-data/suppliers', label: '供应商' },
       { key: '/master-data/customers', label: '客户' },

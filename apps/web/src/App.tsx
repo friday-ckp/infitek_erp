@@ -24,6 +24,12 @@ import CountryFormPage from './pages/master-data/countries/form';
 import CompaniesListPage from './pages/master-data/companies/index';
 import CompanyDetailPage from './pages/master-data/companies/detail';
 import CompanyFormPage from './pages/master-data/companies/form';
+import PortsListPage from './pages/master-data/ports/index';
+import PortDetailPage from './pages/master-data/ports/detail';
+import PortFormPage from './pages/master-data/ports/form';
+import LogisticsProvidersListPage from './pages/master-data/logistics-providers/index';
+import LogisticsProviderDetailPage from './pages/master-data/logistics-providers/detail';
+import LogisticsProviderFormPage from './pages/master-data/logistics-providers/form';
 import SuppliersListPage from './pages/master-data/suppliers/index';
 import SupplierDetailPage from './pages/master-data/suppliers/detail';
 import SupplierFormPage from './pages/master-data/suppliers/form';
@@ -137,6 +143,14 @@ function App() {
                   <Route path="/master-data/companies/create" element={<CompanyFormPage />} />
                   <Route path="/master-data/companies/:id" element={<CompanyDetailPage />} />
                   <Route path="/master-data/companies/:id/edit" element={<CompanyFormPage />} />
+                  <Route path="/master-data/ports" element={<PortsListPage />} />
+                  <Route path="/master-data/ports/create" element={<PortFormPage />} />
+                  <Route path="/master-data/ports/:id" element={<PortDetailPage />} />
+                  <Route path="/master-data/ports/:id/edit" element={<PortFormPage />} />
+                  <Route path="/master-data/logistics-providers" element={<LogisticsProvidersListPage />} />
+                  <Route path="/master-data/logistics-providers/create" element={<LogisticsProviderFormPage />} />
+                  <Route path="/master-data/logistics-providers/:id" element={<LogisticsProviderDetailPage />} />
+                  <Route path="/master-data/logistics-providers/:id/edit" element={<LogisticsProviderFormPage />} />
                   <Route path="/master-data/suppliers" element={<SuppliersListPage />} />
                   <Route path="/master-data/suppliers/create" element={<SupplierFormPage />} />
                   <Route path="/master-data/suppliers/:id" element={<SupplierDetailPage />} />

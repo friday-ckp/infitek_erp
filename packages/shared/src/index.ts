@@ -19,6 +19,8 @@ export * from './enums/supplier-settlement-type.enum';
 export * from './enums/supplier-settlement-date-type.enum';
 export * from './enums/product-document-type.enum';
 export * from './enums/product-document-attribution-type.enum';
+export * from './enums/port-type.enum';
+export * from './enums/logistics-provider-status.enum';
 export * from './enums/contract-template-status.enum';
 
 // Types
