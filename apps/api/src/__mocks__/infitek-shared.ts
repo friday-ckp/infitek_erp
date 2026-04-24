@@ -131,6 +131,19 @@ export const ProductDocumentAttributionType = {
 export type ProductDocumentAttributionType =
   (typeof ProductDocumentAttributionType)[keyof typeof ProductDocumentAttributionType];
 
+export const PortType = {
+  DEPARTURE: '起运港',
+  DESTINATION: '目的港',
+} as const;
+export type PortType = (typeof PortType)[keyof typeof PortType];
+
+export const LogisticsProviderStatus = {
+  COOPERATING: '合作',
+  ELIMINATED: '淘汰',
+} as const;
+export type LogisticsProviderStatus =
+  (typeof LogisticsProviderStatus)[keyof typeof LogisticsProviderStatus];
+
 // types
 export interface ApiResponse<T = unknown> {
   success: boolean;

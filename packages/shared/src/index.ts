@@ -15,6 +15,8 @@ export * from './enums/certificate-status.enum';
 export * from './enums/spu-faq-question-type.enum';
 export * from './enums/product-document-type.enum';
 export * from './enums/product-document-attribution-type.enum';
+export * from './enums/port-type.enum';
+export * from './enums/logistics-provider-status.enum';
 
 // Types
 export * from './types/api-response.types';

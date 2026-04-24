@@ -17,6 +17,8 @@ import { WarehousesModule } from './modules/master-data/warehouses/warehouses.mo
 import { CurrenciesModule } from './modules/master-data/currencies/currencies.module';
 import { CountriesModule } from './modules/master-data/countries/countries.module';
 import { CompaniesModule } from './modules/master-data/companies/companies.module';
+import { PortsModule } from './modules/master-data/ports/ports.module';
+import { LogisticsProvidersModule } from './modules/master-data/logistics-providers/logistics-providers.module';
 import { ProductCategoriesModule } from './modules/master-data/product-categories/product-categories.module';
 import { SpusModule } from './modules/master-data/spus/spus.module';
 import { SkusModule } from './modules/master-data/skus/skus.module';
@@ -45,6 +47,8 @@ import databaseConfig from './config/database.config';
     CurrenciesModule,
     CountriesModule,
     CompaniesModule,
+    PortsModule,
+    LogisticsProvidersModule,
     ProductCategoriesModule,
     SpusModule,
     SkusModule,

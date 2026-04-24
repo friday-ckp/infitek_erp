@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-15
-last_updated: 2026-04-24 (story-3-6-done)
+last_updated: 2026-04-24 (story-4-3-in-progress)
 project: infitek_erp
 
 project_key: NOKEY
@@ -84,10 +84,10 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 4: 供应链参考数据管理
   # ─────────────────────────────────────────────────
-  epic-4: backlog
+  epic-4: in-progress
   4-1-供应商档案管理: backlog
   4-2-合同条款范本管理: backlog
-  4-3-港口信息与物流供应商管理: backlog
+  4-3-港口信息与物流供应商管理: in-progress
   4-4-客户主数据管理: backlog
   epic-4-retrospective: optional
 
