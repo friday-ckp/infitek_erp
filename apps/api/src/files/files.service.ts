@@ -14,10 +14,11 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/png',
   'image/webp',
   'application/pdf',
+  'video/mp4',
 ]);
 
 const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-const ALLOWED_FOLDERS = new Set(['certificates', 'documents', 'general', 'faqs']);
+const ALLOWED_FOLDERS = new Set(['certificates', 'documents', 'general', 'faqs', 'product-documents']);
 
 @Injectable()
 export class FilesService {
@@ -150,6 +151,8 @@ export class FilesService {
         return '.webp';
       case 'application/pdf':
         return '.pdf';
+      case 'video/mp4':
+        return '.mp4';
       default:
         return '.bin';
     }
@@ -164,7 +167,7 @@ export class FilesService {
   }
 
   private isValidKeyFormat(key: string): boolean {
-    const keyPattern = /^(prod|dev)\/(certificates|documents|general|faqs)\/\d{4}-\d{2}\/[0-9a-f-]+\.(jpg|png|webp|pdf|bin)$/i;
+    const keyPattern = /^(prod|dev)\/(certificates|documents|general|faqs|product-documents)\/\d{4}-\d{2}\/[0-9a-f-]+\.(jpg|png|webp|pdf|mp4|bin)$/i;
     return keyPattern.test(key);
   }
 }

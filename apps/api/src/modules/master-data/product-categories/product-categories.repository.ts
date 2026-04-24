@@ -22,7 +22,7 @@ export class ProductCategoriesRepository {
 
   private buildTree(items: ProductCategory[], parentId: number | null = null): ProductCategoryNode[] {
     return items
-      .filter((item) => item.parentId === parentId)
+      .filter((item) => (item.parentId == null ? parentId == null : Number(item.parentId) === Number(parentId)))
       .map((item) => ({
         ...item,
         children: this.buildTree(items, item.id),

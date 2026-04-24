@@ -17,6 +17,8 @@ export * from './enums/supplier-status.enum';
 export * from './enums/supplier-invoice-type.enum';
 export * from './enums/supplier-settlement-type.enum';
 export * from './enums/supplier-settlement-date-type.enum';
+export * from './enums/product-document-type.enum';
+export * from './enums/product-document-attribution-type.enum';
 
 // Types
 export * from './types/api-response.types';

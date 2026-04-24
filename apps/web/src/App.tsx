@@ -27,6 +27,9 @@ import CompanyFormPage from './pages/master-data/companies/form';
 import SuppliersListPage from './pages/master-data/suppliers/index';
 import SupplierDetailPage from './pages/master-data/suppliers/detail';
 import SupplierFormPage from './pages/master-data/suppliers/form';
+import CustomersListPage from './pages/master-data/customers/index';
+import CustomerDetailPage from './pages/master-data/customers/detail';
+import CustomerFormPage from './pages/master-data/customers/form';
 import ProductCategoriesPage from './pages/master-data/product-categories/index';
 import ProductCategoryFormPage from './pages/master-data/product-categories/form';
 import SpusListPage from './pages/master-data/spus/index';
@@ -40,6 +43,9 @@ import CertificateDetailPage from './pages/master-data/certificates/detail';
 import CertificateFormPage from './pages/master-data/certificates/form';
 import SpuFaqsListPage from './pages/master-data/spu-faqs/index';
 import SpuFaqFormPage from './pages/master-data/spu-faqs/form';
+import ProductDocumentsListPage from './pages/master-data/product-documents/index';
+import ProductDocumentDetailPage from './pages/master-data/product-documents/detail';
+import ProductDocumentFormPage from './pages/master-data/product-documents/form';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -97,66 +103,74 @@ function App() {
           <AntdApp>
             <AntdInitializer />
             <BrowserRouter>
-            <Routes>
-              {/* 公开路由 */}
-              <Route path="/login" element={<LoginPage />} />
+              <Routes>
+                {/* 公开路由 */}
+                <Route path="/login" element={<LoginPage />} />
 
-              {/* 受保护路由：包裹在 AppLayout 内 */}
-              <Route element={<AppLayout />}>
-                <Route path="/" element={<Navigate to="/settings/users" replace />} />
-                <Route path="/settings/users" element={<UsersList />} />
-                <Route path="/settings/users/create" element={<UserForm />} />
-                <Route path="/settings/users/:id" element={<UserDetail />} />
-                <Route path="/settings/users/:id/edit" element={<UserForm />} />
-                <Route path="/master-data/units" element={<UnitsListPage />} />
-                <Route path="/master-data/units/create" element={<UnitFormPage />} />
-                <Route path="/master-data/units/:id" element={<UnitDetailPage />} />
-                <Route path="/master-data/units/:id/edit" element={<UnitFormPage />} />
-                <Route path="/master-data/warehouses" element={<WarehousesListPage />} />
-                <Route path="/master-data/warehouses/create" element={<WarehouseFormPage />} />
-                <Route path="/master-data/warehouses/:id" element={<WarehouseDetailPage />} />
-                <Route path="/master-data/warehouses/:id/edit" element={<WarehouseFormPage />} />
-                <Route path="/master-data/currencies" element={<CurrenciesListPage />} />
-                <Route path="/master-data/currencies/create" element={<CurrencyFormPage />} />
-                <Route path="/master-data/currencies/:id" element={<CurrencyDetailPage />} />
-                <Route path="/master-data/currencies/:id/edit" element={<CurrencyFormPage />} />
-                <Route path="/master-data/countries" element={<CountriesListPage />} />
-                <Route path="/master-data/countries/create" element={<CountryFormPage />} />
-                <Route path="/master-data/countries/:id" element={<CountryDetailPage />} />
-                <Route path="/master-data/countries/:id/edit" element={<CountryFormPage />} />
-                <Route path="/master-data/companies" element={<CompaniesListPage />} />
-                <Route path="/master-data/companies/create" element={<CompanyFormPage />} />
-                <Route path="/master-data/companies/:id" element={<CompanyDetailPage />} />
-                <Route path="/master-data/companies/:id/edit" element={<CompanyFormPage />} />
-                <Route path="/master-data/suppliers" element={<SuppliersListPage />} />
-                <Route path="/master-data/suppliers/create" element={<SupplierFormPage />} />
-                <Route path="/master-data/suppliers/:id" element={<SupplierDetailPage />} />
-                <Route path="/master-data/suppliers/:id/edit" element={<SupplierFormPage />} />
-                <Route path="/master-data/product-categories" element={<ProductCategoriesPage />} />
-                <Route path="/master-data/product-categories/create" element={<ProductCategoryFormPage />} />
-                <Route path="/master-data/product-categories/:id/edit" element={<ProductCategoryFormPage />} />
-                <Route path="/products/categories" element={<Navigate to="/master-data/product-categories" replace />} />
-                <Route path="/master-data/spus" element={<SpusListPage />} />
-                <Route path="/master-data/spus/create" element={<SpuFormPage />} />
-                <Route path="/master-data/spus/:id" element={<SpuDetailPage />} />
-                <Route path="/master-data/spus/:id/edit" element={<SpuFormPage />} />
-                <Route path="/master-data/skus" element={<SkusListPage />} />
-                <Route path="/master-data/skus/create" element={<SkuFormPage />} />
-                <Route path="/master-data/skus/:id" element={<SkuDetailPage />} />
-                <Route path="/master-data/skus/:id/edit" element={<SkuFormPage />} />
-                <Route path="/master-data/certificates" element={<CertificatesListPage />} />
-                <Route path="/master-data/certificates/create" element={<CertificateFormPage />} />
-                <Route path="/master-data/certificates/:id" element={<CertificateDetailPage />} />
-                <Route path="/master-data/certificates/:id/edit" element={<CertificateFormPage />} />
-                <Route path="/master-data/spu-faqs" element={<SpuFaqsListPage />} />
-                <Route path="/master-data/spu-faqs/create" element={<SpuFaqFormPage />} />
-                <Route path="/master-data/spu-faqs/:id/edit" element={<SpuFaqFormPage />} />
-              </Route>
+                {/* 受保护路由：包裹在 AppLayout 内 */}
+                <Route element={<AppLayout />}>
+                  <Route path="/" element={<Navigate to="/settings/users" replace />} />
+                  <Route path="/settings/users" element={<UsersList />} />
+                  <Route path="/settings/users/create" element={<UserForm />} />
+                  <Route path="/settings/users/:id" element={<UserDetail />} />
+                  <Route path="/settings/users/:id/edit" element={<UserForm />} />
+                  <Route path="/master-data/units" element={<UnitsListPage />} />
+                  <Route path="/master-data/units/create" element={<UnitFormPage />} />
+                  <Route path="/master-data/units/:id" element={<UnitDetailPage />} />
+                  <Route path="/master-data/units/:id/edit" element={<UnitFormPage />} />
+                  <Route path="/master-data/warehouses" element={<WarehousesListPage />} />
+                  <Route path="/master-data/warehouses/create" element={<WarehouseFormPage />} />
+                  <Route path="/master-data/warehouses/:id" element={<WarehouseDetailPage />} />
+                  <Route path="/master-data/warehouses/:id/edit" element={<WarehouseFormPage />} />
+                  <Route path="/master-data/currencies" element={<CurrenciesListPage />} />
+                  <Route path="/master-data/currencies/create" element={<CurrencyFormPage />} />
+                  <Route path="/master-data/currencies/:id" element={<CurrencyDetailPage />} />
+                  <Route path="/master-data/currencies/:id/edit" element={<CurrencyFormPage />} />
+                  <Route path="/master-data/countries" element={<CountriesListPage />} />
+                  <Route path="/master-data/countries/create" element={<CountryFormPage />} />
+                  <Route path="/master-data/countries/:id" element={<CountryDetailPage />} />
+                  <Route path="/master-data/countries/:id/edit" element={<CountryFormPage />} />
+                  <Route path="/master-data/companies" element={<CompaniesListPage />} />
+                  <Route path="/master-data/companies/create" element={<CompanyFormPage />} />
+                  <Route path="/master-data/companies/:id" element={<CompanyDetailPage />} />
+                  <Route path="/master-data/companies/:id/edit" element={<CompanyFormPage />} />
+                  <Route path="/master-data/suppliers" element={<SuppliersListPage />} />
+                  <Route path="/master-data/suppliers/create" element={<SupplierFormPage />} />
+                  <Route path="/master-data/suppliers/:id" element={<SupplierDetailPage />} />
+                  <Route path="/master-data/suppliers/:id/edit" element={<SupplierFormPage />} />
+                  <Route path="/master-data/customers" element={<CustomersListPage />} />
+                  <Route path="/master-data/customers/create" element={<CustomerFormPage />} />
+                  <Route path="/master-data/customers/:id" element={<CustomerDetailPage />} />
+                  <Route path="/master-data/customers/:id/edit" element={<CustomerFormPage />} />
+                  <Route path="/master-data/product-categories" element={<ProductCategoriesPage />} />
+                  <Route path="/master-data/product-categories/create" element={<ProductCategoryFormPage />} />
+                  <Route path="/master-data/product-categories/:id/edit" element={<ProductCategoryFormPage />} />
+                  <Route path="/products/categories" element={<Navigate to="/master-data/product-categories" replace />} />
+                  <Route path="/master-data/spus" element={<SpusListPage />} />
+                  <Route path="/master-data/spus/create" element={<SpuFormPage />} />
+                  <Route path="/master-data/spus/:id" element={<SpuDetailPage />} />
+                  <Route path="/master-data/spus/:id/edit" element={<SpuFormPage />} />
+                  <Route path="/master-data/skus" element={<SkusListPage />} />
+                  <Route path="/master-data/skus/create" element={<SkuFormPage />} />
+                  <Route path="/master-data/skus/:id" element={<SkuDetailPage />} />
+                  <Route path="/master-data/skus/:id/edit" element={<SkuFormPage />} />
+                  <Route path="/master-data/certificates" element={<CertificatesListPage />} />
+                  <Route path="/master-data/certificates/create" element={<CertificateFormPage />} />
+                  <Route path="/master-data/certificates/:id" element={<CertificateDetailPage />} />
+                  <Route path="/master-data/certificates/:id/edit" element={<CertificateFormPage />} />
+                  <Route path="/master-data/spu-faqs" element={<SpuFaqsListPage />} />
+                  <Route path="/master-data/spu-faqs/create" element={<SpuFaqFormPage />} />
+                  <Route path="/master-data/spu-faqs/:id/edit" element={<SpuFaqFormPage />} />
+                  <Route path="/master-data/product-documents" element={<ProductDocumentsListPage />} />
+                  <Route path="/master-data/product-documents/create" element={<ProductDocumentFormPage />} />
+                  <Route path="/master-data/product-documents/:id" element={<ProductDocumentDetailPage />} />
+                  <Route path="/master-data/product-documents/:id/edit" element={<ProductDocumentFormPage />} />
+                </Route>
 
-              {/* 兜底重定向 */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
+                {/* 兜底重定向 */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </BrowserRouter>
           </AntdApp>
         </ConfigProvider>
       </QueryClientProvider>

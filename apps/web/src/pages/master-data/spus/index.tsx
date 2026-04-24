@@ -76,7 +76,7 @@ export default function SpusListPage() {
         ellipsis: true,
         render: (_, record) =>
           categoryTreeQuery.data
-            ? findCategoryName(categoryTreeQuery.data, record.categoryId)
+            ? (findCategoryName(categoryTreeQuery.data, record.categoryId) || '-')
             : '-',
       },
       {
