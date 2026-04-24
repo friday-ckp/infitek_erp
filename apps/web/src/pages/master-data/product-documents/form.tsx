@@ -333,6 +333,11 @@ export default function ProductDocumentFormPage() {
           }
           return true;
         }}
+        onFinishFailed={({ errorFields }) => {
+          if (errorFields.length > 0) {
+            message.error(errorFields[0]?.errors?.[0] || '请先完善必填信息');
+          }
+        }}
       >
         <div className="pd-info-card">
           <div className="pd-form-tab">
@@ -420,9 +425,9 @@ export default function ProductDocumentFormPage() {
           <div className="pd-form-footer">
             <Button onClick={() => navigate(-1)}>取消</Button>
             <Button
+              htmlType="submit"
               type="primary"
               loading={uploading || createMutation.isPending || updateMutation.isPending}
-              onClick={() => formRef.current?.submit?.()}
             >
               {isEdit ? '保存' : '创建'}
             </Button>
