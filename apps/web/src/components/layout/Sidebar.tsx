@@ -62,6 +62,7 @@ const menuItems = [
       { key: '/master-data/skus', label: 'SKU 管理' },
       { key: '/master-data/certificates', label: '证书管理' },
       { key: '/master-data/spu-faqs', label: 'FAQ 管理' },
+      { key: '/master-data/product-documents', label: '资料管理' },
     ],
   },
   {
