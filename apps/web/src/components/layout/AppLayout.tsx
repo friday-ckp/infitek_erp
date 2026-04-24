@@ -115,6 +115,15 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     editLabel: '编辑公司主体',
   }),
   ...createCrudBreadcrumbRoutes({
+    basePath: '/master-data/customers',
+    sectionLabel: '基础数据',
+    sectionPath: BASIC_DATA_SECTION_PATH,
+    listLabel: '客户主数据管理',
+    createLabel: '新建客户',
+    detailLabel: '客户详情',
+    editLabel: '编辑客户',
+  }),
+  ...createCrudBreadcrumbRoutes({
     basePath: '/master-data/countries',
     sectionLabel: '基础数据',
     sectionPath: BASIC_DATA_SECTION_PATH,
