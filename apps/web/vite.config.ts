@@ -29,6 +29,9 @@ export default defineConfig(({ command }) => ({
       },
     },
   ].filter(Boolean),
+  resolve: {
+    conditions: ['module', 'import', 'default'],
+  },
   server: {
     proxy: {
       '/api': {
