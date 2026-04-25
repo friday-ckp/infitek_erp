@@ -99,6 +99,11 @@ export default function ContractTemplateFormPage() {
     );
   }
 
+  if (isEdit && detailQuery.data && detailQuery.data.status !== 'pending_submit') {
+    navigate(`/master-data/contract-templates/${templateId}`, { replace: true });
+    return null;
+  }
+
   const initialValues = detailQuery.data
     ? {
         name: detailQuery.data.name,

@@ -65,7 +65,8 @@ export class ContractTemplatesRepository {
       .createQueryBuilder()
       .update(ContractTemplate)
       .set({ isDefault: 0 })
-      .where('is_default = :flag', { flag: 1 });
+      .where('is_default = :flag', { flag: 1 })
+      .andWhere('status != :voided', { voided: ContractTemplateStatus.VOIDED });
 
     if (excludeId) {
       qb.andWhere('id != :excludeId', { excludeId });

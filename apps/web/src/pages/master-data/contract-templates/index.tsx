@@ -153,7 +153,7 @@ export default function ContractTemplatesListPage() {
               type="link"
               style={{ padding: 0 }}
               onClick={() => navigate(`/master-data/contract-templates/${record.id}/edit`)}
-              disabled={record.status === 'voided'}
+              disabled={record.status !== 'pending_submit'}
             >
               编辑
             </Button>

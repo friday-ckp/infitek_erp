@@ -121,7 +121,7 @@ export default function ContractTemplateDetailPage() {
     rejectMutation.isPending ||
     voidMutation.isPending;
 
-  const canEdit = data && data.status !== 'voided';
+  const canEdit = data && data.status === 'pending_submit';
   const canSubmit = data && (data.status === 'pending_submit' || data.status === 'rejected');
   const canApprove = data && data.status === 'in_review';
   const canReject = data && data.status === 'in_review';

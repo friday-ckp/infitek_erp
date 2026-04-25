@@ -29,8 +29,8 @@ export class ContractTemplatesService {
   }
 
   private ensureMutableStatus(status: ContractTemplateStatus): void {
-    if (status === ContractTemplateStatus.VOIDED) {
-      throw new BadRequestException('已作废模板不允许编辑');
+    if (status !== ContractTemplateStatus.PENDING_SUBMIT) {
+      throw new BadRequestException('只有待提交状态的模板才允许编辑');
     }
   }
 
@@ -46,7 +46,7 @@ export class ContractTemplatesService {
 
   private async ensureUniqueName(name: string, currentId?: number): Promise<void> {
     const existing = await this.repo.findByName(name);
-    if (existing && existing.id !== currentId) {
+    if (existing && Number(existing.id) !== Number(currentId)) {
       throw new BadRequestException('合同模板名称已存在');
     }
   }
@@ -89,6 +89,7 @@ export class ContractTemplatesService {
 
   async create(dto: CreateContractTemplateDto, operator?: string) {
     await this.ensureUniqueName(dto.name);
+    await this.applyDefaultFlag(dto.isDefault ?? 0);
 
     const entity = this.repo.create({
       name: dto.name,
@@ -126,6 +127,7 @@ export class ContractTemplatesService {
     const nextFileName = 'templateFileName' in dto ? dto.templateFileName ?? null : entity.templateFileName;
 
     const nextIsDefault = dto.isDefault ?? entity.isDefault;
+    await this.applyDefaultFlag(nextIsDefault, id);
 
     entity.name = nextName;
     entity.templateFileKey = nextFileKey;
