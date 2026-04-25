@@ -1,20 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import {
-  Button,
-  Empty,
-  Flex,
-  Input,
-  Popconfirm,
-  Result,
-  Select,
-  Skeleton,
-  Space,
-  Tag,
-  Typography,
-  message,
-  theme,
-} from 'antd';
+import { Button, Empty, Popconfirm, Result, Select, Skeleton, Space, Tag, Typography, message } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -27,12 +13,14 @@ import {
   type SpuFaq,
   type SpuFaqQuestionType,
 } from '../../../api/spu-faqs.api';
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function SpuFaqsListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { token } = theme.useToken();
 
   const [keywordInput, setKeywordInput] = useState('');
   const [questionTypeFilter, setQuestionTypeFilter] = useState<SpuFaqQuestionType | undefined>();
@@ -161,83 +149,131 @@ export default function SpuFaqsListPage() {
     );
   }
 
-  return (
-    <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Flex justify="space-between" align="center">
-        <Typography.Title level={4} style={{ margin: 0 }}>FAQ 管理</Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/spu-faqs/create')}>
-          + 新建 FAQ
-        </Button>
-      </Flex>
+  const activeTags: ActiveTag[] = [
+    keyword
+      ? {
+          key: 'keyword',
+          label: `关键词: ${keyword}`,
+          onClose: () => {
+            setKeywordInput('');
+            setPage(1);
+          },
+        }
+      : null,
+    questionTypeFilter
+      ? {
+          key: 'type',
+          label: `问题类型: ${QUESTION_TYPE_LABELS[questionTypeFilter] ?? questionTypeFilter}`,
+          onClose: () => {
+            setQuestionTypeFilter(undefined);
+            setPage(1);
+          },
+        }
+      : null,
+  ].filter(Boolean) as ActiveTag[];
 
-      {query.isLoading ? (
-        <Skeleton active />
-      ) : query.data?.list.length === 0 && !hasFilters ? (
-        <Empty description="暂无 FAQ 数据">
-          <Button type="dashed" onClick={() => navigate('/master-data/spu-faqs/create')}>
-            + 新建 FAQ
-          </Button>
-        </Empty>
-      ) : (
-        <ProTable<SpuFaq>
-          search={false}
-          options={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 900 }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: (p, ps) => {
-              if (ps !== pageSize) { setPage(1); } else { setPage(p); }
-              setPageSize(ps);
-            },
-          }}
-          toolBarRender={() => [
-            <Input
-              key="search"
-              placeholder="搜索问题/回答..."
-              style={{ width: 200 }}
-              value={keywordInput}
-              onChange={(e) => setKeywordInput(e.target.value)}
-              allowClear
-            />,
-            <Select
-              key="type"
-              placeholder="问题类型"
-              style={{ width: 140 }}
-              allowClear
-              options={QUESTION_TYPE_OPTIONS}
-              value={questionTypeFilter}
-              onChange={(v) => setQuestionTypeFilter(v)}
-            />,
-          ]}
-          locale={{
-            emptyText: hasFilters ? (
-              <Empty description="没有符合条件的 FAQ">
-                <Button
-                  type="link"
-                  onClick={() => {
-                    setKeywordInput('');
-                    setQuestionTypeFilter(undefined);
-                  }}
-                >
-                  清除筛选
-                </Button>
-              </Empty>
-            ) : (
-              <Empty description="暂无 FAQ 数据" />
-            ),
-          }}
-          style={{ background: token.colorBgContainer, borderRadius: token.borderRadiusLG }}
-        />
-      )}
-    </Space>
+  return (
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-kicker">Product Management</div>
+            <div className="master-page-title">FAQ 管理</div>
+            <div className="master-page-description">统一沉淀产品 FAQ、附件材料和常见问题类型。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/spu-faqs/create')}>
+              新建 FAQ
+            </Button>
+          </div>
+        </div>
+
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
+            }}
+            placeholder="搜索问题或回答内容"
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setQuestionTypeFilter(undefined);
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              query.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setQuestionTypeFilter(undefined);
+              setPage(1);
+            }}
+            advancedContent={(
+              <Select
+                placeholder="问题类型"
+                style={{ width: 160 }}
+                allowClear
+                options={QUESTION_TYPE_OPTIONS}
+                value={questionTypeFilter}
+                onChange={(v) => setQuestionTypeFilter(v)}
+              />
+            )}
+          />
+
+          {query.isLoading ? (
+            <Skeleton active />
+          ) : query.data?.list.length === 0 && !hasFilters ? (
+            <Empty description="暂无 FAQ 数据" style={{ padding: '56px 0 24px' }}>
+              <Button type="primary" onClick={() => navigate('/master-data/spu-faqs/create')}>
+                新建 FAQ
+              </Button>
+            </Empty>
+          ) : (
+            <ProTable<SpuFaq>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 900 }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (p, ps) => {
+                  if (ps !== pageSize) { setPage(1); } else { setPage(p); }
+                  setPageSize(ps);
+                },
+              }}
+              locale={{
+                emptyText: hasFilters ? (
+                  <Empty description="没有符合条件的 FAQ">
+                    <Button
+                      type="link"
+                      onClick={() => {
+                        setKeywordInput('');
+                        setQuestionTypeFilter(undefined);
+                      }}
+                    >
+                      清除筛选
+                    </Button>
+                  </Empty>
+                ) : (
+                  <Empty description="暂无 FAQ 数据" />
+                ),
+              }}
+            />
+          )}
+        </div>
+      </div>
+    </div>
   );
 }

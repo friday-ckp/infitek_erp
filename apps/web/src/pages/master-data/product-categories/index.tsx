@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { App, Button, Result, Skeleton } from 'antd';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { deleteProductCategory, getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
+import '../master-page.css';
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 
@@ -218,160 +219,158 @@ export default function ProductCategoriesPage() {
   const displayNodes = filterNodes(treeNodes, searchText.trim());
 
   return (
-    <div>
-      {/* 页头 */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>产品分类管理</div>
-          <div style={{ fontSize: 12.5, color: '#9CA3AF', marginTop: 3 }}>
-            共 {l1} 个一级分类，{total - l1} 个子分类
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">产品分类管理</div>
+            <div className="master-page-description">
+              树形浏览一到三级产品分类，统一维护层级路径、负责人和结构完整性。
+            </div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/product-categories/create')}>
+              新建分类
+            </Button>
           </div>
         </div>
-        <button
-          onClick={() => navigate('/master-data/product-categories/create')}
-          style={{
-            padding: '7px 16px', borderRadius: 7, fontSize: 13, fontWeight: 500,
-            background: '#4F46E5', color: '#fff', border: 'none', cursor: 'pointer',
-            transition: 'background .15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#4338CA'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#4F46E5'; }}
-        >
-          + 新建分类
-        </button>
-      </div>
 
-      <Skeleton active loading={query.isLoading && !query.data}>
-        <div style={{ display: 'flex', gap: 16, minHeight: 600 }}>
+        <Skeleton active loading={query.isLoading && !query.data}>
+          <div style={{ display: 'flex', gap: 18, minHeight: 640 }}>
 
-          {/* 左侧树形面板 */}
-          <div style={{
-            width: 280, flexShrink: 0,
-            background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB',
-            overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          }}>
-            {/* 面板头部 */}
+            {/* 左侧树形面板 */}
             <div style={{
-              padding: '14px 16px', borderBottom: '1px solid #F3F4F6',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              width: 304, flexShrink: 0,
+              background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+              overflow: 'hidden', display: 'flex', flexDirection: 'column',
             }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#374151' }}>分类树</span>
-              <span style={{ fontSize: 11, color: '#9CA3AF', background: '#F3F4F6', padding: '2px 7px', borderRadius: 8 }}>
-                {l1} / {total} 条
-              </span>
-            </div>
-
-            {/* 搜索框 */}
-            <div style={{ margin: '10px 12px', position: 'relative' }}>
-              <span style={{
-                position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)',
-                color: '#9CA3AF', pointerEvents: 'none', display: 'flex',
+              {/* 面板头部 */}
+              <div style={{
+                padding: '16px 18px', borderBottom: '1px solid #ECF1F8',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                background: '#FFFFFF',
               }}>
-                <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                  <path d="M14 14l-4-4m0 0A5 5 0 102 7a5 5 0 008 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </span>
-              <input
-                type="text"
-                placeholder="搜索分类名称..."
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-                style={{
-                  width: '100%', padding: '7px 10px 7px 32px',
-                  border: `1px solid ${searchFocused ? '#818CF8' : '#E5E7EB'}`,
-                  borderRadius: 7, fontSize: 12.5, color: '#374151',
-                  outline: 'none',
-                  background: searchFocused ? '#fff' : '#FAFAFA',
-                  transition: 'border-color .15s, background .15s',
-                }}
-              />
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#1E293B' }}>分类树</div>
+                  <div style={{ fontSize: 12, color: '#64748B', marginTop: 3 }}>逐级查看分类结构与层级关系</div>
+                </div>
+                <span style={{ fontSize: 11, color: '#64748B', background: '#F8FAFC', padding: '4px 9px', borderRadius: 999, border: '1px solid #E2E8F0' }}>
+                  {l1} / {total} 条
+                </span>
+              </div>
+
+              {/* 搜索框 */}
+              <div style={{ margin: '14px 14px 0', position: 'relative' }}>
+                <span style={{
+                  position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)',
+                  color: '#9CA3AF', pointerEvents: 'none', display: 'flex',
+                }}>
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <path d="M14 14l-4-4m0 0A5 5 0 102 7a5 5 0 008 5z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </span>
+                <input
+                  type="text"
+                  placeholder="搜索分类名称..."
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  style={{
+                    width: '100%', padding: '10px 12px 10px 36px',
+                    border: `1px solid ${searchFocused ? '#2563EB' : '#E2E8F0'}`,
+                    borderRadius: 6, fontSize: 13, color: '#334155',
+                    outline: 'none',
+                    background: '#fff',
+                    boxShadow: searchFocused ? '0 0 0 3px rgba(37, 99, 235, 0.1)' : 'none',
+                    transition: 'border-color .15s, box-shadow .15s',
+                  }}
+                />
+              </div>
+
+              {/* 树形主体 */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '10px 10px 14px' }}
+                className="tree-scroll"
+              >
+                <style>{`.tree-scroll::-webkit-scrollbar{width:3px}.tree-scroll::-webkit-scrollbar-thumb{background:#D7E0EF;border-radius:2px}`}</style>
+                {displayNodes.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '44px 0', color: '#64748B', fontSize: 13 }}>
+                    {treeNodes.length === 0 ? (
+                      <>
+                        <div style={{ marginBottom: 12 }}>暂无分类</div>
+                        <Button type="primary" onClick={() => navigate('/master-data/product-categories/create')}>
+                          新建分类
+                        </Button>
+                      </>
+                    ) : '无匹配结果'}
+                  </div>
+                ) : (
+                  displayNodes.map((node) => (
+                    <TreeNode
+                      key={node.id}
+                      node={node}
+                      selectedId={selectedId}
+                      expandedIds={expandedIds}
+                      onSelect={setSelectedId}
+                      onToggle={handleToggle}
+                      depth={0}
+                    />
+                  ))
+                )}
+              </div>
             </div>
 
-            {/* 树形主体 */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '6px 8px 12px' }}
-              className="tree-scroll"
-            >
-              <style>{`.tree-scroll::-webkit-scrollbar{width:3px}.tree-scroll::-webkit-scrollbar-thumb{background:#E5E7EB;border-radius:2px}`}</style>
-              {displayNodes.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px 0', color: '#9CA3AF', fontSize: 13 }}>
-                  {treeNodes.length === 0 ? (
-                    <>
-                      <div style={{ marginBottom: 12 }}>暂无分类</div>
-                      <button
-                        onClick={() => navigate('/master-data/product-categories/create')}
-                        style={{ padding: '6px 14px', borderRadius: 7, fontSize: 12, background: '#4F46E5', color: '#fff', border: 'none', cursor: 'pointer' }}
-                      >
-                        新建分类
-                      </button>
-                    </>
-                  ) : '无匹配结果'}
+            {/* 右侧详情面板 */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {!selectedNode ? (
+                <div style={{
+                  flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  gap: 12, color: '#64748B',
+                }}>
+                  <div style={{ width: 64, height: 64, background: '#F8FAFC', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg width="24" height="24" viewBox="0 0 16 16" fill="none">
+                      <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#C7D2E4" strokeWidth="1.3"/>
+                      <path d="M2 7h12" stroke="#C7D2E4" strokeWidth="1.2"/>
+                    </svg>
+                  </div>
+                  <span style={{ fontSize: 13 }}>请在左侧选择分类</span>
                 </div>
               ) : (
-                displayNodes.map((node) => (
-                  <TreeNode
-                    key={node.id}
-                    node={node}
-                    selectedId={selectedId}
-                    expandedIds={expandedIds}
-                    onSelect={setSelectedId}
-                    onToggle={handleToggle}
-                    depth={0}
-                  />
-                ))
+                <DetailPanel
+                  node={selectedNode}
+                  pathNodes={pathNodes}
+                  onEdit={() => navigate(`/master-data/product-categories/${selectedNode.id}/edit`)}
+                  onCreateChild={() => navigate(`/master-data/product-categories/create?parentId=${selectedNode.id}`)}
+                  onDelete={() => {
+                    modal.confirm({
+                      title: `删除「${selectedNode.name}」？`,
+                      content: selectedNode.children.length > 0
+                        ? '该分类下有子分类，请先删除子分类后再操作。'
+                        : '删除后不可恢复。',
+                      okText: '确认删除',
+                      okButtonProps: { danger: true, disabled: selectedNode.children.length > 0 },
+                      cancelText: '取消',
+                      onOk: async () => {
+                        try {
+                          await deleteProductCategory(selectedNode.id);
+                          message.success('删除成功');
+                          queryClient.invalidateQueries({ queryKey: ['product-categories', 'tree'] });
+                          setSelectedId(null);
+                        } catch {
+                          // 错误由 request.ts 统一处理
+                        }
+                      },
+                    });
+                  }}
+                />
               )}
             </div>
           </div>
-
-          {/* 右侧详情面板 */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {!selectedNode ? (
-              <div style={{
-                flex: 1, background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                gap: 12, color: '#9CA3AF',
-              }}>
-                <div style={{ width: 56, height: 56, background: '#F9FAFB', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="24" height="24" viewBox="0 0 16 16" fill="none">
-                    <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#D1D5DB" strokeWidth="1.3"/>
-                    <path d="M2 7h12" stroke="#D1D5DB" strokeWidth="1.2"/>
-                  </svg>
-                </div>
-                <span style={{ fontSize: 13 }}>请在左侧选择分类</span>
-              </div>
-            ) : (
-              <DetailPanel
-                node={selectedNode}
-                pathNodes={pathNodes}
-                onEdit={() => navigate(`/master-data/product-categories/${selectedNode.id}/edit`)}
-                onCreateChild={() => navigate(`/master-data/product-categories/create?parentId=${selectedNode.id}`)}
-                onDelete={() => {
-                  modal.confirm({
-                    title: `删除「${selectedNode.name}」？`,
-                    content: selectedNode.children.length > 0
-                      ? '该分类下有子分类，请先删除子分类后再操作。'
-                      : '删除后不可恢复。',
-                    okText: '确认删除',
-                    okButtonProps: { danger: true, disabled: selectedNode.children.length > 0 },
-                    cancelText: '取消',
-                    onOk: async () => {
-                      try {
-                        await deleteProductCategory(selectedNode.id);
-                        message.success('删除成功');
-                        queryClient.invalidateQueries({ queryKey: ['product-categories', 'tree'] });
-                        setSelectedId(null);
-                      } catch {
-                        // 错误由 request.ts 统一处理
-                      }
-                    },
-                  });
-                }}
-              />
-            )}
-          </div>
-        </div>
-      </Skeleton>
+        </Skeleton>
+      </div>
     </div>
   );
 }
@@ -394,19 +393,19 @@ function DetailPanel({
     <>
       {/* 详情头部卡片 */}
       <div style={{
-        background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB',
+        background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0',
         padding: '16px 20px',
         display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
             width: 44, height: 44, borderRadius: 11,
-            background: 'linear-gradient(135deg, #EDE9FE, #C7D2FE)',
+            background: '#EFF6FF',
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
             <svg width="22" height="22" viewBox="0 0 16 16" fill="none">
-              <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#7C3AED" strokeWidth="1.3"/>
-              <path d="M2 7h12" stroke="#7C3AED" strokeWidth="1.2"/>
+              <rect x="2" y="3" width="12" height="10" rx="1.5" stroke="#2563EB" strokeWidth="1.3"/>
+              <path d="M2 7h12" stroke="#2563EB" strokeWidth="1.2"/>
             </svg>
           </div>
           <div>
@@ -430,7 +429,7 @@ function DetailPanel({
                   <span key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     {i > 0 && <span style={{ color: '#D1D5DB' }}>›</span>}
                     <span style={{
-                      color: i === pathNodes.length - 1 ? '#4F46E5' : '#6B7280',
+                      color: i === pathNodes.length - 1 ? '#2563EB' : '#6B7280',
                       fontWeight: i === pathNodes.length - 1 ? 600 : 400,
                     }}>
                       {p.name}
@@ -456,7 +455,7 @@ function DetailPanel({
       </div>
 
       {/* 基本信息卡片 */}
-      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E5E7EB', overflow: 'hidden' }}>
+      <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #E2E8F0', overflow: 'hidden' }}>
         <div style={{
           padding: '12px 18px', borderBottom: '1px solid #F3F4F6',
           fontSize: 12.5, fontWeight: 600, color: '#6B7280',
@@ -511,8 +510,8 @@ function BtnDefault({ label, onClick }: { label: string; onClick: () => void }) 
       onMouseLeave={() => setHovered(false)}
       style={{
         padding: '5px 12px', borderRadius: 7, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-        background: '#fff', color: hovered ? '#4F46E5' : '#374151',
-        border: `1px solid ${hovered ? '#A5B4FC' : '#D1D5DB'}`,
+        background: '#fff', color: hovered ? '#2563EB' : '#374151',
+        border: `1px solid ${hovered ? '#93C5FD' : '#D1D5DB'}`,
         transition: 'all .15s',
       }}
     >
@@ -531,9 +530,9 @@ function BtnDashed({ label, disabled, title, onClick }: { label: string; disable
       title={title}
       style={{
         padding: '5px 12px', borderRadius: 7, fontSize: 12, fontWeight: 500,
-        background: hovered && !disabled ? '#EEF2FF' : '#fff',
-        color: '#6366F1',
-        border: '1.5px dashed #C7D2FE',
+        background: hovered && !disabled ? '#EFF6FF' : '#fff',
+        color: '#2563EB',
+        border: '1.5px dashed #BFDBFE',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.4 : 1,
         transition: 'all .15s',

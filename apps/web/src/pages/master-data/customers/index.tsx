@@ -10,6 +10,7 @@ import { getCustomers, type Customer } from '../../../api/customers.api';
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function CustomersListPage() {
   const navigate = useNavigate();
@@ -175,100 +176,100 @@ export default function CustomersListPage() {
   ].filter(Boolean) as ActiveTag[];
 
   return (
-    <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: token.marginMD,
-        }}
-      >
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          客户主数据管理
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/customers/create')}>
-          新建客户
-        </Button>
-      </div>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">客户主数据管理</div>
+            <div className="master-page-description">统一维护客户档案、国家地区与销售归属信息。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/customers/create')}>
+              新建客户
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(value) => {
-          setKeywordInput(value);
-          setPage(1);
-        }}
-        placeholder="快捷搜索客户名称/客户代码"
-        advancedContent={
-          <Select<number>
-            placeholder="国家/地区"
-            allowClear
-            showSearch
-            optionFilterProp="label"
-            style={{ width: 220 }}
-            loading={countriesQuery.isLoading}
-            value={countryId}
-            options={countries.map((item: Country) => ({
-              label: `${item.name} (${item.code})`,
-              value: item.id,
-            }))}
-            onChange={(value) => {
-              setCountryId(value);
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
+            }}
+            placeholder="快捷搜索客户名称/客户代码"
+            advancedContent={
+              <Select<number>
+                placeholder="国家/地区"
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 220 }}
+                loading={countriesQuery.isLoading}
+                value={countryId}
+                options={countries.map((item: Country) => ({
+                  label: `${item.name} (${item.code})`,
+                  value: item.id,
+                }))}
+                onChange={(value) => {
+                  setCountryId(value);
+                  setPage(1);
+                }}
+              />
+            }
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setCountryId(undefined);
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              customersQuery.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setCountryId(undefined);
               setPage(1);
             }}
           />
-        }
-        activeTags={activeTags}
-        onClearAll={() => {
-          setKeywordInput('');
-          setCountryId(undefined);
-          setPage(1);
-        }}
-        onQuery={() => {
-          setPage(1);
-          customersQuery.refetch();
-        }}
-        onReset={() => {
-          setKeywordInput('');
-          setCountryId(undefined);
-          setPage(1);
-        }}
-      />
 
-      <Skeleton
-        active
-        loading={customersQuery.isLoading && !customersQuery.data}
-        style={{ marginTop: token.marginMD }}
-      >
-        <ProTable<Customer>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={customersQuery.isFetching}
-          columns={columns}
-          dataSource={customersQuery.data?.list ?? []}
-          scroll={{ x: 1120, y: 540 }}
-          rowClassName={() => 'customer-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: customersQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton
+            active
+            loading={customersQuery.isLoading && !customersQuery.data}
+            style={{ marginTop: token.marginMD }}
+          >
+            <ProTable<Customer>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={customersQuery.isFetching}
+              columns={columns}
+              dataSource={customersQuery.data?.list ?? []}
+              scroll={{ x: 1120, y: 540 }}
+              rowClassName={() => 'customer-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: customersQuery.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .customer-row-height .ant-table-cell {

@@ -124,13 +124,6 @@ const ChevronIcon = () => (
   </svg>
 );
 
-const SettingsIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-    <circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.3"/>
-    <path d="M8 2v1.1M8 12.9V14M2 8h1.1M12.9 8H14M3.6 3.6l.8.8M11.6 11.6l.8.8M3.6 12.4l.8-.8M11.6 4.4l.8-.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
-  </svg>
-);
-
 const LogoutIcon = () => (
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
     <path d="M6 2.5H3a1 1 0 00-1 1v9a1 1 0 001 1h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
@@ -231,9 +224,9 @@ export default function Sidebar() {
 
   return (
     <div style={{
-      width: 224, minWidth: 224,
+      width: 220, minWidth: 220,
       background: '#fff',
-      borderRight: '1px solid #E5E7EB',
+      borderRight: '1px solid #E2E8F0',
       display: 'flex', flexDirection: 'column',
       height: '100vh', overflowY: 'auto', flexShrink: 0,
     }}
@@ -241,35 +234,25 @@ export default function Sidebar() {
     >
       <style>{`
         .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 2px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 2px; }
       `}</style>
 
       {/* Logo */}
-      <div style={{ padding: '20px 16px 16px', borderBottom: '1px solid #F3F4F6', display: 'flex', alignItems: 'center', gap: 10 }}>
-        <div style={{
-          width: 32, height: 32, borderRadius: 9,
-          background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0, boxShadow: '0 2px 6px rgba(79,70,229,.25)',
-        }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M8 1.5l6 3v6l-6 3-6-3v-6l6-3z" fill="white" opacity=".9"/>
-          </svg>
-        </div>
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div>
-          <div style={{ fontSize: 14.5, fontWeight: 800, color: '#111827', letterSpacing: '-0.3px' }}>星辰科技 ERP</div>
-          <div style={{ fontSize: 9, color: '#9CA3AF', fontWeight: 600, letterSpacing: '0.4px', marginTop: 1 }}>INFITEK ENTERPRISE</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>星辰科技 ERP</div>
+          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', marginTop: 1 }}>INFITEK ENTERPRISE</div>
         </div>
       </div>
 
       {/* 导航 */}
-      <nav style={{ flex: 1, padding: '10px 10px' }}>
+      <nav style={{ flex: 1, padding: '4px 0' }}>
         {/* 业务模块 */}
         <SectionLabel label={SECTION_BUSINESS} />
         {businessItems.map(renderMenuGroup)}
 
         {/* 分隔线 */}
-        <div style={{ height: 1, background: '#F3F4F6', margin: '8px 2px' }} />
+        <div style={{ height: 1, background: '#F1F5F9', margin: '8px 8px' }} />
 
         {/* 系统功能 */}
         <SectionLabel label={SECTION_SYSTEM} />
@@ -278,13 +261,13 @@ export default function Sidebar() {
 
       {/* 底部用户区 */}
       <div style={{
-        borderTop: '1px solid #F3F4F6',
-        padding: '11px 12px',
+        borderTop: '1px solid #F1F5F9',
+        padding: '12px 14px',
         display: 'flex', alignItems: 'center', gap: 9,
       }}>
         <div style={{
-          width: 32, height: 32, borderRadius: 8,
-          background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+          width: 28, height: 28, borderRadius: 6,
+          background: '#2563EB',
           color: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 11, fontWeight: 800, flexShrink: 0,
@@ -292,35 +275,20 @@ export default function Sidebar() {
           {getInitials(displayName)}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#1F2937', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {displayName}
           </div>
-          <div style={{ fontSize: 10.5, color: '#9CA3AF', marginTop: 1 }}>管理员</div>
+          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>管理员</div>
         </div>
         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-          <button
-            title="设置"
-            style={{
-              width: 26, height: 26, borderRadius: 7,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: hoveredFooterBtn === 'settings' ? '#6366F1' : '#C4C4C4',
-              background: hoveredFooterBtn === 'settings' ? '#F5F3FF' : 'transparent',
-              border: 'none', cursor: 'pointer',
-              transition: 'background 0.12s, color 0.12s',
-            }}
-            onMouseEnter={() => setHoveredFooterBtn('settings')}
-            onMouseLeave={() => setHoveredFooterBtn(null)}
-          >
-            <SettingsIcon />
-          </button>
           <button
             title="退出登录"
             onClick={handleLogout}
             style={{
               width: 26, height: 26, borderRadius: 7,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: hoveredFooterBtn === 'logout' ? '#6366F1' : '#C4C4C4',
-              background: hoveredFooterBtn === 'logout' ? '#F5F3FF' : 'transparent',
+              color: hoveredFooterBtn === 'logout' ? '#2563EB' : '#94A3B8',
+              background: hoveredFooterBtn === 'logout' ? '#EFF6FF' : 'transparent',
               border: 'none', cursor: 'pointer',
               transition: 'background 0.12s, color 0.12s',
             }}
@@ -338,11 +306,7 @@ export default function Sidebar() {
 function SectionLabel({ label }: { label: string }) {
   return (
     <div style={{
-      fontSize: 10, fontWeight: 700, color: '#9CA3AF',
-      padding: '10px 8px 5px',
-      letterSpacing: '0.8px',
-      textTransform: 'uppercase',
-      userSelect: 'none',
+      display: 'none',
     }}>
       {label}
     </div>
@@ -366,12 +330,12 @@ function ParentItem({
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', alignItems: 'center',
-        padding: '8px 10px', borderRadius: 8,
+        padding: '7px 16px', borderRadius: 0,
         cursor: 'pointer',
-        fontSize: 13.5,
+        fontSize: 13,
         fontWeight: hasActiveChild ? 600 : 500,
-        color: hasActiveChild ? '#1F2937' : hovered ? '#111827' : '#374151',
-        background: hovered ? '#F5F3FF' : 'transparent',
+        color: hasActiveChild ? '#1E293B' : hovered ? '#1E293B' : '#64748B',
+        background: 'transparent',
         gap: 9,
         transition: 'background 0.15s, color 0.15s',
         userSelect: 'none',
@@ -379,7 +343,7 @@ function ParentItem({
     >
       <span style={{
         width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: hasActiveChild ? '#6366F1' : hovered ? '#818CF8' : '#C4C4C4',
+        color: hasActiveChild ? '#2563EB' : hovered ? '#475569' : '#94A3B8',
         flexShrink: 0,
         transition: 'color 0.15s',
       }}>
@@ -388,7 +352,7 @@ function ParentItem({
       <span style={{ flex: 1 }}>{item.label}</span>
       {item.children.length > 0 && (
         <span style={{
-          color: hasActiveChild ? '#A5B4FC' : '#D1D5DB',
+          color: hasActiveChild ? '#CBD5E1' : '#CBD5E1',
           flexShrink: 0,
           display: 'flex', alignItems: 'center',
           transform: isOpen ? 'rotate(90deg)' : 'none',
@@ -411,13 +375,14 @@ function ChildItem({ label, isActive, onClick }: { label: string; isActive: bool
       onMouseLeave={() => setHovered(false)}
       style={{
         display: 'flex', alignItems: 'center',
-        padding: '7px 10px 7px 36px',
+        padding: '5px 10px 5px 40px',
         fontSize: 13,
-        color: isActive ? '#FFFFFF' : hovered ? '#111827' : '#4B5563',
+        color: isActive ? '#2563EB' : hovered ? '#1E293B' : '#64748B',
         cursor: 'pointer',
-        borderRadius: 8,
+        borderRadius: 999,
+        margin: '1px 8px',
         fontWeight: isActive ? 600 : 400,
-        background: isActive ? '#4F46E5' : hovered ? '#F5F3FF' : 'transparent',
+        background: isActive ? '#EEF2FF' : hovered ? '#F1F5F9' : 'transparent',
         transition: 'background 0.12s, color 0.12s',
         userSelect: 'none',
       }}

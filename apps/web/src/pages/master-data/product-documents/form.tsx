@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Breadcrumb, Button, Result, Select, Skeleton, TreeSelect, Upload } from 'antd';
+import { Button, Result, Select, Skeleton, TreeSelect, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import type { UploadFile } from 'antd';
 import {
@@ -25,8 +25,8 @@ import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/p
 import { getCountries } from '../../../api/countries.api';
 import { getSpus } from '../../../api/spus.api';
 import antdStatic from '../../../utils/antdStatic';
+import { AnchorNav, SectionCard } from '../components/page-scaffold';
 import '../master-page.css';
-import './product-document-page.css';
 
 function buildTreeData(nodes: ProductCategoryNode[], filterLevel?: number): any[] {
   return nodes.map((n) => ({
@@ -45,6 +45,7 @@ export default function ProductDocumentFormPage() {
   const docId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
   const formRef = useRef<ProFormInstance>(undefined);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const [attributionType, setAttributionType] = useState<string>('general');
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -199,8 +200,10 @@ export default function ProductDocumentFormPage() {
   const renderAttributionFields = () => {
     if (attributionType === 'category_l1') {
       return (
-        <div className="pd-cond-block">
-          <div className="pd-cond-label">▼ 当前归属为「产品一级分类归属」，请选择分类</div>
+        <div className="full">
+          <div className="master-info-tip" style={{ marginTop: 0, marginBottom: 16 }}>
+            当前归属为「产品一级分类归属」，请选择分类。
+          </div>
           <ProForm.Item name="categoryLevel1Id" label="所属产品一级分类" rules={[{ required: true, message: '请选择一级分类' }]}>
             <TreeSelect
               treeData={level1TreeData}
@@ -208,7 +211,7 @@ export default function ProductDocumentFormPage() {
               showSearch
               treeNodeFilterProp="title"
               placeholder="请选择一级分类"
-              style={{ width: 360 }}
+              style={{ width: '100%' }}
               dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
               loading={categoryTreeQuery.isLoading}
             />
@@ -218,8 +221,10 @@ export default function ProductDocumentFormPage() {
     }
     if (attributionType === 'category_l2') {
       return (
-        <div className="pd-cond-block">
-          <div className="pd-cond-label">▼ 当前归属为「产品二级分类归属」，请选择分类</div>
+        <div className="full">
+          <div className="master-info-tip" style={{ marginTop: 0, marginBottom: 16 }}>
+            当前归属为「产品二级分类归属」，请选择分类。
+          </div>
           <ProForm.Item name="categoryLevel2Id" label="所属产品二级分类" rules={[{ required: true, message: '请选择二级分类' }]}>
             <TreeSelect
               treeData={level2TreeData}
@@ -227,7 +232,7 @@ export default function ProductDocumentFormPage() {
               showSearch
               treeNodeFilterProp="title"
               placeholder="请选择二级分类"
-              style={{ width: 360 }}
+              style={{ width: '100%' }}
               dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
               loading={categoryTreeQuery.isLoading}
             />
@@ -237,8 +242,10 @@ export default function ProductDocumentFormPage() {
     }
     if (attributionType === 'category_l3') {
       return (
-        <div className="pd-cond-block">
-          <div className="pd-cond-label">▼ 当前归属为「产品三级分类归属」，请选择分类</div>
+        <div className="full">
+          <div className="master-info-tip" style={{ marginTop: 0, marginBottom: 16 }}>
+            当前归属为「产品三级分类归属」，请选择分类。
+          </div>
           <ProForm.Item name="categoryLevel3Id" label="所属产品三级分类" rules={[{ required: true, message: '请选择三级分类' }]}>
             <TreeSelect
               treeData={level3TreeData}
@@ -246,7 +253,7 @@ export default function ProductDocumentFormPage() {
               showSearch
               treeNodeFilterProp="title"
               placeholder="请选择三级分类"
-              style={{ width: 360 }}
+              style={{ width: '100%' }}
               dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
               loading={categoryTreeQuery.isLoading}
             />
@@ -256,13 +263,14 @@ export default function ProductDocumentFormPage() {
     }
     if (attributionType === 'product') {
       return (
-        <div className="pd-cond-block">
-          <div className="pd-cond-label">▼ 当前归属为「产品归属」，请选择所属产品</div>
+        <div className="full">
+          <div className="master-info-tip" style={{ marginTop: 0, marginBottom: 16 }}>
+            当前归属为「产品归属」，请选择所属产品。
+          </div>
           <ProFormSelect
             name="spuId"
             label="所属产品"
             placeholder="请选择所属产品"
-            width="xl"
             options={spuOptions}
             fieldProps={{ optionFilterProp: 'label', loading: spusQuery.isLoading, showSearch: true }}
             rules={[{ required: true, message: '请选择所属产品' }]}
@@ -273,27 +281,19 @@ export default function ProductDocumentFormPage() {
     return null;
   };
 
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'relation', label: '归属与文件' },
+  ];
+
   return (
-    <div className="pd-page pd-form-page">
-      <Breadcrumb
-        items={[
-          {
-            title: (
-              <Button type="link" className="pd-breadcrumb-link" onClick={() => navigate('/master-data/product-documents')}>
-                主数据
-              </Button>
-            ),
-          },
-          {
-            title: (
-              <Button type="link" className="pd-breadcrumb-link" onClick={() => navigate('/master-data/product-documents')}>
-                产品资料库
-              </Button>
-            ),
-          },
-          { title: isEdit ? `编辑资料` : '新建资料' },
-        ]}
-      />
+    <div className="master-page master-form-page">
+      <div className="master-page-header">
+        <div className="master-page-heading">
+          <div className="master-page-title">{isEdit ? '编辑产品资料' : '新建产品资料'}</div>
+          <div className="master-page-description">统一整理资料名称、归属关系、国家和文件上传界面。</div>
+        </div>
+      </div>
 
       <ProForm
         formRef={formRef}
@@ -336,98 +336,115 @@ export default function ProductDocumentFormPage() {
           }
         }}
       >
-        <div className="pd-info-card">
-          <div className="pd-form-tab">
-            <ProForm.Group>
-              <ProFormText
-                name="documentName"
-                label="资料名称"
-                placeholder="请输入资料名称"
-                width="md"
-                rules={[
-                  { required: true, message: '请输入资料名称' },
-                  { max: 200, message: '最多 200 个字符' },
-                ]}
-              />
-              <ProFormSelect
-                name="documentType"
-                label="资料类型"
-                placeholder="请选择资料类型"
-                width="sm"
-                options={DOCUMENT_TYPE_OPTIONS}
-                rules={[{ required: true, message: '请选择资料类型' }]}
-              />
-            </ProForm.Group>
+        <div className="master-form-layout">
+          <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
 
-            <ProForm.Group>
-              <ProFormSelect
-                name="attributionType"
-                label="归属类型"
-                placeholder="请选择归属类型"
-                width="sm"
-                options={ATTRIBUTION_TYPE_OPTIONS}
-                rules={[{ required: true, message: '请选择归属类型' }]}
-                fieldProps={{ onChange: handleAttributionChange }}
-              />
-              <ProForm.Item name="countryId" label="国家/地区">
-                <Select
-                  style={{ width: 240 }}
-                  placeholder="请选择国家/地区（可选）"
-                  allowClear
-                  showSearch
-                  optionFilterProp="label"
-                  loading={countriesQuery.isLoading}
-                  options={countryOptions}
-                />
-              </ProForm.Item>
-            </ProForm.Group>
-
-            {renderAttributionFields()}
-
-            <ProForm.Item label="资料文件" style={{ marginTop: 16 }}>
-              <Upload
-                fileList={fileList}
-                maxCount={1}
-                beforeUpload={(file) => {
-                  setFileList([file as unknown as UploadFile]);
-                  handleUpload(file);
-                  return false;
-                }}
-                onRemove={() => {
-                  setFileList([]);
-                  setUploadedFileKey(null);
-                  setUploadedFileName(null);
-                }}
-              >
-                <Button icon={<UploadOutlined />} loading={uploading}>
-                  {isEdit && detailQuery.data?.fileName
-                    ? `替换文件（当前：${detailQuery.data.fileName}）`
-                    : '选择文件'}
-                </Button>
-              </Upload>
-              <div className="pd-file-hint">
-                上传后将存储到 OSS，不在本地持久化。
-              </div>
-            </ProForm.Item>
-
-            <ProFormTextArea
-              name="content"
-              label="资料内容"
-              placeholder="请输入资料内容说明（可选）"
-              width="xl"
-              fieldProps={{ rows: 5 }}
-            />
-          </div>
-
-          <div className="pd-form-footer">
-            <Button onClick={() => navigate(-1)}>取消</Button>
-            <Button
-              htmlType="submit"
-              type="primary"
-              loading={uploading || createMutation.isPending || updateMutation.isPending}
+          <div className="master-form-main">
+            <SectionCard
+              id="basic"
+              title="基础信息"
+              description="维护资料名称、类型、国家地区和正文说明。"
             >
-              {isEdit ? '保存' : '创建'}
-            </Button>
+              <div className="master-form-grid">
+                <ProFormText
+                  name="documentName"
+                  label="资料名称"
+                  placeholder="请输入资料名称"
+                  rules={[
+                    { required: true, message: '请输入资料名称' },
+                    { max: 200, message: '最多 200 个字符' },
+                  ]}
+                />
+                <ProFormSelect
+                  name="documentType"
+                  label="资料类型"
+                  placeholder="请选择资料类型"
+                  options={DOCUMENT_TYPE_OPTIONS}
+                  rules={[{ required: true, message: '请选择资料类型' }]}
+                />
+                <ProForm.Item name="countryId" label="国家/地区">
+                  <Select
+                    style={{ width: '100%' }}
+                    placeholder="请选择国家/地区（可选）"
+                    allowClear
+                    showSearch
+                    optionFilterProp="label"
+                    loading={countriesQuery.isLoading}
+                    options={countryOptions}
+                  />
+                </ProForm.Item>
+                <div />
+                <div className="full">
+                  <ProFormTextArea
+                    name="content"
+                    label="资料内容"
+                    placeholder="请输入资料内容说明（可选）"
+                    fieldProps={{ rows: 5 }}
+                  />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              id="relation"
+              title="归属与文件"
+              description="归属判断、分类选择和文件上传逻辑保持不变，仅调整界面布局。"
+            >
+              <div className="master-form-grid">
+                <ProFormSelect
+                  name="attributionType"
+                  label="归属类型"
+                  placeholder="请选择归属类型"
+                  options={ATTRIBUTION_TYPE_OPTIONS}
+                  rules={[{ required: true, message: '请选择归属类型' }]}
+                  fieldProps={{ onChange: handleAttributionChange }}
+                />
+                <div />
+                {renderAttributionFields()}
+
+                <div className="full">
+                  <ProForm.Item label="资料文件">
+                    <Upload
+                      fileList={fileList}
+                      maxCount={1}
+                      beforeUpload={(file) => {
+                        setFileList([file as unknown as UploadFile]);
+                        handleUpload(file);
+                        return false;
+                      }}
+                      onRemove={() => {
+                        setFileList([]);
+                        setUploadedFileKey(null);
+                        setUploadedFileName(null);
+                      }}
+                    >
+                      <Button icon={<UploadOutlined />} loading={uploading}>
+                        {isEdit && detailQuery.data?.fileName
+                          ? `替换文件（当前：${detailQuery.data.fileName}）`
+                          : '选择文件'}
+                      </Button>
+                    </Upload>
+                    <div className="master-info-tip">上传后将存储到 OSS，不在本地持久化。</div>
+                  </ProForm.Item>
+                </div>
+              </div>
+            </SectionCard>
+
+            <div className="master-form-footer">
+              <div className="master-form-footer-tip">当前仅统一资料页视觉和分区，不改动归属切换、文件上传与接口提交逻辑。</div>
+              <div className="master-form-footer-actions">
+                <Button onClick={() => navigate(isEdit ? `/master-data/product-documents/${docId}` : '/master-data/product-documents')}>
+                  取消
+                </Button>
+                <Button
+                  type="primary"
+                  loading={uploading || createMutation.isPending || updateMutation.isPending}
+                  onClick={() => formRef.current?.submit?.()}
+                >
+                  {isEdit ? '保存' : '创建'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </ProForm>

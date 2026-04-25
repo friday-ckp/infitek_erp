@@ -3,11 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
-  Flex,
   Result,
   Skeleton,
   Space,
-  Typography,
   theme,
 } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
@@ -19,6 +17,7 @@ import { getPorts, type Port } from '../../../api/ports.api';
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function PortsListPage() {
   const navigate = useNavigate();
@@ -163,94 +162,101 @@ export default function PortsListPage() {
   );
 
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          港口信息管理
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/ports/create')}>
-          新建港口
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">港口信息管理</div>
+            <div className="master-page-description">统一维护港口机场代码、国家地区与类型信息。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/ports/create')}>
+              新建港口
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(value) => {
-          setKeywordInput(value);
-          setPage(1);
-        }}
-        placeholder="快捷搜索港口名称/代码"
-        advancedContent={(
-          <select
-            value={countryId ?? ''}
-            onChange={(event) => {
-              const value = event.target.value;
-              setCountryId(value ? Number(value) : undefined);
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
             }}
-            style={{
-              minWidth: 220,
-              height: 32,
-              borderColor: '#d9d9d9',
-              borderRadius: 6,
-              padding: '0 11px',
-              background: '#fff',
+            placeholder="快捷搜索港口名称/代码"
+            advancedContent={(
+              <select
+                value={countryId ?? ''}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setCountryId(value ? Number(value) : undefined);
+                }}
+                style={{
+                  minWidth: 220,
+                  height: 32,
+                  borderColor: '#d9d9d9',
+                  borderRadius: 6,
+                  padding: '0 11px',
+                  background: '#fff',
+                }}
+              >
+                <option value="">全部国家/地区</option>
+                {(countriesQuery.data?.list ?? []).map((country) => (
+                  <option key={country.id} value={country.id}>
+                    {country.name} ({country.code})
+                  </option>
+                ))}
+              </select>
+            )}
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setCountryId(undefined);
+              setPage(1);
             }}
-          >
-            <option value="">全部国家/地区</option>
-            {(countriesQuery.data?.list ?? []).map((country) => (
-              <option key={country.id} value={country.id}>
-                {country.name} ({country.code})
-              </option>
-            ))}
-          </select>
-        )}
-        activeTags={activeTags}
-        onClearAll={() => {
-          setKeywordInput('');
-          setCountryId(undefined);
-          setPage(1);
-        }}
-        onQuery={() => {
-          setPage(1);
-          query.refetch();
-        }}
-        onReset={() => {
-          setKeywordInput('');
-          setCountryId(undefined);
-          setPage(1);
-        }}
-      />
+            onQuery={() => {
+              setPage(1);
+              query.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setCountryId(undefined);
+              setPage(1);
+            }}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<Port>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 920, y: 540 }}
-          rowClassName={() => 'port-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<Port>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 920, y: 540 }}
+              rowClassName={() => 'port-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .port-row-height .ant-table-cell {

@@ -133,7 +133,8 @@ export class ProductDocumentsService {
   private async withFileUrl<T extends { fileKey: string | null }>(
     item: T,
   ): Promise<T & { fileUrl: string | null }> {
-    const fileUrl = item.fileKey ? await this.filesService.getSignedUrl(item.fileKey) : null;
+    // TODO: replace with real signed URL once OSS is configured
+    const fileUrl = item.fileKey ?? null;
     return { ...item, fileUrl };
   }
 

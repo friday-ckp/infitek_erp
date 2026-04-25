@@ -1,13 +1,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Empty, Flex, Input, Result, Skeleton, Space, Tag, Typography, theme } from 'antd';
+import { Button, Empty, Result, Skeleton, Space, Tag, theme } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getSkus, type Sku } from '../../../api/skus.api';
 import { getSpus } from '../../../api/spus.api';
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function SkusListPage() {
   const navigate = useNavigate();
@@ -146,51 +149,86 @@ export default function SkusListPage() {
     </Empty>
   );
 
+  const activeTags: ActiveTag[] = [
+    keyword
+      ? {
+          key: 'keyword',
+          label: `关键词: ${keyword}`,
+          onClose: () => {
+            setKeywordInput('');
+            setPage(1);
+          },
+        }
+      : null,
+  ].filter(Boolean) as ActiveTag[];
+
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>SKU 管理</Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/skus/create')}>
-          + 新建 SKU
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-kicker">Product Management</div>
+            <div className="master-page-title">SKU 管理</div>
+            <div className="master-page-description">统一浏览变体规格、归属 SPU 与上架状态信息。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/skus/create')}>
+              新建 SKU
+            </Button>
+          </div>
+        </div>
 
-      <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
-        <Input
-          placeholder="搜索 SKU 编码/规格/名称..."
-          style={{ width: 320 }}
-          value={keywordInput}
-          onChange={(e) => { setKeywordInput(e.target.value); setPage(1); }}
-          allowClear
-        />
-      </Space>
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
+            }}
+            placeholder="搜索 SKU 编码、规格或名称"
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              query.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setPage(1);
+            }}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<Sku>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 960, y: 540 }}
-          rowClassName={() => 'sku-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) { setPage(1); } else { setPage(nextPage); }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<Sku>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 960, y: 540 }}
+              rowClassName={() => 'sku-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) { setPage(1); } else { setPage(nextPage); }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`.sku-row-height .ant-table-cell { height: 48px; }`}</style>
     </div>

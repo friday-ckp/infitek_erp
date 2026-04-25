@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
-  Flex,
   Select,
   Skeleton,
   Space,
@@ -16,11 +15,19 @@ import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { SupplierStatus } from '@infitek/shared';
-import { getSuppliers, type Supplier } from '../../../api/suppliers.api';
+import { getSuppliers, type Supplier, type SuppliersListParams } from '../../../api/suppliers.api';
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
+
+const SupplierStatus = {
+  COOPERATING: '合作',
+  ELIMINATED: '淘汰',
+  TEMPORARY: '临拓',
+} as const;
+
+type SupplierStatus = NonNullable<SuppliersListParams['status']>;
 
 const STATUS_OPTIONS = [
   { label: '合作', value: SupplierStatus.COOPERATING },
@@ -216,83 +223,90 @@ export default function SuppliersListPage() {
   ].filter(Boolean) as ActiveTag[];
 
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          供应商档案管理
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/suppliers/create')}>
-          新建供应商
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">供应商档案管理</div>
+            <div className="master-page-description">统一查看供应商档案、合作状态与账期结算信息。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/suppliers/create')}>
+              新建供应商
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(value) => {
-          setKeywordInput(value);
-          setPage(1);
-        }}
-        placeholder="快捷搜索供应商名称/联系人/电话/编码"
-        activeTags={activeTags}
-        onClearAll={() => {
-          setKeywordInput('');
-          setStatus(undefined);
-          setPage(1);
-        }}
-        onQuery={() => {
-          setPage(1);
-          suppliersQuery.refetch();
-        }}
-        onReset={() => {
-          setKeywordInput('');
-          setStatus(undefined);
-          setPage(1);
-        }}
-        advancedContent={
-          <Select<SupplierStatus>
-            allowClear
-            placeholder="按合作状态筛选"
-            options={STATUS_OPTIONS}
-            value={status}
-            onChange={(value) => {
-              setStatus(value);
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
               setPage(1);
             }}
-            style={{ width: 180 }}
+            placeholder="快捷搜索供应商名称/联系人/电话/编码"
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setStatus(undefined);
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              suppliersQuery.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setStatus(undefined);
+              setPage(1);
+            }}
+            advancedContent={
+              <Select<SupplierStatus>
+                allowClear
+                placeholder="按合作状态筛选"
+                options={STATUS_OPTIONS}
+                value={status}
+                onChange={(value) => {
+                  setStatus(value);
+                  setPage(1);
+                }}
+                style={{ width: 180 }}
+              />
+            }
           />
-        }
-      />
 
-      <Skeleton active loading={suppliersQuery.isLoading && !suppliersQuery.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<Supplier>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={suppliersQuery.isFetching}
-          columns={columns}
-          dataSource={suppliersQuery.data?.list ?? []}
-          scroll={{ x: 1460, y: 540 }}
-          rowClassName={() => 'supplier-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: suppliersQuery.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={suppliersQuery.isLoading && !suppliersQuery.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<Supplier>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={suppliersQuery.isFetching}
+              columns={columns}
+              dataSource={suppliersQuery.data?.list ?? []}
+              scroll={{ x: 1460, y: 540 }}
+              rowClassName={() => 'supplier-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: suppliersQuery.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .supplier-row-height .ant-table-cell {

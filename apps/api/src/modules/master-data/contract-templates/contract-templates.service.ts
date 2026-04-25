@@ -17,9 +17,8 @@ export class ContractTemplatesService {
   private async withFileUrl<T extends { templateFileKey: string | null }>(
     item: T,
   ): Promise<T & { templateFileUrl: string | null }> {
-    const templateFileUrl = item.templateFileKey
-      ? await this.filesService.getSignedUrl(item.templateFileKey)
-      : null;
+    // TODO: replace with real signed URL once OSS is configured
+    const templateFileUrl = item.templateFileKey ?? null;
     return { ...item, templateFileUrl };
   }
 

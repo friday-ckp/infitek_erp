@@ -1,35 +1,28 @@
-import type { ReactNode } from 'react';
-import { Breadcrumb, Button, Modal, Result, Skeleton, Table, Tabs, message } from 'antd';
+import { useState } from 'react';
+import { Button, Modal, Result, Skeleton, Table, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { TabsProps } from 'antd/es/tabs';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deleteCertificate, getCertificateById, type CertificateSpu } from '../../../api/certificates.api';
 import { getProductCategoryTree } from '../../../api/product-categories.api';
 import { findCategoryName } from '../../../utils/category';
+import {
+  AnchorNav,
+  MetaItem,
+  OperationTimeline,
+  SectionCard,
+  SummaryMetaItem,
+  displayOrDash,
+} from '../components/page-scaffold';
 import '../master-page.css';
-import './certificate-page.css';
-
-function displayOrDash(value?: string | number | null): string {
-  if (value === null || value === undefined || value === '') return '—';
-  return String(value);
-}
-
-function MetaItem({ label, value, full = false }: { label: string; value: ReactNode; full?: boolean }) {
-  return (
-    <div className={`certificate-meta-item${full ? ' full' : ''}`}>
-      <div className="certificate-meta-label">{label}</div>
-      <div className={`certificate-meta-value${value === '—' ? ' empty' : ''}`}>{value}</div>
-    </div>
-  );
-}
 
 export default function CertificateDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { id = '' } = useParams();
   const certId = Number(id);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const query = useQuery({
     queryKey: ['certificate-detail', certId],
@@ -92,7 +85,7 @@ export default function CertificateDetailPage() {
     ? findCategoryName(categoryTreeQuery.data, data.categoryId)
     : '—';
   const validRange = data ? `${displayOrDash(data.validFrom)} ~ ${displayOrDash(data.validUntil)}` : '—';
-  const statusClass = data?.status === 'valid' ? 'certificate-pill-success' : 'certificate-pill-error';
+  const statusClass = data?.status === 'valid' ? 'master-pill-success' : 'master-pill-red';
   const statusText = data?.status === 'valid' ? '有效' : '已过期';
   const operationRecords = [
     ...(data?.updatedAt
@@ -117,6 +110,13 @@ export default function CertificateDetailPage() {
       : []),
   ];
 
+  const anchors = [
+    { key: 'basic', label: '证书信息' },
+    { key: 'spus', label: '关联 SPU' },
+    { key: 'audit', label: '附件与审计' },
+    { key: 'operation', label: '操作记录' },
+  ];
+
   const spuColumns: ColumnsType<CertificateSpu> = [
     {
       title: 'SPU 编码',
@@ -135,184 +135,138 @@ export default function CertificateDetailPage() {
     { title: 'SPU 名称', dataIndex: 'name' },
   ];
 
-  const tabItems: TabsProps['items'] = [
-    {
-      key: 'basic',
-      label: '证书信息',
-      children: (
-        <div className="certificate-tab-body">
-          <div className="certificate-meta-grid">
-            <MetaItem label="证书编号" value={displayOrDash(data?.certificateNo)} />
-            <MetaItem label="证书名称" value={displayOrDash(data?.certificateName)} />
-            <MetaItem label="证书类型" value={displayOrDash(data?.certificateType)} />
-            <MetaItem
-              label="状态"
-              value={<span className={`certificate-pill ${statusClass}`}>{statusText}</span>}
-            />
-            <MetaItem label="指令法规" value={displayOrDash(data?.directive)} />
-            <MetaItem label="归属类型" value={displayOrDash(data?.attributionType)} />
-            <MetaItem label="发证机构" value={displayOrDash(data?.issuingAuthority)} />
-            <MetaItem label="发证日期" value={displayOrDash(data?.issueDate)} />
-            <MetaItem label="有效期区间" value={validRange} />
-            <MetaItem label="所属产品分类" value={categoryName} />
-            <MetaItem label="证书说明" value={displayOrDash(data?.remarks)} full />
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'spus',
-      label: '关联 SPU',
-      children: (
-        <div className="certificate-tab-body">
-          {data?.spus?.length ? (
-            <div className="certificate-data-table">
-              <Table
-                rowKey="id"
-                size="small"
-                pagination={false}
-                dataSource={data.spus}
-                columns={spuColumns}
-              />
-              <div className="certificate-data-table-footer">共 {data.spus.length} 条记录</div>
-            </div>
-          ) : (
-            <div className="certificate-meta-value empty">—</div>
-          )}
-          <div className="certificate-info-tip">
-            ℹ 关联数据来源于证书归属配置，详情页只读展示；如需修改请进入编辑页。
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'audit',
-      label: '附件与审计',
-      children: (
-        <div className="certificate-tab-body">
-          <div className="certificate-meta-grid">
-            <MetaItem
-              label="证书文件"
-              value={
-                data?.fileUrl ? (
-                  <Button type="link" style={{ padding: 0 }} onClick={() => window.open(data.fileUrl!, '_blank')}>
-                    {data.fileName || '下载证书'}
-                  </Button>
-                ) : (
-                  '—'
-                )
-              }
-            />
-            <MetaItem label="文件名" value={displayOrDash(data?.fileName)} />
-            <MetaItem label="创建时间" value={data?.createdAt ? dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') : '—'} />
-            <MetaItem label="更新时间" value={data?.updatedAt ? dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') : '—'} />
-            <MetaItem label="创建人" value={displayOrDash(data?.createdBy)} />
-            <MetaItem label="更新人" value={displayOrDash(data?.updatedBy)} />
-          </div>
-        </div>
-      ),
-    },
-    {
-      key: 'operation',
-      label: '操作记录',
-      children: (
-        <div className="certificate-tab-body">
-          {operationRecords.length ? (
-            <div className="master-status-timeline">
-              {operationRecords.map((record, index) => (
-                <div className="master-tl-item" key={record.key}>
-                  <div className={`master-tl-dot${index === operationRecords.length - 1 ? ' gray' : ''}`} />
-                  <div className="master-tl-content">
-                    <div className="master-tl-operator">操作人：{record.operator}</div>
-                    <div className="master-tl-action">操作记录：{record.action}</div>
-                    <div className="master-tl-time">操作时间：{record.time}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="certificate-meta-value empty">—</div>
-          )}
-        </div>
-      ),
-    },
-  ];
-
   return (
-    <div className="certificate-page">
-      <Breadcrumb
-        items={[
-          {
-            title: (
-              <Button
-                type="link"
-                className="certificate-breadcrumb-link"
-                onClick={() => navigate('/master-data/certificates')}
-              >
-                主数据
-              </Button>
-            ),
-          },
-          {
-            title: (
-              <Button
-                type="link"
-                className="certificate-breadcrumb-link"
-                onClick={() => navigate('/master-data/certificates')}
-              >
-                产品证书库
-              </Button>
-            ),
-          },
-          { title: data?.certificateNo || '详情' },
-        ]}
-      />
-
-      <div className="certificate-summary-card">
+    <div className="master-page">
+      <div className="master-summary-card">
         {query.isLoading && !data ? (
           <Skeleton active paragraph={{ rows: 2 }} />
         ) : (
           <>
-            <div className="certificate-summary-header">
-              <div className="certificate-summary-title-wrap">
-                <div className="certificate-summary-code">{data?.certificateNo || '—'}</div>
-                <span className={`certificate-pill ${statusClass}`}>{statusText}</span>
+            <div className="master-summary-code">{displayOrDash(data?.certificateNo)}</div>
+            <div className="master-summary-header">
+              <div className="master-summary-title-wrap">
+                <div className="master-summary-title-row">
+                  <div className="master-summary-title">{displayOrDash(data?.certificateName)}</div>
+                  <span className={`master-pill ${statusClass}`}>{statusText}</span>
+                </div>
               </div>
-              <div className="certificate-summary-actions">
+              <div className="master-summary-actions">
                 <Button onClick={() => navigate(`/master-data/certificates/${id}/edit`)}>编辑</Button>
                 <Button danger onClick={handleDelete} loading={deleteMutation.isPending}>删除</Button>
               </div>
             </div>
-            <div className="certificate-summary-meta">
-              <div className="certificate-summary-meta-item">
-                <div className="certificate-summary-meta-label">证书名称</div>
-                <div className="certificate-summary-meta-value">{displayOrDash(data?.certificateName)}</div>
-              </div>
-              <div className="certificate-summary-meta-item">
-                <div className="certificate-summary-meta-label">证书类型</div>
-                <div className="certificate-summary-meta-value">{displayOrDash(data?.certificateType)}</div>
-              </div>
-              <div className="certificate-summary-meta-item">
-                <div className="certificate-summary-meta-label">有效期</div>
-                <div className="certificate-summary-meta-value">{validRange}</div>
-              </div>
-              <div className="certificate-summary-meta-item">
-                <div className="certificate-summary-meta-label">发证机构</div>
-                <div className="certificate-summary-meta-value">{displayOrDash(data?.issuingAuthority)}</div>
-              </div>
+            <div className="master-summary-meta">
+              <SummaryMetaItem label="证书类型" value={displayOrDash(data?.certificateType)} />
+              <SummaryMetaItem label="有效期" value={validRange} />
+              <SummaryMetaItem label="发证机构" value={displayOrDash(data?.issuingAuthority)} />
+              <SummaryMetaItem label="归属类型" value={displayOrDash(data?.attributionType)} />
             </div>
           </>
         )}
       </div>
 
-      <div className="certificate-info-card">
-        {query.isLoading && !data ? (
-          <div className="certificate-tab-body">
-            <Skeleton active paragraph={{ rows: 8 }} />
-          </div>
-        ) : (
-          <Tabs className="certificate-info-tabs" defaultActiveKey="basic" items={tabItems} />
-        )}
+      <div className="master-detail-layout">
+        <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
+
+        <div className="master-detail-main">
+          <SectionCard
+            id="basic"
+            title="证书信息"
+            description="统一展示证书主体、有效期、归属类型和说明字段。"
+          >
+            {query.isLoading && !data ? (
+              <Skeleton active paragraph={{ rows: 5 }} />
+            ) : (
+              <div className="master-meta-grid">
+                <MetaItem label="证书编号" value={displayOrDash(data?.certificateNo)} />
+                <MetaItem label="证书名称" value={displayOrDash(data?.certificateName)} />
+                <MetaItem label="证书类型" value={displayOrDash(data?.certificateType)} />
+                <MetaItem label="状态" value={<span className={`master-pill ${statusClass}`}>{statusText}</span>} />
+                <MetaItem label="指令法规" value={displayOrDash(data?.directive)} />
+                <MetaItem label="归属类型" value={displayOrDash(data?.attributionType)} />
+                <MetaItem label="发证机构" value={displayOrDash(data?.issuingAuthority)} />
+                <MetaItem label="发证日期" value={displayOrDash(data?.issueDate)} />
+                <MetaItem label="有效期区间" value={validRange} />
+                <MetaItem label="所属产品分类" value={categoryName} />
+                <MetaItem label="证书说明" value={displayOrDash(data?.remarks)} full />
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="spus"
+            title="关联 SPU"
+            description="保留原有 SPU 关联查看能力，仅统一表格容器与说明样式。"
+            bodyClassName="master-section-table"
+          >
+            {query.isLoading && !data ? (
+              <div className="master-info-body">
+                <Skeleton active paragraph={{ rows: 4 }} />
+              </div>
+            ) : data?.spus?.length ? (
+              <>
+                <div className="master-table-shell">
+                  <Table
+                    rowKey="id"
+                    size="small"
+                    pagination={false}
+                    dataSource={data.spus}
+                    columns={spuColumns}
+                  />
+                </div>
+                <div className="master-info-tip" style={{ margin: '12px 20px 20px' }}>
+                  关联数据来源于证书归属配置，详情页只读展示；如需修改请进入编辑页。
+                </div>
+              </>
+            ) : (
+              <div className="master-info-body">
+                <div className="master-meta-value empty">—</div>
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="audit"
+            title="附件与审计"
+            description="查看当前证书附件、创建更新信息与下载入口。"
+          >
+            {query.isLoading && !data ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : (
+              <div className="master-meta-grid">
+                <MetaItem
+                  label="证书文件"
+                  value={
+                    data?.fileUrl ? (
+                      <Button type="link" style={{ padding: 0 }} onClick={() => window.open(data.fileUrl!, '_blank')}>
+                        {data.fileName || '下载证书'}
+                      </Button>
+                    ) : (
+                      '—'
+                    )
+                  }
+                />
+                <MetaItem label="文件名" value={displayOrDash(data?.fileName)} />
+                <MetaItem label="创建时间" value={data?.createdAt ? dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') : '—'} />
+                <MetaItem label="更新时间" value={data?.updatedAt ? dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') : '—'} />
+                <MetaItem label="创建人" value={displayOrDash(data?.createdBy)} />
+                <MetaItem label="更新人" value={displayOrDash(data?.updatedBy)} />
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="operation"
+            title="操作记录"
+            description="按时间展示证书资料的创建与更新轨迹。"
+          >
+            {query.isLoading && !data ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : (
+              <OperationTimeline records={operationRecords} />
+            )}
+          </SectionCard>
+        </div>
       </div>
     </div>
   );

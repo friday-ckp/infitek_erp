@@ -3,8 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
-  Flex,
-  Input,
   Result,
   Select,
   Skeleton,
@@ -18,7 +16,10 @@ import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { getCertificates, type Certificate } from '../../../api/certificates.api';
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 const STATUS_OPTIONS = [
   { label: '有效', value: 'valid' },
@@ -193,59 +194,108 @@ export default function CertificatesListPage() {
     </Empty>
   );
 
+  const activeTags: ActiveTag[] = [
+    keyword
+      ? {
+          key: 'keyword',
+          label: `关键词: ${keyword}`,
+          onClose: () => {
+            setKeywordInput('');
+            setPage(1);
+          },
+        }
+      : null,
+    statusFilter
+      ? {
+          key: 'status',
+          label: `状态: ${statusFilter === 'valid' ? '有效' : '已过期'}`,
+          onClose: () => {
+            setStatusFilter(undefined);
+            setPage(1);
+          },
+        }
+      : null,
+  ].filter(Boolean) as ActiveTag[];
+
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>产品证书库</Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/certificates/create')}>
-          + 新建证书
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-kicker">Product Management</div>
+            <div className="master-page-title">产品证书库</div>
+            <div className="master-page-description">统一管理产品证书、法规信息与有效期状态。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/certificates/create')}>
+              新建证书
+            </Button>
+          </div>
+        </div>
 
-      <Space size={token.marginSM} style={{ marginBottom: token.marginSM }}>
-        <Input
-          placeholder="搜索证书名称/编号..."
-          style={{ width: 280 }}
-          value={keywordInput}
-          onChange={(e) => { setKeywordInput(e.target.value); setPage(1); }}
-          allowClear
-        />
-        <Select
-          style={{ width: 140 }}
-          placeholder="全部状态"
-          value={statusFilter}
-          onChange={(v) => { setStatusFilter(v); setPage(1); }}
-          options={STATUS_OPTIONS}
-          allowClear
-        />
-      </Space>
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
+            }}
+            placeholder="搜索证书名称或编号"
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setStatusFilter(undefined);
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              query.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setStatusFilter(undefined);
+              setPage(1);
+            }}
+            advancedContent={(
+              <Select
+                style={{ width: 160 }}
+                placeholder="全部状态"
+                value={statusFilter}
+                onChange={(v) => { setStatusFilter(v); setPage(1); }}
+                options={STATUS_OPTIONS}
+                allowClear
+              />
+            )}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data}>
-        <ProTable<Certificate>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 1300, y: 540 }}
-          rowClassName={() => 'cert-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) { setPage(1); } else { setPage(nextPage); }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data}>
+            <ProTable<Certificate>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 1300, y: 540 }}
+              rowClassName={() => 'cert-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) { setPage(1); } else { setPage(nextPage); }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`.cert-row-height .ant-table-cell { height: 48px; }`}</style>
     </div>

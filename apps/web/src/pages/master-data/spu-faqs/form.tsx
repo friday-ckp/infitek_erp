@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Breadcrumb, Button, Result, Skeleton, Upload, message } from 'antd';
+import { Button, Result, Skeleton, Upload, message } from 'antd';
 import type { UploadFile } from 'antd';
 import {
   ProForm,
@@ -20,6 +20,7 @@ import {
   type SpuFaqQuestionType,
   type UpdateSpuFaqPayload,
 } from '../../../api/spu-faqs.api';
+import { AnchorNav, SectionCard } from '../components/page-scaffold';
 import '../master-page.css';
 
 export default function SpuFaqFormPage() {
@@ -29,6 +30,7 @@ export default function SpuFaqFormPage() {
   const faqId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
   const formRef = useRef<ProFormInstance>(undefined);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadedKey, setUploadedKey] = useState<string | null>(null);
@@ -102,28 +104,20 @@ export default function SpuFaqFormPage() {
   }
 
   const detail = detailQuery.data;
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'content', label: '问答内容' },
+    { key: 'attachment', label: '附件' },
+  ];
 
   return (
     <div className="master-page master-form-page">
-      <Breadcrumb
-        items={[
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/spu-faqs')}>
-                主数据
-              </Button>
-            ),
-          },
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/spu-faqs')}>
-                FAQ 管理
-              </Button>
-            ),
-          },
-          { title: isEdit ? '编辑 FAQ' : '新建 FAQ' },
-        ]}
-      />
+      <div className="master-page-header">
+        <div className="master-page-heading">
+          <div className="master-page-title">{isEdit ? '编辑 FAQ' : '新建 FAQ'}</div>
+          <div className="master-page-description">统一整理 FAQ 类型、问答内容与附件上传界面。</div>
+        </div>
+      </div>
 
       <ProForm
         formRef={formRef}
@@ -136,7 +130,8 @@ export default function SpuFaqFormPage() {
                 questionType: detail.questionType,
                 spuCode: detail.spuCode ?? undefined,
               }
-            : undefined
+            : {
+              }
         }
         onFinish={async (values) => {
           const attachmentUrl = uploadedKey ?? (isEdit ? detail?.attachmentUrl ?? undefined : undefined);
@@ -162,80 +157,109 @@ export default function SpuFaqFormPage() {
           return true;
         }}
       >
-        <div className="master-info-card">
-          <div className="master-form-body">
-            <ProForm.Group>
-              <ProFormSelect
-                name="questionType"
-                label="问题类型"
-                placeholder="请选择问题类型"
-                width="md"
-                options={QUESTION_TYPE_OPTIONS}
-                rules={[{ required: true, message: '请选择问题类型' }]}
-              />
-              <ProFormText
-                name="spuCode"
-                label="SPU 编码"
-                placeholder="请输入 SPU 编码（可选）"
-                width="sm"
-                rules={[{ max: 30, message: 'SPU 编码最多 30 个字符' }]}
-              />
-            </ProForm.Group>
+        <div className="master-form-layout">
+          <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
 
-            <ProFormText
-              name="question"
-              label="问题"
-              placeholder="请输入问题内容"
-              width="xl"
-              rules={[
-                { required: true, message: '请输入问题' },
-                { max: 500, message: '问题最多 500 个字符' },
-              ]}
-              fieldProps={{ showCount: true, maxLength: 500 }}
-            />
-
-            <ProFormTextArea
-              name="answer"
-              label="回答"
-              placeholder="请输入回答内容"
-              width="xl"
-              rules={[{ required: true, message: '请输入回答' }]}
-              fieldProps={{ rows: 6, autoSize: { minRows: 4, maxRows: 12 } }}
-            />
-
-            <ProForm.Item label="上传附件">
-              <Upload
-                fileList={fileList}
-                maxCount={1}
-                accept=".pdf,.jpg,.jpeg,.png"
-                beforeUpload={(file) => {
-                  setFileList([file as unknown as UploadFile]);
-                  handleUpload(file);
-                  return false;
-                }}
-                onRemove={() => {
-                  setFileList([]);
-                  setUploadedKey(null);
-                }}
-              >
-                <Button loading={uploading}>
-                  {isEdit && detail?.attachmentUrl ? '替换附件' : '选择文件（PDF / 图片）'}
-                </Button>
-              </Upload>
-              {isEdit && detail?.attachmentUrl && !uploadedKey ? (
-                <div className="master-info-tip">当前已有附件，上传新文件将替换。</div>
-              ) : null}
-            </ProForm.Item>
-          </div>
-          <div className="master-form-footer">
-            <Button onClick={() => navigate('/master-data/spu-faqs')}>取消</Button>
-            <Button
-              type="primary"
-              loading={createMutation.isPending || updateMutation.isPending}
-              onClick={() => formRef.current?.submit?.()}
+          <div className="master-form-main">
+            <SectionCard
+              id="basic"
+              title="基础信息"
+              description="维护 FAQ 类型及 SPU 编码关联字段。"
             >
-              {isEdit ? '保存' : '创建'}
-            </Button>
+              <div className="master-form-grid">
+                <ProFormSelect
+                  name="questionType"
+                  label="问题类型"
+                  placeholder="请选择问题类型"
+                  options={QUESTION_TYPE_OPTIONS}
+                  rules={[{ required: true, message: '请选择问题类型' }]}
+                />
+                <ProFormText
+                  name="spuCode"
+                  label="SPU 编码"
+                  placeholder="请输入 SPU 编码（可选）"
+                  rules={[{ max: 30, message: 'SPU 编码最多 30 个字符' }]}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              id="content"
+              title="问答内容"
+              description="统一承载问题和回答文本区域，保留原字段校验规则。"
+            >
+              <div className="master-form-grid">
+                <div className="full">
+                  <ProFormText
+                    name="question"
+                    label="问题"
+                    placeholder="请输入问题内容"
+                    rules={[
+                      { required: true, message: '请输入问题' },
+                      { max: 500, message: '问题最多 500 个字符' },
+                    ]}
+                    fieldProps={{ showCount: true, maxLength: 500 }}
+                  />
+                </div>
+                <div className="full">
+                  <ProFormTextArea
+                    name="answer"
+                    label="回答"
+                    placeholder="请输入回答内容"
+                    rules={[{ required: true, message: '请输入回答' }]}
+                    fieldProps={{ rows: 6, autoSize: { minRows: 4, maxRows: 12 } }}
+                  />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              id="attachment"
+              title="附件"
+              description="保留 FAQ 附件上传逻辑，仅统一上传区域样式。"
+            >
+              <div className="master-form-grid">
+                <div className="full">
+                  <ProForm.Item label="上传附件">
+                    <Upload
+                      fileList={fileList}
+                      maxCount={1}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      beforeUpload={(file) => {
+                        setFileList([file as unknown as UploadFile]);
+                        handleUpload(file);
+                        return false;
+                      }}
+                      onRemove={() => {
+                        setFileList([]);
+                        setUploadedKey(null);
+                      }}
+                    >
+                      <Button loading={uploading}>
+                        {isEdit && detail?.attachmentUrl ? '替换附件' : '选择文件（PDF / 图片）'}
+                      </Button>
+                    </Upload>
+                    {isEdit && detail?.attachmentUrl && !uploadedKey ? (
+                      <div className="master-info-tip">当前已有附件，上传新文件将替换。</div>
+                    ) : null}
+                  </ProForm.Item>
+                </div>
+              </div>
+            </SectionCard>
+
+            <div className="master-form-footer">
+              <div className="master-form-footer-tip">当前仅统一 FAQ 页面的布局与视觉，不改动问答和附件字段的提交逻辑。</div>
+              <div className="master-form-footer-actions">
+                <Button onClick={() => navigate('/master-data/spu-faqs')}>取消</Button>
+                <Button
+                  type="primary"
+                  loading={createMutation.isPending || updateMutation.isPending}
+                  onClick={() => formRef.current?.submit?.()}
+                >
+                  {isEdit ? '保存' : '创建'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </ProForm>

@@ -1,12 +1,6 @@
-import { useRef } from 'react';
-import { Breadcrumb, Button, Rate, Result, Skeleton } from 'antd';
-import {
-  ProForm,
-  ProFormItem,
-  ProFormSelect,
-  ProFormText,
-  type ProFormInstance,
-} from '@ant-design/pro-components';
+import { useRef, useState } from 'react';
+import { Button, Rate, Result, Skeleton } from 'antd';
+import { ProForm, ProFormItem, ProFormSelect, ProFormText, type ProFormInstance } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import request from '../../../api/request';
@@ -18,6 +12,7 @@ import {
   type CreateLogisticsProviderPayload,
   type UpdateLogisticsProviderPayload,
 } from '../../../api/logistics-providers.api';
+import { AnchorNav, SectionCard } from '../components/page-scaffold';
 import '../master-page.css';
 
 export default function LogisticsProviderFormPage() {
@@ -27,6 +22,7 @@ export default function LogisticsProviderFormPage() {
   const providerId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
   const formRef = useRef<ProFormInstance>(undefined);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const detailQuery = useQuery({
     queryKey: ['logistics-provider-detail', providerId],
@@ -61,9 +57,7 @@ export default function LogisticsProviderFormPage() {
     );
   }
 
-  if (isEdit && detailQuery.isLoading) {
-    return <Skeleton active />;
-  }
+  if (isEdit && detailQuery.isLoading) return <Skeleton active />;
 
   if (isEdit && detailQuery.isError && !detailQuery.data) {
     return (
@@ -79,27 +73,19 @@ export default function LogisticsProviderFormPage() {
     );
   }
 
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'contact', label: '联系信息' },
+  ];
+
   return (
     <div className="master-page master-form-page">
-      <Breadcrumb
-        items={[
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/logistics-providers')}>
-                基础数据
-              </Button>
-            ),
-          },
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/logistics-providers')}>
-                物流供应商管理
-              </Button>
-            ),
-          },
-          { title: isEdit ? `编辑 ${detailQuery.data?.name || ''}` : '新建物流供应商' },
-        ]}
-      />
+      <div className="master-page-header">
+        <div className="master-page-heading">
+          <div className="master-page-title">{isEdit ? '编辑物流供应商' : '新建物流供应商'}</div>
+          <div className="master-page-description">统一维护物流供应商主体、等级、联系人和合作主体。</div>
+        </div>
+      </div>
 
       <ProForm<{
         name: string;
@@ -154,193 +140,184 @@ export default function LogisticsProviderFormPage() {
           };
 
           if (isEdit) {
-            await updateMutation.mutateAsync(payload);
+            await updateMutation.mutateAsync(payload as UpdateLogisticsProviderPayload);
           } else {
-            await createMutation.mutateAsync(payload);
+            await createMutation.mutateAsync(payload as CreateLogisticsProviderPayload);
           }
           return true;
         }}
       >
-        <div className="master-info-card">
-          <div className="master-form-body">
-            <ProForm.Group>
-              <ProFormText
-                name="name"
-                label="供应商名称"
-                width="md"
-                placeholder="请输入物流供应商名称"
-                rules={[
-                  { required: true, message: '请输入供应商名称' },
-                  { max: 200, message: '供应商名称最多 200 个字符' },
-                ]}
-              />
-              <ProFormText
-                name="providerCode"
-                label="供应商编码"
-                width="sm"
-                placeholder="创建后自动生成，如 YCWL0001"
-                disabled
-              />
-              <ProFormText
-                name="shortName"
-                label="供应商简称"
-                width="sm"
-                placeholder="请输入供应商简称"
-                rules={[
-                  { required: true, message: '请输入供应商简称' },
-                  { max: 100, message: '供应商简称最多 100 个字符' },
-                ]}
-              />
-            </ProForm.Group>
-
-            <ProForm.Group>
-              <ProFormText
-                name="contactPerson"
-                label="联系人"
-                width="sm"
-                placeholder="请输入联系人"
-                rules={[
-                  { required: true, message: '请输入联系人' },
-                  { max: 100, message: '联系人最多 100 个字符' },
-                ]}
-              />
-              <ProFormText
-                name="contactPhone"
-                label="联系电话"
-                width="sm"
-                placeholder="请输入联系电话"
-                rules={[
-                  { required: true, message: '请输入联系电话' },
-                  { max: 50, message: '联系电话最多 50 个字符' },
-                ]}
-              />
-              <ProFormText
-                name="contactEmail"
-                label="联系邮箱"
-                width="md"
-                placeholder="请输入联系邮箱"
-                rules={[
-                  { required: true, message: '请输入联系邮箱' },
-                  { type: 'email', message: '请输入正确的邮箱地址' },
-                ]}
-              />
-            </ProForm.Group>
-
-            <ProForm.Group>
-              <ProFormSelect
-                name="status"
-                label="合作状态"
-                width="sm"
-                options={LOGISTICS_PROVIDER_STATUS_OPTIONS}
-              />
-              <div style={{ minWidth: 240 }}>
-                <ProFormItem
-                  name="providerLevel"
-                  label="供应商等级"
-                >
-                  <Rate count={5} />
-                </ProFormItem>
+        <div className="master-form-layout">
+          <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
+          <div className="master-form-main">
+            <SectionCard id="basic" title="基础信息" description="填写物流供应商名称、简称、状态、等级和合作主体。">
+              <div className="master-form-grid">
+                <ProFormText
+                  name="name"
+                  label="供应商名称"
+                  placeholder="请输入物流供应商名称"
+                  rules={[
+                    { required: true, message: '请输入供应商名称' },
+                    { max: 200, message: '供应商名称最多 200 个字符' },
+                  ]}
+                />
+                <ProFormText
+                  name="providerCode"
+                  label="供应商编码"
+                  placeholder="创建后自动生成，如 YCWL0001"
+                  disabled
+                />
+                <ProFormText
+                  name="shortName"
+                  label="供应商简称"
+                  placeholder="请输入供应商简称"
+                  rules={[
+                    { required: true, message: '请输入供应商简称' },
+                    { max: 100, message: '供应商简称最多 100 个字符' },
+                  ]}
+                />
+                <ProFormSelect
+                  name="status"
+                  label="合作状态"
+                  options={LOGISTICS_PROVIDER_STATUS_OPTIONS}
+                />
+                <div>
+                  <ProFormItem name="providerLevel" label="供应商等级">
+                    <Rate count={5} />
+                  </ProFormItem>
+                </div>
+                <ProFormSelect
+                  name="countryId"
+                  label="国家/地区"
+                  placeholder="请搜索国家/地区"
+                  showSearch
+                  request={async (params) => {
+                    try {
+                      const res = await request.get<any, { list: Array<{ id: number; name: string; code: string }> }>('/countries', {
+                        params: { keyword: params.keyWords, pageSize: 20 },
+                      });
+                      const options = (res.list || []).map((item) => ({
+                        label: `${item.name} (${item.code})`,
+                        value: Number(item.id),
+                        name: item.name,
+                      }));
+                      if (!params.keyWords && detailQuery.data?.countryId) {
+                        const exists = options.some((item) => item.value === detailQuery.data?.countryId);
+                        if (!exists) {
+                          options.unshift({
+                            label: detailQuery.data.countryName || '',
+                            value: detailQuery.data.countryId,
+                            name: detailQuery.data.countryName || '',
+                          });
+                        }
+                      }
+                      return options;
+                    } catch {
+                      return [];
+                    }
+                  }}
+                  fieldProps={{
+                    onChange: (_value, option: any) => {
+                      formRef.current?.setFieldsValue({ countryName: option?.name ?? null });
+                    },
+                  }}
+                />
+                <ProFormSelect
+                  name="defaultCompanyId"
+                  label="默认合作主体"
+                  placeholder="请搜索公司主体"
+                  showSearch
+                  rules={[{ required: true, message: '请选择默认合作主体' }]}
+                  request={async (params) => {
+                    try {
+                      const res = await request.get<any, { list: Array<{ id: number; nameCn: string }> }>('/companies', {
+                        params: { keyword: params.keyWords, pageSize: 20 },
+                      });
+                      const options = (res.list || []).map((item) => ({
+                        label: item.nameCn,
+                        value: Number(item.id),
+                        name: item.nameCn,
+                      }));
+                      if (!params.keyWords && detailQuery.data?.defaultCompanyId) {
+                        const exists = options.some((item) => item.value === detailQuery.data?.defaultCompanyId);
+                        if (!exists) {
+                          options.unshift({
+                            label: detailQuery.data.defaultCompanyName || '',
+                            value: detailQuery.data.defaultCompanyId,
+                            name: detailQuery.data.defaultCompanyName || '',
+                          });
+                        }
+                      }
+                      return options;
+                    } catch {
+                      return [];
+                    }
+                  }}
+                  fieldProps={{
+                    onChange: (_value, option: any) => {
+                      formRef.current?.setFieldsValue({ defaultCompanyName: option?.name ?? null });
+                    },
+                  }}
+                />
               </div>
-            </ProForm.Group>
+            </SectionCard>
 
-            <ProForm.Group>
-              <ProFormSelect
-                name="countryId"
-                label="国家/地区"
-                width="md"
-                placeholder="请搜索国家/地区"
-                showSearch
-                request={async (params) => {
-                  try {
-                    const res = await request.get<any, { list: Array<{ id: number; name: string; code: string }> }>('/countries', {
-                      params: { keyword: params.keyWords, pageSize: 20 },
-                    });
-                    const options = (res.list || []).map((item) => ({
-                      label: `${item.name} (${item.code})`,
-                      value: Number(item.id),
-                      name: item.name,
-                    }));
-                    if (!params.keyWords && detailQuery.data?.countryId) {
-                      const exists = options.some((item) => item.value === detailQuery.data?.countryId);
-                      if (!exists) {
-                        options.unshift({
-                          label: detailQuery.data.countryName || '',
-                          value: detailQuery.data.countryId,
-                          name: detailQuery.data.countryName || '',
-                        });
-                      }
-                    }
-                    return options;
-                  } catch {
-                    return [];
-                  }
-                }}
-                fieldProps={{
-                  onChange: (_value, option: any) => {
-                    formRef.current?.setFieldsValue({ countryName: option?.name ?? null });
-                  },
-                }}
-              />
-              <ProFormSelect
-                name="defaultCompanyId"
-                label="默认合作主体"
-                width="md"
-                placeholder="请搜索公司主体"
-                showSearch
-                rules={[{ required: true, message: '请选择默认合作主体' }]}
-                request={async (params) => {
-                  try {
-                    const res = await request.get<any, { list: Array<{ id: number; nameCn: string }> }>('/companies', {
-                      params: { keyword: params.keyWords, pageSize: 20 },
-                    });
-                    const options = (res.list || []).map((item) => ({
-                      label: item.nameCn,
-                      value: Number(item.id),
-                      name: item.nameCn,
-                    }));
-                    if (!params.keyWords && detailQuery.data?.defaultCompanyId) {
-                      const exists = options.some((item) => item.value === detailQuery.data?.defaultCompanyId);
-                      if (!exists) {
-                        options.unshift({
-                          label: detailQuery.data.defaultCompanyName || '',
-                          value: detailQuery.data.defaultCompanyId,
-                          name: detailQuery.data.defaultCompanyName || '',
-                        });
-                      }
-                    }
-                    return options;
-                  } catch {
-                    return [];
-                  }
-                }}
-                fieldProps={{
-                  onChange: (_value, option: any) => {
-                    formRef.current?.setFieldsValue({ defaultCompanyName: option?.name ?? null });
-                  },
-                }}
-              />
-            </ProForm.Group>
+            <SectionCard id="contact" title="联系信息" description="维护联系人、联系电话、邮箱和详细地址。">
+              <div className="master-form-grid">
+                <ProFormText
+                  name="contactPerson"
+                  label="联系人"
+                  placeholder="请输入联系人"
+                  rules={[
+                    { required: true, message: '请输入联系人' },
+                    { max: 100, message: '联系人最多 100 个字符' },
+                  ]}
+                />
+                <ProFormText
+                  name="contactPhone"
+                  label="联系电话"
+                  placeholder="请输入联系电话"
+                  rules={[
+                    { required: true, message: '请输入联系电话' },
+                    { max: 50, message: '联系电话最多 50 个字符' },
+                  ]}
+                />
+                <ProFormText
+                  name="contactEmail"
+                  label="联系邮箱"
+                  placeholder="请输入联系邮箱"
+                  rules={[
+                    { required: true, message: '请输入联系邮箱' },
+                    { type: 'email', message: '请输入正确的邮箱地址' },
+                  ]}
+                />
+                <div className="full">
+                  <ProFormText
+                    name="address"
+                    label="公司详细地址"
+                    placeholder="请输入公司详细地址"
+                    rules={[
+                      { required: true, message: '请输入公司详细地址' },
+                      { max: 500, message: '地址最多 500 个字符' },
+                    ]}
+                  />
+                </div>
+              </div>
+            </SectionCard>
 
-            <ProFormText
-              name="address"
-              label="公司详细地址"
-              width="xl"
-              placeholder="请输入公司详细地址"
-              rules={[
-                { required: true, message: '请输入公司详细地址' },
-                { max: 500, message: '地址最多 500 个字符' },
-              ]}
-            />
-          </div>
-          <div className="master-form-footer">
-            <Button onClick={() => navigate('/master-data/logistics-providers')}>取消</Button>
-            <Button
-              type="primary"
-              loading={createMutation.isPending || updateMutation.isPending}
-              onClick={() => formRef.current?.submit?.()}
-            >
-              {isEdit ? '保存' : '创建'}
-            </Button>
+            <div className="master-form-footer">
+              <div className="master-form-footer-tip">本页仅统一布局与层级，不变更物流供应商接口和提交流程。</div>
+              <div className="master-form-footer-actions">
+                <Button onClick={() => navigate('/master-data/logistics-providers')}>取消</Button>
+                <Button
+                  type="primary"
+                  loading={createMutation.isPending || updateMutation.isPending}
+                  onClick={() => formRef.current?.submit?.()}
+                >
+                  {isEdit ? '保存' : '创建'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </ProForm>

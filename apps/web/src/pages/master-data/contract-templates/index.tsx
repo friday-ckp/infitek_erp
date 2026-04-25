@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Empty, Flex, Result, Skeleton, Space, Tag, Typography, theme } from 'antd';
+import { Button, Empty, Result, Skeleton, Space, Tag, Typography, theme } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import {
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 const statusColorMap: Record<ContractTemplateStatus, string> = {
   pending_submit: 'default',
@@ -208,96 +209,103 @@ export default function ContractTemplatesListPage() {
   );
 
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          合同条款范本
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/contract-templates/create')}>
-          新建条款范本
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">合同条款范本</div>
+            <div className="master-page-description">统一维护合同模板状态、默认标识与法务审核属性。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/contract-templates/create')}>
+              新建条款范本
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(value) => {
-          setKeywordInput(value);
-          setPage(1);
-        }}
-        placeholder="快捷搜索模板名称/说明/合同条款"
-        advancedContent={
-          <Space>
-            <select
-              value={statusFilter ?? ''}
-              onChange={(event) => {
-                setStatusFilter((event.target.value || undefined) as ContractTemplateStatus | undefined);
-                setPage(1);
-              }}
-              style={{
-                minWidth: 160,
-                height: 32,
-                borderRadius: 8,
-                border: '1px solid #d9d9d9',
-                padding: '0 12px',
-                background: '#fff',
-              }}
-            >
-              <option value="">全部状态</option>
-              {CONTRACT_TEMPLATE_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </Space>
-        }
-        activeTags={activeTags}
-        onClearAll={() => {
-          setKeywordInput('');
-          setStatusFilter(undefined);
-          setPage(1);
-        }}
-        onQuery={() => {
-          setPage(1);
-          query.refetch();
-        }}
-        onReset={() => {
-          setKeywordInput('');
-          setStatusFilter(undefined);
-          setPage(1);
-        }}
-      />
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
+            }}
+            placeholder="快捷搜索模板名称/说明/合同条款"
+            advancedContent={
+              <Space>
+                <select
+                  value={statusFilter ?? ''}
+                  onChange={(event) => {
+                    setStatusFilter((event.target.value || undefined) as ContractTemplateStatus | undefined);
+                    setPage(1);
+                  }}
+                  style={{
+                    minWidth: 160,
+                    height: 32,
+                    borderRadius: 8,
+                    border: '1px solid #d9d9d9',
+                    padding: '0 12px',
+                    background: '#fff',
+                  }}
+                >
+                  <option value="">全部状态</option>
+                  {CONTRACT_TEMPLATE_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </Space>
+            }
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setStatusFilter(undefined);
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              query.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setStatusFilter(undefined);
+              setPage(1);
+            }}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<ContractTemplate>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 1100, y: 540 }}
-          rowClassName={() => 'contract-template-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<ContractTemplate>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 1100, y: 540 }}
+              rowClassName={() => 'contract-template-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .contract-template-row-height .ant-table-cell {

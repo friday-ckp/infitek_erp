@@ -23,7 +23,8 @@ export class CertificatesService {
   private async withFileUrl<T extends { fileKey: string | null }>(
     item: T,
   ): Promise<T & { fileUrl: string | null; status: CertificateStatus }> {
-    const fileUrl = item.fileKey ? await this.filesService.getSignedUrl(item.fileKey) : null;
+    // TODO: replace with real signed URL once OSS is configured
+    const fileUrl = item.fileKey ?? null;
     const status = this.computeStatus((item as unknown as { validUntil: string }).validUntil);
     return { ...item, fileUrl, status };
   }

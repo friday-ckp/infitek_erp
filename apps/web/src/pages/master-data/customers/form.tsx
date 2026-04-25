@@ -1,6 +1,5 @@
-import { useRef } from 'react';
-import { Button, Result, Skeleton, Tabs } from 'antd';
-import type { TabsProps } from 'antd';
+import { useRef, useState } from 'react';
+import { Button, Result, Skeleton } from 'antd';
 import {
   ProForm,
   ProFormSelect,
@@ -27,6 +26,7 @@ export default function CustomerFormPage() {
   const customerId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
   const formRef = useRef<ProFormInstance>(undefined);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const detailQuery = useQuery({
     queryKey: ['customer-detail', customerId],
@@ -72,12 +72,8 @@ export default function CustomerFormPage() {
         title="加载客户信息失败"
         subTitle="请检查网络或稍后重试"
         extra={[
-          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>
-            重试
-          </Button>,
-          <Button key="back" onClick={() => navigate('/master-data/customers')}>
-            返回列表
-          </Button>,
+          <Button key="retry" type="primary" onClick={() => detailQuery.refetch()}>重试</Button>,
+          <Button key="back" onClick={() => navigate('/master-data/customers')}>返回列表</Button>,
         ]}
       />
     );
@@ -99,176 +95,21 @@ export default function CustomerFormPage() {
       }
     : {};
 
-  const basicTab = (
-    <>
-      <ProForm.Group>
-        <ProFormText
-          name="customerCode"
-          label="客户代码"
-          width="sm"
-          placeholder="请输入客户代码"
-          rules={[
-            { required: true, message: '请输入客户代码' },
-            { max: 50, message: '客户代码最多 50 个字符' },
-          ]}
-        />
-        <ProFormText
-          name="customerName"
-          label="客户名称"
-          width="lg"
-          placeholder="请输入客户名称"
-          rules={[
-            { required: true, message: '请输入客户名称' },
-            { max: 200, message: '客户名称最多 200 个字符' },
-          ]}
-        />
-      </ProForm.Group>
-      <ProForm.Group>
-        <ProFormSelect
-          name="countryId"
-          label="客户国家"
-          width="md"
-          placeholder="请搜索国家/地区"
-          showSearch
-          rules={[{ required: true, message: '请选择客户国家' }]}
-          request={async (params) => {
-            try {
-              const res = await request.get<any, { list: Array<{ id: number; name: string; code: string }> }>('/countries', {
-                params: { keyword: params.keyWords, pageSize: 20 },
-              });
-              const options = (res.list || []).map((item) => ({
-                label: `${item.name} (${item.code})`,
-                value: Number(item.id),
-                name: item.name,
-              }));
-              if (!params.keyWords && detailQuery.data?.countryId) {
-                const exists = options.some((item) => item.value === detailQuery.data?.countryId);
-                if (!exists) {
-                  options.unshift({
-                    label: detailQuery.data.countryName,
-                    value: detailQuery.data.countryId,
-                    name: detailQuery.data.countryName,
-                  });
-                }
-              }
-              return options;
-            } catch {
-              return [];
-            }
-          }}
-          fieldProps={{
-            onChange: (_: number | undefined, option: any) => {
-              formRef.current?.setFieldsValue({
-                countryName: option?.name ?? null,
-              });
-            },
-          }}
-        />
-        <ProFormSelect
-          name="salespersonId"
-          label="销售员"
-          width="md"
-          placeholder="请搜索销售员"
-          showSearch
-          rules={[{ required: true, message: '请选择销售员' }]}
-          request={async (params) => {
-            try {
-              const res = await request.get<any, { list: Array<{ id: number; name: string; username: string }> }>('/users', {
-                params: { search: params.keyWords, pageSize: 20 },
-              });
-              const options = (res.list || []).map((item) => ({
-                label: `${item.name} (${item.username})`,
-                value: Number(item.id),
-                name: item.name,
-              }));
-              if (!params.keyWords && detailQuery.data?.salespersonId) {
-                const exists = options.some((item) => item.value === detailQuery.data?.salespersonId);
-                if (!exists) {
-                  options.unshift({
-                    label: detailQuery.data.salespersonName,
-                    value: detailQuery.data.salespersonId,
-                    name: detailQuery.data.salespersonName,
-                  });
-                }
-              }
-              return options;
-            } catch {
-              return [];
-            }
-          }}
-          fieldProps={{
-            onChange: (_: number | undefined, option: any) => {
-              formRef.current?.setFieldsValue({
-                salespersonName: option?.name ?? null,
-              });
-            },
-          }}
-        />
-      </ProForm.Group>
-    </>
-  );
-
-  const contactTab = (
-    <>
-      <ProForm.Group>
-        <ProFormText
-          name="contactPerson"
-          label="联系人"
-          width="md"
-          placeholder="请输入联系人"
-          rules={[{ max: 100, message: '联系人最多 100 个字符' }]}
-        />
-        <ProFormText
-          name="contactPhone"
-          label="联系电话"
-          width="md"
-          placeholder="请输入联系电话"
-          rules={[{ max: 50, message: '联系电话最多 50 个字符' }]}
-        />
-        <ProFormText
-          name="contactEmail"
-          label="联系邮箱"
-          width="md"
-          placeholder="请输入联系邮箱"
-          rules={[
-            { type: 'email', message: '请输入有效的邮箱地址' },
-            { max: 100, message: '联系邮箱最多 100 个字符' },
-          ]}
-        />
-      </ProForm.Group>
-      <ProForm.Group>
-        <ProFormTextArea
-          name="address"
-          label="地址"
-          width="xl"
-          placeholder="请输入客户地址"
-          fieldProps={{ rows: 3 }}
-          rules={[{ max: 500, message: '地址最多 500 个字符' }]}
-        />
-      </ProForm.Group>
-    </>
-  );
-
-  const billingTab = (
-    <ProForm.Group>
-      <ProFormTextArea
-        name="billingRequirements"
-        label="开票需求"
-        width="xl"
-        placeholder="请输入开票需求"
-        fieldProps={{ rows: 4 }}
-      />
-    </ProForm.Group>
-  );
-
-  const tabItems: TabsProps['items'] = [
-    { key: 'basic', label: '基本信息', children: <div className="master-form-body">{basicTab}</div> },
-    { key: 'contact', label: '联系信息', children: <div className="master-form-body">{contactTab}</div> },
-    { key: 'billing', label: '开票需求', children: <div className="master-form-body">{billingTab}</div> },
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'contact', label: '联系信息' },
+    { key: 'billing', label: '开票需求' },
   ];
 
   return (
     <div className="master-page master-form-page">
+      <div className="master-page-header">
+        <div className="master-page-heading">
+          <div className="master-page-title">{isEdit ? '编辑客户' : '新建客户'}</div>
+          <div className="master-page-description">统一维护客户主体、联系信息与开票需求。</div>
+        </div>
+      </div>
+
       <ProForm
         formRef={formRef}
         submitter={false}
@@ -297,19 +138,209 @@ export default function CustomerFormPage() {
           return true;
         }}
       >
-        <div className="master-info-card">
-          <Tabs className="master-info-tabs" defaultActiveKey="basic" items={tabItems} />
-          <div className="master-form-footer">
-            <Button onClick={() => navigate(isEdit ? `/master-data/customers/${customerId}` : '/master-data/customers')}>
-              取消
-            </Button>
-            <Button
-              type="primary"
-              loading={createMutation.isPending || updateMutation.isPending}
-              onClick={() => formRef.current?.submit?.()}
-            >
-              {isEdit ? '保存' : '创建'}
-            </Button>
+        <div className="master-form-layout">
+          <div className="master-anchor-nav">
+            {anchors.map((anchor) => (
+              <a
+                key={anchor.key}
+                href={`#${anchor.key}`}
+                className={`master-anchor-link${activeAnchor === anchor.key ? ' active' : ''}`}
+                onClick={() => setActiveAnchor(anchor.key)}
+              >
+                {anchor.label}
+              </a>
+            ))}
+          </div>
+
+          <div className="master-form-main">
+            <section id="basic" className="master-section-card">
+              <div className="master-section-header">
+                <div className="master-section-heading">
+                  <div className="master-section-title">基础信息</div>
+                  <div className="master-section-description">配置客户编码、名称、归属国家与销售负责人。</div>
+                </div>
+              </div>
+              <div className="master-section-body">
+                <div className="master-form-grid">
+                  <ProFormText
+                    name="customerCode"
+                    label="客户代码"
+                    placeholder="请输入客户代码"
+                    rules={[
+                      { required: true, message: '请输入客户代码' },
+                      { max: 50, message: '客户代码最多 50 个字符' },
+                    ]}
+                  />
+                  <ProFormText
+                    name="customerName"
+                    label="客户名称"
+                    placeholder="请输入客户名称"
+                    rules={[
+                      { required: true, message: '请输入客户名称' },
+                      { max: 200, message: '客户名称最多 200 个字符' },
+                    ]}
+                  />
+                  <ProFormSelect
+                    name="countryId"
+                    label="客户国家"
+                    placeholder="请搜索国家/地区"
+                    showSearch
+                    rules={[{ required: true, message: '请选择客户国家' }]}
+                    request={async (params) => {
+                      try {
+                        const res = await request.get<any, { list: Array<{ id: number; name: string; code: string }> }>('/countries', {
+                          params: { keyword: params.keyWords, pageSize: 20 },
+                        });
+                        const options = (res.list || []).map((item) => ({
+                          label: `${item.name} (${item.code})`,
+                          value: Number(item.id),
+                          name: item.name,
+                        }));
+                        if (!params.keyWords && detailQuery.data?.countryId) {
+                          const exists = options.some((item) => item.value === detailQuery.data?.countryId);
+                          if (!exists) {
+                            options.unshift({
+                              label: detailQuery.data.countryName,
+                              value: detailQuery.data.countryId,
+                              name: detailQuery.data.countryName,
+                            });
+                          }
+                        }
+                        return options;
+                      } catch {
+                        return [];
+                      }
+                    }}
+                    fieldProps={{
+                      onChange: (_: number | undefined, option: any) => {
+                        formRef.current?.setFieldsValue({
+                          countryName: option?.name ?? null,
+                        });
+                      },
+                    }}
+                  />
+                  <ProFormSelect
+                    name="salespersonId"
+                    label="销售员"
+                    placeholder="请搜索销售员"
+                    showSearch
+                    rules={[{ required: true, message: '请选择销售员' }]}
+                    request={async (params) => {
+                      try {
+                        const res = await request.get<any, { list: Array<{ id: number; name: string; username: string }> }>('/users', {
+                          params: { search: params.keyWords, pageSize: 20 },
+                        });
+                        const options = (res.list || []).map((item) => ({
+                          label: `${item.name} (${item.username})`,
+                          value: Number(item.id),
+                          name: item.name,
+                        }));
+                        if (!params.keyWords && detailQuery.data?.salespersonId) {
+                          const exists = options.some((item) => item.value === detailQuery.data?.salespersonId);
+                          if (!exists) {
+                            options.unshift({
+                              label: detailQuery.data.salespersonName,
+                              value: detailQuery.data.salespersonId,
+                              name: detailQuery.data.salespersonName,
+                            });
+                          }
+                        }
+                        return options;
+                      } catch {
+                        return [];
+                      }
+                    }}
+                    fieldProps={{
+                      onChange: (_: number | undefined, option: any) => {
+                        formRef.current?.setFieldsValue({
+                          salespersonName: option?.name ?? null,
+                        });
+                      },
+                    }}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section id="contact" className="master-section-card">
+              <div className="master-section-header">
+                <div className="master-section-heading">
+                  <div className="master-section-title">联系信息</div>
+                  <div className="master-section-description">维护客户联系人、电话、邮箱以及联系地址。</div>
+                </div>
+              </div>
+              <div className="master-section-body">
+                <div className="master-form-grid">
+                  <ProFormText
+                    name="contactPerson"
+                    label="联系人"
+                    placeholder="请输入联系人"
+                    rules={[{ max: 100, message: '联系人最多 100 个字符' }]}
+                  />
+                  <ProFormText
+                    name="contactPhone"
+                    label="联系电话"
+                    placeholder="请输入联系电话"
+                    rules={[{ max: 50, message: '联系电话最多 50 个字符' }]}
+                  />
+                  <ProFormText
+                    name="contactEmail"
+                    label="联系邮箱"
+                    placeholder="请输入联系邮箱"
+                    rules={[
+                      { type: 'email', message: '请输入有效的邮箱地址' },
+                      { max: 100, message: '联系邮箱最多 100 个字符' },
+                    ]}
+                  />
+                  <div className="full">
+                    <ProFormTextArea
+                      name="address"
+                      label="地址"
+                      placeholder="请输入客户地址"
+                      fieldProps={{ rows: 3 }}
+                      rules={[{ max: 500, message: '地址最多 500 个字符' }]}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="billing" className="master-section-card">
+              <div className="master-section-header">
+                <div className="master-section-heading">
+                  <div className="master-section-title">开票需求</div>
+                  <div className="master-section-description">补充客户的开票偏好和特殊说明。</div>
+                </div>
+              </div>
+              <div className="master-section-body">
+                <div className="master-form-grid">
+                  <div className="full">
+                    <ProFormTextArea
+                      name="billingRequirements"
+                      label="开票需求"
+                      placeholder="请输入开票需求"
+                      fieldProps={{ rows: 4 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <div className="master-form-footer">
+              <div className="master-form-footer-tip">当前仅统一表单视觉和排版，不改动客户接口与字段提交逻辑。</div>
+              <div className="master-form-footer-actions">
+                <Button onClick={() => navigate(isEdit ? `/master-data/customers/${customerId}` : '/master-data/customers')}>
+                  取消
+                </Button>
+                <Button
+                  type="primary"
+                  loading={createMutation.isPending || updateMutation.isPending}
+                  onClick={() => formRef.current?.submit?.()}
+                >
+                  {isEdit ? '保存' : '创建'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </ProForm>

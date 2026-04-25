@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Button, Space, Tag, Popconfirm, Input, Select, Table, message } from 'antd';
-import { PlusOutlined, SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useEffect, useMemo, useState } from 'react';
+import { Button, Empty, Popconfirm, Select, Space, Table, Tag, message } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { getUsers, deactivateUser } from '../../../api/users.api';
 import type { User } from '../../../api/users.api';
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
+import '../../master-data/master-page.css';
 
 const { Option } = Select;
 
@@ -56,6 +58,8 @@ export default function UsersList() {
     fetchUsers();
   }, []);
 
+  const hasFilters = Boolean(searchInput || statusInput);
+
   const handleQuery = () => {
     setState((prev) => ({ ...prev, search: searchInput, statusFilter: statusInput, page: 1 }));
     fetchUsers(1, searchInput, statusInput);
@@ -78,7 +82,7 @@ export default function UsersList() {
     }
   };
 
-  const columns = [
+  const columns = useMemo(() => [
     { title: '用户名', dataIndex: 'username', key: 'username' },
     { title: '姓名', dataIndex: 'name', key: 'name' },
     {
@@ -86,7 +90,7 @@ export default function UsersList() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <Tag color={status === 'active' ? 'green' : 'red'}>
+        <Tag color={status === 'active' ? 'processing' : undefined}>
           {status === 'active' ? '活跃' : '停用'}
         </Tag>
       ),
@@ -124,67 +128,130 @@ export default function UsersList() {
         </Space>
       ),
     },
-  ];
+  ], [navigate, state.page, state.search, state.statusFilter]);
+
+  const activeTags: ActiveTag[] = [
+    searchInput
+      ? {
+          key: 'search',
+          label: `关键词: ${searchInput}`,
+          onClose: () => {
+            setSearchInput('');
+            setState((prev) => ({ ...prev, search: '', page: 1 }));
+            fetchUsers(1, '', statusInput);
+          },
+        }
+      : null,
+    statusInput
+      ? {
+          key: 'status',
+          label: `状态: ${statusInput === 'ACTIVE' ? '活跃' : '停用'}`,
+          onClose: () => {
+            setStatusInput('');
+            setState((prev) => ({ ...prev, statusFilter: '', page: 1 }));
+            fetchUsers(1, searchInput, '');
+          },
+        }
+      : null,
+  ].filter(Boolean) as ActiveTag[];
+
+  if (!state.loading && state.data.length === 0 && !hasFilters) {
+    return (
+      <div className="master-page">
+        <div className="master-page-shell">
+          <div className="master-page-header">
+            <div className="master-page-heading">
+              <div className="master-page-kicker">Basic Data</div>
+              <div className="master-page-title">用户管理</div>
+              <div className="master-page-description">统一维护系统账号与登录权限状态。</div>
+            </div>
+            <div className="master-page-actions">
+              <Button type="primary" onClick={() => navigate('/settings/users/create')}>
+                新建用户
+              </Button>
+            </div>
+          </div>
+          <div className="master-list-shell">
+            <Empty description="暂无用户数据">
+              <Button type="primary" onClick={() => navigate('/settings/users/create')}>
+                新建用户
+              </Button>
+            </Empty>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h2 style={{ margin: 0, fontSize: 20, fontWeight: 600 }}>用户管理</h2>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate('/settings/users/create')}>
-          新建用户
-        </Button>
-      </div>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">用户管理</div>
+            <div className="master-page-description">统一维护系统账号信息、状态以及后续的权限协作入口。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/settings/users/create')}>
+              新建用户
+            </Button>
+          </div>
+        </div>
 
-      <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
-        <Input
-          placeholder="搜索用户名或姓名"
-          prefix={<SearchOutlined />}
-          value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
-          onPressEnter={handleQuery}
-          style={{ width: 240 }}
-          allowClear
-          onClear={() => setSearchInput('')}
-        />
-        <Select
-          value={statusInput || undefined}
-          placeholder="全部状态"
-          onChange={(v) => setStatusInput(v ?? '')}
-          style={{ width: 120 }}
-          allowClear
-          onClear={() => setStatusInput('')}
-        >
-          <Option value="ACTIVE">活跃</Option>
-          <Option value="INACTIVE">停用</Option>
-        </Select>
-        <Button type="primary" icon={<SearchOutlined />} onClick={handleQuery}>
-          查询
-        </Button>
-        <Button icon={<ReloadOutlined />} onClick={handleReset}>
-          重置
-        </Button>
-      </div>
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={searchInput}
+            onSearchChange={setSearchInput}
+            placeholder="搜索用户名或姓名"
+            activeTags={activeTags}
+            onClearAll={handleReset}
+            onQuery={handleQuery}
+            onReset={handleReset}
+            advancedContent={(
+              <Select
+                value={statusInput || undefined}
+                placeholder="全部状态"
+                onChange={(v) => setStatusInput(v ?? '')}
+                style={{ width: 160 }}
+                allowClear
+                onClear={() => setStatusInput('')}
+              >
+                <Option value="ACTIVE">活跃</Option>
+                <Option value="INACTIVE">停用</Option>
+              </Select>
+            )}
+          />
 
-      <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden' }}>
-        <Table
-          dataSource={state.data}
-          columns={columns}
-          rowKey="id"
-          loading={state.loading}
-          pagination={{
-            current: state.page,
-            pageSize: state.pageSize,
-            total: state.total,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条`,
-            onChange: (page, pageSize) => {
-              const newPage = pageSize !== state.pageSize ? 1 : page;
-              setState((prev) => ({ ...prev, page: newPage, pageSize }));
-              fetchUsers(newPage, state.search, state.statusFilter, pageSize);
-            },
-          }}
-        />
+          {hasFilters && !state.loading && state.data.length === 0 ? (
+            <Empty description="未找到匹配记录">
+              <Button type="link" onClick={handleReset}>
+                清除筛选条件
+              </Button>
+            </Empty>
+          ) : (
+            <div className="master-table-shell">
+              <Table
+                dataSource={state.data}
+                columns={columns}
+                rowKey="id"
+                loading={state.loading}
+                pagination={{
+                  current: state.page,
+                  pageSize: state.pageSize,
+                  total: state.total,
+                  showSizeChanger: true,
+                  pageSizeOptions: [10, 20, 50],
+                  showTotal: (total) => `共 ${total} 条记录`,
+                  onChange: (page, pageSize) => {
+                    const newPage = pageSize !== state.pageSize ? 1 : page;
+                    setState((prev) => ({ ...prev, page: newPage, pageSize }));
+                    fetchUsers(newPage, state.search, state.statusFilter, pageSize);
+                  },
+                }}
+              />
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

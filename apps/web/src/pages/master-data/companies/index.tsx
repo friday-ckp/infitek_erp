@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
-  Flex,
   Result,
   Skeleton,
   Space,
@@ -20,6 +19,7 @@ import { getCompanies, type Company } from '../../../api/companies.api';
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function CompaniesListPage() {
   const navigate = useNavigate();
@@ -177,56 +177,63 @@ export default function CompaniesListPage() {
   ].filter(Boolean) as ActiveTag[];
 
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          公司主体管理
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/companies/create')}>
-          新建公司主体
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">公司主体管理</div>
+            <div className="master-page-description">统一维护公司主体、签订地点与默认币种信息。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/companies/create')}>
+              新建公司主体
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
-        placeholder="快捷搜索公司名称"
-        activeTags={activeTags}
-        onClearAll={() => { setKeywordInput(''); setPage(1); }}
-        onQuery={() => { setPage(1); query.refetch(); }}
-        onReset={() => { setKeywordInput(''); setPage(1); }}
-      />
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
+            placeholder="快捷搜索公司名称"
+            activeTags={activeTags}
+            onClearAll={() => { setKeywordInput(''); setPage(1); }}
+            onQuery={() => { setPage(1); query.refetch(); }}
+            onReset={() => { setKeywordInput(''); setPage(1); }}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<Company>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 1060, y: 540 }}
-          rowClassName={() => 'company-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<Company>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 1060, y: 540 }}
+              rowClassName={() => 'company-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .company-row-height .ant-table-cell {
