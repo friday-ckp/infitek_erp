@@ -1,21 +1,26 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 
 async function bootstrap() {
   try {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, {
+      bufferLogs: true,
+    });
+    app.useLogger(app.get(Logger));
+    const bootstrapLogger = app.get(Logger);
 
     // 运行数据库迁移
     const dataSource = app.get(DataSource);
     if (!dataSource.isInitialized) {
       await dataSource.initialize();
     }
-    console.log('🔄 Running database migrations...');
+    bootstrapLogger.log('Running database migrations...', 'Bootstrap');
     await dataSource.runMigrations();
-    console.log('✅ Migrations completed');
+    bootstrapLogger.log('Migrations completed', 'Bootstrap');
 
     // 全局前缀
     app.setGlobalPrefix('api');
@@ -52,9 +57,12 @@ async function bootstrap() {
     }
 
     await app.listen(port);
-    console.log(`✅ Server started on port ${port}`);
+    bootstrapLogger.log(`Server started on port ${port}`, 'Bootstrap');
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Failed to start server';
+    const errorStack = error instanceof Error ? error.stack : String(error);
+    // Fallback to stderr here because the application logger may not be ready yet.
+    console.error(errorMessage, errorStack);
     process.exit(1);
   }
 }

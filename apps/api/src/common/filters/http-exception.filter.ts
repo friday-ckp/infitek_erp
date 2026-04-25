@@ -1,13 +1,22 @@
-import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
+import { PinoLogger } from 'nestjs-pino';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
+  constructor(private readonly logger?: PinoLogger) {
+    this.logger?.setContext(HttpExceptionFilter.name);
+  }
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request =
+      'getRequest' in ctx
+        ? ctx.getRequest<Request & { method?: string; originalUrl?: string; url?: string }>()
+        : undefined;
+    const requestMethod = request?.method;
+    const requestUrl = request?.originalUrl ?? request?.url;
 
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
@@ -21,6 +30,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
           ? (exceptionResponse as any).code
           : 'HTTP_ERROR';
 
+      if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+        this.logger?.error({
+          err: exception,
+          method: requestMethod,
+          url: requestUrl,
+          statusCode: status,
+          code,
+        });
+      }
+
       response.status(status).json({
         success: false,
         data: null,
@@ -28,7 +47,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
         code,
       });
     } else {
-      this.logger.error('Unhandled exception', exception instanceof Error ? exception.stack : String(exception));
+      this.logger?.error({
+        err: exception,
+        method: requestMethod,
+        url: requestUrl,
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      });
       response.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         success: false,
         data: null,
