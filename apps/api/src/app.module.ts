@@ -3,10 +3,12 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule, type TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ClassSerializerInterceptor } from '@nestjs/common';
+import { LoggerModule } from 'nestjs-pino';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
@@ -29,6 +31,7 @@ import { ProductDocumentsModule } from './modules/master-data/product-documents/
 import { ContractTemplatesModule } from './modules/master-data/contract-templates/contract-templates.module';
 import { CustomersModule } from './modules/master-data/customers/customers.module';
 import databaseConfig from './config/database.config';
+import { createLoggerConfig } from './config/logger.config';
 
 @Module({
   imports: [
@@ -36,6 +39,9 @@ import databaseConfig from './config/database.config';
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
       load: [databaseConfig],
+    }),
+    LoggerModule.forRootAsync({
+      useFactory: createLoggerConfig,
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
@@ -68,6 +74,7 @@ import databaseConfig from './config/database.config';
     AppService,
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_INTERCEPTOR, useClass: ClassSerializerInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],

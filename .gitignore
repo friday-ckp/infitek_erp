@@ -12,6 +12,7 @@ build/
 .env.*.local
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 pnpm-debug.log*
