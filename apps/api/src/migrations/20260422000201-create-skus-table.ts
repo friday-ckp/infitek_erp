@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
-export class CreateSkusTable20260422000200 implements MigrationInterface {
-  name = 'CreateSkusTable20260422000200';
+export class CreateSkusTable20260422000201 implements MigrationInterface {
+  name = 'CreateSkusTable20260422000201';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(

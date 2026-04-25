@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner, Table, TableIndex } from 'typeorm';
 
-export class CreateSpuFaqsTable20260422000200 implements MigrationInterface {
-  name = 'CreateSpuFaqsTable20260422000200';
+export class CreateSpuFaqsTable20260422000202 implements MigrationInterface {
+  name = 'CreateSpuFaqsTable20260422000202';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.createTable(
