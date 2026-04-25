@@ -419,6 +419,11 @@
   gap: 0 16px;
 }
 
+.supplier-payment-term-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0 12px;
+}
+
 .master-form-grid .ant-form-item,
 .master-form-grid .ant-form-item:last-child {
   margin-bottom: 20px;

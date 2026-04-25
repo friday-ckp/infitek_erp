@@ -124,7 +124,7 @@ export interface CreateSkuPayload {
   productImageUrls?: string;
 }
 
-export type UpdateSkuPayload = Partial<CreateSkuPayload>;
+export type UpdateSkuPayload = Partial<Omit<CreateSkuPayload, 'skuCode'>>;
 
 function normalizeApiError(error: unknown): never {
   if (typeof error === 'object' && error !== null) {

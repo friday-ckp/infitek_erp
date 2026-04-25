@@ -96,6 +96,41 @@ export default function ProductDocumentFormPage() {
     },
   });
 
+  const initialValues = detailQuery.data
+    ? {
+        documentName: detailQuery.data.documentName,
+        documentType: detailQuery.data.documentType,
+        content: detailQuery.data.content ?? undefined,
+        attributionType: detailQuery.data.attributionType,
+        countryId: detailQuery.data.countryId ?? undefined,
+        categoryLevel1Id: detailQuery.data.categoryLevel1Id ?? undefined,
+        categoryLevel2Id: detailQuery.data.categoryLevel2Id ?? undefined,
+        categoryLevel3Id: detailQuery.data.categoryLevel3Id ?? undefined,
+        spuId: detailQuery.data.spuId ?? undefined,
+      }
+    : { attributionType: 'general' };
+
+  useEffect(() => {
+    if (!detailQuery.data) return;
+
+    setAttributionType(detailQuery.data.attributionType);
+
+    if (detailQuery.data.fileName) {
+      setFileList([
+        {
+          uid: String(detailQuery.data.id),
+          name: detailQuery.data.fileName,
+          status: 'done',
+        },
+      ]);
+    }
+
+    if (detailQuery.data.fileKey) {
+      setUploadedFileKey(detailQuery.data.fileKey);
+      setUploadedFileName(detailQuery.data.fileName);
+    }
+  }, [detailQuery.data]);
+
   if (isEdit && (!docId || !Number.isInteger(docId) || docId <= 0)) {
     return (
       <Result
@@ -134,41 +169,6 @@ export default function ProductDocumentFormPage() {
   const level3TreeData = buildTreeData(categoryTreeQuery.data ?? [], 3);
   const level1TreeData = buildTreeData(categoryTreeQuery.data ?? [], 1);
   const level2TreeData = buildTreeData(categoryTreeQuery.data ?? [], 2);
-
-  const initialValues = detailQuery.data
-    ? {
-        documentName: detailQuery.data.documentName,
-        documentType: detailQuery.data.documentType,
-        content: detailQuery.data.content ?? undefined,
-        attributionType: detailQuery.data.attributionType,
-        countryId: detailQuery.data.countryId ?? undefined,
-        categoryLevel1Id: detailQuery.data.categoryLevel1Id ?? undefined,
-        categoryLevel2Id: detailQuery.data.categoryLevel2Id ?? undefined,
-        categoryLevel3Id: detailQuery.data.categoryLevel3Id ?? undefined,
-        spuId: detailQuery.data.spuId ?? undefined,
-      }
-    : { attributionType: 'general' };
-
-  useEffect(() => {
-    if (!detailQuery.data) return;
-
-    setAttributionType(detailQuery.data.attributionType);
-
-    if (detailQuery.data.fileName) {
-      setFileList([
-        {
-          uid: String(detailQuery.data.id),
-          name: detailQuery.data.fileName,
-          status: 'done',
-        },
-      ]);
-    }
-
-    if (detailQuery.data.fileKey) {
-      setUploadedFileKey(detailQuery.data.fileKey);
-      setUploadedFileName(detailQuery.data.fileName);
-    }
-  }, [detailQuery.data]);
 
   const handleUpload = async (file: File): Promise<boolean> => {
     setUploading(true);

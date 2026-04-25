@@ -38,6 +38,21 @@ export default function UserFormPage() {
     },
   });
 
+  const initialValues = useMemo(
+    () => ({
+      username: detailQuery.data?.username,
+      name: detailQuery.data?.name,
+      password: undefined,
+      confirmPassword: undefined,
+    }),
+    [detailQuery.data?.username, detailQuery.data?.name],
+  );
+
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'security', label: '登录安全' },
+  ];
+
   if (isEdit && !id) {
     return (
       <Result
@@ -65,21 +80,6 @@ export default function UserFormPage() {
       />
     );
   }
-
-  const initialValues = useMemo(
-    () => ({
-      username: detailQuery.data?.username,
-      name: detailQuery.data?.name,
-      password: undefined,
-      confirmPassword: undefined,
-    }),
-    [detailQuery.data?.username, detailQuery.data?.name],
-  );
-
-  const anchors = [
-    { key: 'basic', label: '基础信息' },
-    { key: 'security', label: '登录安全' },
-  ];
 
   return (
     <div className="master-page master-form-page">

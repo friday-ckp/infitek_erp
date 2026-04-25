@@ -185,26 +185,52 @@ export default function CertificateFormPage() {
           const fileKey = uploadedFileKey ?? detailQuery.data?.fileKey ?? undefined;
           const fileName = uploadedFileName ?? detailQuery.data?.fileName ?? undefined;
 
-          const payload: CreateCertificatePayload = {
-            certificateNo: values.certificateNo || undefined,
-            certificateName: values.certificateName,
-            certificateType: values.certificateType,
-            directive: values.directive || undefined,
-            issueDate: values.issueDate || undefined,
-            validFrom: values.validFrom,
-            validUntil: values.validUntil,
-            issuingAuthority: values.issuingAuthority,
-            remarks: values.remarks || undefined,
-            attributionType: values.attributionType || undefined,
-            categoryId: values.attributionType === '产品分类归属' && values.categoryId ? Number(values.categoryId) : undefined,
-            fileKey,
-            fileName,
-            spuIds: values.attributionType === '产品SPU归属' && values.spuIds?.length ? values.spuIds.map(Number) : undefined,
-          };
-
           if (isEdit) {
-            await updateMutation.mutateAsync(payload as UpdateCertificatePayload);
+            const payload: UpdateCertificatePayload = {
+              certificateName: values.certificateName,
+              certificateType: values.certificateType,
+              directive: values.directive || undefined,
+              issueDate: values.issueDate || undefined,
+              validFrom: values.validFrom,
+              validUntil: values.validUntil,
+              issuingAuthority: values.issuingAuthority,
+              remarks: values.remarks || undefined,
+              attributionType: values.attributionType || undefined,
+              categoryId:
+                values.attributionType === '产品分类归属' && values.categoryId
+                  ? Number(values.categoryId)
+                  : undefined,
+              fileKey,
+              fileName,
+              spuIds:
+                values.attributionType === '产品SPU归属' && values.spuIds?.length
+                  ? values.spuIds.map(Number)
+                  : undefined,
+            };
+            await updateMutation.mutateAsync(payload);
           } else {
+            const payload: CreateCertificatePayload = {
+              certificateNo: values.certificateNo || undefined,
+              certificateName: values.certificateName,
+              certificateType: values.certificateType,
+              directive: values.directive || undefined,
+              issueDate: values.issueDate || undefined,
+              validFrom: values.validFrom,
+              validUntil: values.validUntil,
+              issuingAuthority: values.issuingAuthority,
+              remarks: values.remarks || undefined,
+              attributionType: values.attributionType || undefined,
+              categoryId:
+                values.attributionType === '产品分类归属' && values.categoryId
+                  ? Number(values.categoryId)
+                  : undefined,
+              fileKey,
+              fileName,
+              spuIds:
+                values.attributionType === '产品SPU归属' && values.spuIds?.length
+                  ? values.spuIds.map(Number)
+                  : undefined,
+            };
             await createMutation.mutateAsync(payload);
           }
           return true;
@@ -224,6 +250,7 @@ export default function CertificateFormPage() {
                   name="certificateNo"
                   label="证书编号"
                   placeholder="请输入证书编号（可选，不填则自动生成）"
+                  disabled={isEdit}
                   rules={[{ max: 30, message: '证书编号最多 30 个字符' }]}
                 />
                 <ProFormText

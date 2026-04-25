@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Button, Result, Skeleton, TreeSelect, message } from 'antd';
+import { Button, Result, Skeleton, message } from 'antd';
 import {
   ProForm,
   ProFormDigit,
@@ -16,20 +16,24 @@ import { getCompanies } from '../../../api/companies.api';
 import { AnchorNav, SectionCard } from '../components/page-scaffold';
 import '../master-page.css';
 
-interface TreeSelectNode {
-  title: string;
+interface CategoryOption {
+  label: string;
   value: number;
-  disabled: boolean;
-  children: TreeSelectNode[];
 }
 
-function buildTreeData(nodes: ProductCategoryNode[]): TreeSelectNode[] {
-  return nodes.map((node) => ({
-    title: node.name,
-    value: node.id,
-    disabled: node.level < 3,
-    children: buildTreeData(node.children),
-  }));
+function buildCategoryOptions(nodes: ProductCategoryNode[], ancestors: string[] = []): CategoryOption[] {
+  return nodes.flatMap((node) => {
+    const path = [...ancestors, node.name];
+    if (node.level === 3) {
+      return [
+        {
+          label: path.join(' / '),
+          value: node.id,
+        },
+      ];
+    }
+    return buildCategoryOptions(node.children, path);
+  });
 }
 
 export default function SpuFormPage() {
@@ -121,7 +125,7 @@ export default function SpuFormPage() {
       }
     : {};
 
-  const treeData = categoryTreeQuery.data ? buildTreeData(categoryTreeQuery.data) : [];
+  const categoryOptions = categoryTreeQuery.data ? buildCategoryOptions(categoryTreeQuery.data) : [];
   const companyOptions = (companiesQuery.data?.list ?? []).map((company) => ({
     label: company.nameCn,
     value: company.id,
@@ -161,7 +165,10 @@ export default function SpuFormPage() {
             invoiceUnit: values.invoiceUnit || undefined,
             invoiceModel: values.invoiceModel || undefined,
             supplierName: values.supplierName || undefined,
-            companyId: values.companyId ?? undefined,
+            companyId:
+              values.companyId !== undefined && values.companyId !== null
+                ? Number(values.companyId)
+                : undefined,
           };
 
           if (isEdit) {
@@ -191,21 +198,18 @@ export default function SpuFormPage() {
                     { max: 200, message: 'SPU 名称最多 200 个字符' },
                   ]}
                 />
-                <ProForm.Item
+                <ProFormSelect
                   name="categoryId"
                   label="所属分类"
+                  placeholder="请选择三级分类"
+                  options={categoryOptions}
+                  showSearch
                   rules={[{ required: true, message: '请选择所属分类' }]}
-                >
-                  <TreeSelect
-                    style={{ width: '100%' }}
-                    placeholder="请选择三级分类"
-                    treeData={treeData}
-                    loading={categoryTreeQuery.isLoading}
-                    showSearch
-                    treeNodeFilterProp="title"
-                    allowClear
-                  />
-                </ProForm.Item>
+                  fieldProps={{
+                    optionFilterProp: 'label',
+                    loading: categoryTreeQuery.isLoading,
+                  }}
+                />
                 <ProFormText
                   name="unit"
                   label="单位"

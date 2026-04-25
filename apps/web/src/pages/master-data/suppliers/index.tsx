@@ -227,7 +227,7 @@ export default function SuppliersListPage() {
       <div className="master-page-shell">
         <div className="master-page-header">
           <div className="master-page-heading">
-            <div className="master-page-title">供应商档案管理</div>
+            <div className="master-page-title">采购供应商管理</div>
             <div className="master-page-description">统一查看供应商档案、合作状态与账期结算信息。</div>
           </div>
           <div className="master-page-actions">

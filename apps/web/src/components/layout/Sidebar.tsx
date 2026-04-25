@@ -112,8 +112,8 @@ const menuItems = [
       { key: '/master-data/ports', label: '港口信息' },
       { key: '/master-data/logistics-providers', label: '物流供应商管理' },
       { key: '/master-data/contract-templates', label: '合同条款范本' },
-      { key: '/master-data/suppliers', label: '供应商' },
-      { key: '/master-data/customers', label: '客户' },
+      { key: '/master-data/suppliers', label: '采购供应商管理' },
+      { key: '/master-data/customers', label: '客户管理' },
     ],
   },
 ];

@@ -180,7 +180,7 @@ export default function CustomersListPage() {
       <div className="master-page-shell">
         <div className="master-page-header">
           <div className="master-page-heading">
-            <div className="master-page-title">客户主数据管理</div>
+            <div className="master-page-title">客户管理</div>
             <div className="master-page-description">统一维护客户档案、国家地区与销售归属信息。</div>
           </div>
           <div className="master-page-actions">

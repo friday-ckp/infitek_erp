@@ -77,6 +77,29 @@ function parsePackagingList(sku: any): PackagingRow[] {
   ];
 }
 
+function isPositiveNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0;
+}
+
+function isNonNegativeNumber(value: unknown): value is number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
+function normalizePackagingRows(rows: PackagingRow[] = []): PackagingRow[] {
+  return rows
+    .map((row) => ({
+      packagingType: row.packagingType || undefined,
+      packagingQty: isPositiveNumber(row.packagingQty) ? row.packagingQty : undefined,
+      weightKg: isPositiveNumber(row.weightKg) ? row.weightKg : undefined,
+      grossWeightKg: isPositiveNumber(row.grossWeightKg) ? row.grossWeightKg : undefined,
+      lengthCm: isPositiveNumber(row.lengthCm) ? row.lengthCm : undefined,
+      widthCm: isPositiveNumber(row.widthCm) ? row.widthCm : undefined,
+      heightCm: isPositiveNumber(row.heightCm) ? row.heightCm : undefined,
+      volumeCbm: isPositiveNumber(row.volumeCbm) ? row.volumeCbm : undefined,
+    }))
+    .filter((row) => Object.values(row).some((value) => value !== undefined));
+}
+
 export default function SkuFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -289,56 +312,102 @@ export default function SkuFormPage() {
         loading={detailQuery.isLoading}
         initialValues={initialValues}
         onFinish={async (values) => {
-          const rows: PackagingRow[] = values.packagingList ?? [];
-          const firstRow = rows[0] ?? {};
+          const rows = normalizePackagingRows((values.packagingList ?? []) as PackagingRow[]);
+          const firstRow = rows[0];
           const imageKeys = uploadedImageKeys.length > 0 ? uploadedImageKeys : existingImageUrls;
 
-          const payload: CreateSkuPayload = {
-            skuCode: values.skuCode,
-            spuId: values.spuId,
-            unitId: values.unitId ?? undefined,
-            nameCn: values.nameCn || undefined,
-            nameEn: values.nameEn || undefined,
-            specification: values.specification,
-            status: values.status || undefined,
-            productType: values.productType || undefined,
-            productModel: values.productModel || undefined,
-            accessoryParentSkuId: values.productType === '配件' ? values.accessoryParentSkuId ?? undefined : undefined,
-            categoryLevel1Id: values.categoryLevel1Id ?? undefined,
-            categoryLevel2Id: values.categoryLevel2Id ?? undefined,
-            categoryLevel3Id: values.categoryLevel3Id ?? undefined,
-            principle: values.principle || undefined,
-            productUsage: values.productUsage || undefined,
-            coreParams: values.coreParams || undefined,
-            electricalParams: values.electricalParams || undefined,
-            material: values.material || undefined,
-            hasPlug: values.hasPlug ?? undefined,
-            specialAttributes: values.specialAttributes || undefined,
-            specialAttributesNote: values.specialAttributesNote || undefined,
-            customerWarrantyMonths: values.customerWarrantyMonths ?? undefined,
-            forbiddenCountries: values.forbiddenCountries?.length ? values.forbiddenCountries.join(',') : undefined,
-            weightKg: firstRow.weightKg ?? 0,
-            grossWeightKg: firstRow.grossWeightKg ?? undefined,
-            lengthCm: firstRow.lengthCm ?? undefined,
-            widthCm: firstRow.widthCm ?? undefined,
-            heightCm: firstRow.heightCm ?? undefined,
-            volumeCbm: firstRow.volumeCbm ?? 0,
-            packagingList: rows.length ? JSON.stringify(rows) : undefined,
-            hsCode: values.hsCode,
-            customsNameCn: values.customsNameCn,
-            customsNameEn: values.customsNameEn,
-            declaredValueRef: values.declaredValueRef ?? undefined,
-            declarationElements: values.declarationElements || undefined,
-            isInspectionRequired: values.isInspectionRequired ?? undefined,
-            regulatoryConditions: values.regulatoryConditions || undefined,
-            taxRefundRate: values.taxRefundRate ?? undefined,
-            customsInfoMaintained: values.customsInfoMaintained ?? undefined,
-            productImageUrls: imageKeys.length ? JSON.stringify(imageKeys) : undefined,
-          };
-
           if (isEdit) {
+            const payload: UpdateSkuPayload = {
+              spuId: values.spuId,
+              unitId: values.unitId ?? undefined,
+              nameCn: values.nameCn || undefined,
+              nameEn: values.nameEn || undefined,
+              specification: values.specification,
+              status: values.status || undefined,
+              productType: values.productType || undefined,
+              productModel: values.productModel || undefined,
+              accessoryParentSkuId:
+                values.productType === '配件' ? values.accessoryParentSkuId ?? undefined : undefined,
+              categoryLevel1Id: values.categoryLevel1Id ?? undefined,
+              categoryLevel2Id: values.categoryLevel2Id ?? undefined,
+              categoryLevel3Id: values.categoryLevel3Id ?? undefined,
+              principle: values.principle || undefined,
+              productUsage: values.productUsage || undefined,
+              coreParams: values.coreParams || undefined,
+              electricalParams: values.electricalParams || undefined,
+              material: values.material || undefined,
+              hasPlug: values.hasPlug ?? undefined,
+              specialAttributes: values.specialAttributes || undefined,
+              specialAttributesNote: values.specialAttributesNote || undefined,
+              customerWarrantyMonths: values.customerWarrantyMonths ?? undefined,
+              forbiddenCountries: values.forbiddenCountries?.length
+                ? values.forbiddenCountries.join(',')
+                : undefined,
+              weightKg: firstRow?.weightKg,
+              grossWeightKg: firstRow?.grossWeightKg,
+              lengthCm: firstRow?.lengthCm,
+              widthCm: firstRow?.widthCm,
+              heightCm: firstRow?.heightCm,
+              volumeCbm: firstRow?.volumeCbm,
+              packagingList: rows.length ? JSON.stringify(rows) : undefined,
+              hsCode: values.hsCode,
+              customsNameCn: values.customsNameCn,
+              customsNameEn: values.customsNameEn,
+              declaredValueRef: values.declaredValueRef ?? undefined,
+              declarationElements: values.declarationElements || undefined,
+              isInspectionRequired: values.isInspectionRequired ?? undefined,
+              regulatoryConditions: values.regulatoryConditions || undefined,
+              taxRefundRate: values.taxRefundRate ?? undefined,
+              customsInfoMaintained: values.customsInfoMaintained ?? undefined,
+              productImageUrls: imageKeys.length ? JSON.stringify(imageKeys) : undefined,
+            };
             await updateMutation.mutateAsync(payload);
           } else {
+            const payload: CreateSkuPayload = {
+              skuCode: values.skuCode,
+              spuId: values.spuId,
+              unitId: values.unitId ?? undefined,
+              nameCn: values.nameCn || undefined,
+              nameEn: values.nameEn || undefined,
+              specification: values.specification,
+              status: values.status || undefined,
+              productType: values.productType || undefined,
+              productModel: values.productModel || undefined,
+              accessoryParentSkuId:
+                values.productType === '配件' ? values.accessoryParentSkuId ?? undefined : undefined,
+              categoryLevel1Id: values.categoryLevel1Id ?? undefined,
+              categoryLevel2Id: values.categoryLevel2Id ?? undefined,
+              categoryLevel3Id: values.categoryLevel3Id ?? undefined,
+              principle: values.principle || undefined,
+              productUsage: values.productUsage || undefined,
+              coreParams: values.coreParams || undefined,
+              electricalParams: values.electricalParams || undefined,
+              material: values.material || undefined,
+              hasPlug: values.hasPlug ?? undefined,
+              specialAttributes: values.specialAttributes || undefined,
+              specialAttributesNote: values.specialAttributesNote || undefined,
+              customerWarrantyMonths: values.customerWarrantyMonths ?? undefined,
+              forbiddenCountries: values.forbiddenCountries?.length
+                ? values.forbiddenCountries.join(',')
+                : undefined,
+              weightKg: isNonNegativeNumber(firstRow?.weightKg) ? firstRow.weightKg : 0,
+              grossWeightKg: firstRow?.grossWeightKg,
+              lengthCm: firstRow?.lengthCm,
+              widthCm: firstRow?.widthCm,
+              heightCm: firstRow?.heightCm,
+              volumeCbm: isNonNegativeNumber(firstRow?.volumeCbm) ? firstRow.volumeCbm : 0,
+              packagingList: rows.length ? JSON.stringify(rows) : undefined,
+              hsCode: values.hsCode,
+              customsNameCn: values.customsNameCn,
+              customsNameEn: values.customsNameEn,
+              declaredValueRef: values.declaredValueRef ?? undefined,
+              declarationElements: values.declarationElements || undefined,
+              isInspectionRequired: values.isInspectionRequired ?? undefined,
+              regulatoryConditions: values.regulatoryConditions || undefined,
+              taxRefundRate: values.taxRefundRate ?? undefined,
+              customsInfoMaintained: values.customsInfoMaintained ?? undefined,
+              productImageUrls: imageKeys.length ? JSON.stringify(imageKeys) : undefined,
+            };
             await createMutation.mutateAsync(payload);
           }
           return true;

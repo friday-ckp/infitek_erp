@@ -233,9 +233,12 @@ export default function SupplierFormPage() {
         onFinish={async (values) => {
           const normalizedPaymentTerms = ((values.paymentTerms ?? []) as Array<Record<string, unknown>>).map(
             (item) => ({
-              companyId: item.companyId as number | undefined,
+              companyId:
+                item.companyId !== undefined && item.companyId !== null
+                  ? Number(item.companyId)
+                  : undefined,
               companyName:
-                (item.companyId ? companyOptionMap.get(item.companyId as number) : undefined) ??
+                (item.companyId ? companyOptionMap.get(Number(item.companyId)) : undefined) ??
                 (item.companyName as string | undefined),
               paymentTermName: item.paymentTermName as string | undefined,
               settlementType: item.settlementType as SupplierSettlementTypeValue | undefined,
@@ -252,9 +255,12 @@ export default function SupplierFormPage() {
             contactPhone: values.contactPhone,
             contactEmail: values.contactEmail,
             address: values.address,
-            countryId: values.countryId,
+            countryId:
+              values.countryId !== undefined && values.countryId !== null
+                ? Number(values.countryId)
+                : undefined,
             countryName:
-              (values.countryId ? countryOptionMap.get(values.countryId as number) : undefined) ??
+              (values.countryId ? countryOptionMap.get(Number(values.countryId)) : undefined) ??
               values.countryName,
             status: values.status,
             supplierLevel: values.supplierLevel,
@@ -433,7 +439,7 @@ export default function SupplierFormPage() {
                   min={1}
                   copyIconProps={false}
                 >
-                  <div className="master-form-grid">
+                  <div className="master-form-grid supplier-payment-term-grid">
                     <ProFormSelect
                       name="companyId"
                       label="合作主体"
