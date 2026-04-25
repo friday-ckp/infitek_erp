@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-15
-last_updated: 2026-04-25 (story-0.2-review)
+last_updated: 2026-04-26 (epic-0-epic-3-done)
 project: infitek_erp
 
 project_key: NOKEY
@@ -46,9 +46,9 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 0: 基础设施增强（补丁）
   # ─────────────────────────────────────────────────
-  epic-0: in-progress
+  epic-0: done
   0-1-后端结构化日志配置: done
-  0-2-操作审计日志横切能力: review
+  0-2-操作审计日志横切能力: done
   epic-0-retrospective: optional
 
   # ─────────────────────────────────────────────────
@@ -80,7 +80,7 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 3: 产品体系管理
   # ─────────────────────────────────────────────────
-  epic-3: in-progress
+  epic-3: done
   3-1-三级产品分类管理: done
   3-2-spu基础信息管理: done
   3-3-sku变体管理: done
