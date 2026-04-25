@@ -55,6 +55,7 @@ import ProductDocumentFormPage from './pages/master-data/product-documents/form'
 import ContractTemplatesListPage from './pages/master-data/contract-templates/index';
 import ContractTemplateDetailPage from './pages/master-data/contract-templates/detail';
 import ContractTemplateFormPage from './pages/master-data/contract-templates/form';
+import HomePage from './pages/home/index';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -149,7 +150,7 @@ function App() {
 
                 {/* 受保护路由：包裹在 AppLayout 内 */}
                 <Route element={<AppLayout />}>
-                  <Route path="/" element={<Navigate to="/settings/users" replace />} />
+                  <Route path="/" element={<HomePage />} />
                   <Route path="/settings/users" element={<UsersList />} />
                   <Route path="/settings/users/create" element={<UserForm />} />
                   <Route path="/settings/users/:id" element={<UserDetail />} />

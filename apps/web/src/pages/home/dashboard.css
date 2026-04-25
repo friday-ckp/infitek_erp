@@ -1,0 +1,139 @@
+.dash-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dash-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 4px;
+}
+
+.dash-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+
+.dash-stat-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.dash-stat-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.dash-stat-icon-blue   { background: #eff6ff; color: #2563eb; }
+.dash-stat-icon-green  { background: #ecfdf5; color: #10b981; }
+.dash-stat-icon-orange { background: #fffbeb; color: #f59e0b; }
+.dash-stat-icon-gray   { background: #f8fafc; color: #64748b; }
+.dash-stat-icon-red    { background: #fef2f2; color: #ef4444; }
+
+.dash-stat-body {
+  min-width: 0;
+}
+
+.dash-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.dash-stat-unit {
+  font-size: 12px;
+  font-weight: 400;
+  color: #94a3b8;
+  margin-left: 3px;
+}
+
+.dash-stat-label {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+.dash-chart-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.dash-chart-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px 24px 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.dash-chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+}
+
+.dash-placeholder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  min-height: 180px;
+  padding: 20px 24px;
+}
+
+.dash-placeholder-label {
+  font-size: 13px;
+  color: #cbd5e1;
+  font-weight: 500;
+}
+
+.dash-placeholder-desc {
+  font-size: 12px;
+  color: #e2e8f0;
+  text-align: center;
+  line-height: 1.6;
+}
+
+@media (max-width: 1400px) {
+  .dash-stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 1024px) {
+  .dash-chart-grid-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .dash-chart-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

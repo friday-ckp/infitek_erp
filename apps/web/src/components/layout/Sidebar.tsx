@@ -8,6 +8,20 @@ const SECTION_SYSTEM = '系统功能';
 const menuItems = [
   {
     section: SECTION_BUSINESS,
+    key: 'dashboard',
+    label: '数据看板',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+        <rect x="9" y="1.5" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+        <rect x="1.5" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+        <rect x="9" y="9" width="5.5" height="5.5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
+      </svg>
+    ),
+    children: [{ key: '/', label: '总览' }],
+  },
+  {
+    section: SECTION_BUSINESS,
     key: 'sales',
     label: '销售管理',
     icon: (
