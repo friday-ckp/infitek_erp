@@ -42,6 +42,18 @@ const GREETINGS: Record<TimeSlot, string> = {
 
 type StatColor = 'blue' | 'green' | 'orange' | 'gray' | 'red';
 
+function formatTooltipValue(value: number | string | undefined, unit: string): [string, string] {
+  const numericValue = typeof value === 'number' ? value : Number(value ?? 0);
+  return [`${numericValue} ${unit}`, ''];
+}
+
+function normalizeChartValue(value: number | string | ReadonlyArray<number | string> | undefined) {
+  if (Array.isArray(value)) {
+    return value[0];
+  }
+  return value;
+}
+
 function StatCard({ label, value, unit = '', icon, color }: {
   label: string; value: number; unit?: string;
   icon: React.ReactNode; color: StatColor;
@@ -100,10 +112,10 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={skuStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}
-                label={({ name: n, percent }) => `${n} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+                label={({ name: n, percent }) => `${n} ${(((percent ?? 0) * 100)).toFixed(0)}%`} labelLine={false}>
                 {skuStatusData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
               </Pie>
-              <Tooltip formatter={(v: number) => [`${v} 个`, '']} />
+              <Tooltip formatter={(value) => formatTooltipValue(normalizeChartValue(value), '个')} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -143,7 +155,7 @@ export default function DashboardPage() {
               <Pie data={supplierStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={72}>
                 {supplierStatusData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
               </Pie>
-              <Tooltip formatter={(v: number) => [`${v} 家`, '']} />
+              <Tooltip formatter={(value) => formatTooltipValue(normalizeChartValue(value), '家')} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -155,7 +167,7 @@ export default function DashboardPage() {
               <Pie data={certificateStatusData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={45} outerRadius={72}>
                 {certificateStatusData.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
               </Pie>
-              <Tooltip formatter={(v: number) => [`${v} 张`, '']} />
+              <Tooltip formatter={(value) => formatTooltipValue(normalizeChartValue(value), '张')} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
             </PieChart>
           </ResponsiveContainer>

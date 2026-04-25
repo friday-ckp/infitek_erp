@@ -3,6 +3,7 @@ import { Button, Modal, Result, Skeleton, message } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import {
   deleteProductDocument,
   getProductDocumentById,
@@ -16,7 +17,6 @@ import { findCategoryName } from '../../../utils/category';
 import {
   AnchorNav,
   MetaItem,
-  OperationTimeline,
   SectionCard,
   SummaryMetaItem,
   displayOrDash,
@@ -129,15 +129,6 @@ export default function ProductDocumentDetailPage() {
     return '—';
   };
 
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [{ key: 'updated', operator: displayOrDash(data.updatedBy), action: '更新记录', time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-    ...(data?.createdAt
-      ? [{ key: 'created', operator: displayOrDash(data.createdBy), action: '创建记录', time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-  ];
-
   const anchors = [
     { key: 'basic', label: '资料信息' },
     { key: 'file', label: '附件与审计' },
@@ -249,11 +240,7 @@ export default function ProductDocumentDetailPage() {
             title="操作记录"
             description="按时间展示资料条目的创建与更新轨迹。"
           >
-            {query.isLoading && !data ? (
-              <Skeleton active paragraph={{ rows: 3 }} />
-            ) : (
-              <OperationTimeline records={operationRecords} />
-            )}
+            <ActivityTimeline resourceType="product-documents" resourceId={docId} />
           </SectionCard>
         </div>
       </div>

@@ -3,8 +3,9 @@ import { Button, Rate, Result, Skeleton } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { getLogisticsProviderById } from '../../../api/logistics-providers.api';
-import { AnchorNav, MetaItem, OperationTimeline, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
+import { AnchorNav, MetaItem, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
 import '../master-page.css';
 
 function getStatusPill(status?: string) {
@@ -50,14 +51,6 @@ export default function LogisticsProviderDetailPage() {
   }
 
   const data = query.data;
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [{ key: 'updated', operator: displayOrDash(data.updatedBy), action: '更新记录', time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-    ...(data?.createdAt
-      ? [{ key: 'created', operator: displayOrDash(data.createdBy), action: '创建记录', time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-  ];
   const anchors = [
     { key: 'basic', label: '基础信息' },
     { key: 'contact', label: '联系信息' },
@@ -140,7 +133,7 @@ export default function LogisticsProviderDetailPage() {
           </SectionCard>
 
           <SectionCard id="operation" title="操作记录" description="按时间查看物流供应商档案维护轨迹。">
-            {query.isLoading && !data ? <Skeleton active paragraph={{ rows: 3 }} /> : <OperationTimeline records={operationRecords} />}
+            <ActivityTimeline resourceType="logistics-providers" resourceId={providerId} />
           </SectionCard>
         </div>
       </div>

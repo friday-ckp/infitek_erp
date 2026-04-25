@@ -4,8 +4,9 @@ import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { CurrencyStatus } from '@infitek/shared';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { getCurrencyById } from '../../../api/currencies.api';
-import { AnchorNav, MetaItem, OperationTimeline, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
+import { AnchorNav, MetaItem, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
 import '../master-page.css';
 
 const statusText: Record<CurrencyStatus, string> = {
@@ -55,14 +56,6 @@ export default function CurrencyDetailPage() {
   }
 
   const data = query.data;
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [{ key: 'updated', operator: displayOrDash(data.updatedBy), action: '更新记录', time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-    ...(data?.createdAt
-      ? [{ key: 'created', operator: displayOrDash(data.createdBy), action: '创建记录', time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-  ];
   const anchors = [
     { key: 'basic', label: '基础信息' },
     { key: 'audit', label: '审计信息' },
@@ -129,7 +122,7 @@ export default function CurrencyDetailPage() {
           </SectionCard>
 
           <SectionCard id="operation" title="操作记录" description="按时间查看币种档案维护轨迹。">
-            {query.isLoading && !data ? <Skeleton active paragraph={{ rows: 3 }} /> : <OperationTimeline records={operationRecords} />}
+            <ActivityTimeline resourceType="currencies" resourceId={currencyId} />
           </SectionCard>
         </div>
       </div>

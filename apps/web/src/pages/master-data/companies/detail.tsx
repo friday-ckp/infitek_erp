@@ -3,8 +3,9 @@ import { Button, Result, Skeleton } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { getCompanyById } from '../../../api/companies.api';
-import { AnchorNav, MetaItem, OperationTimeline, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
+import { AnchorNav, MetaItem, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
 import '../master-page.css';
 
 export default function CompanyDetailPage() {
@@ -44,14 +45,6 @@ export default function CompanyDetailPage() {
   }
 
   const data = query.data;
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [{ key: 'updated', operator: displayOrDash(data.updatedBy), action: '更新记录', time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-    ...(data?.createdAt
-      ? [{ key: 'created', operator: displayOrDash(data.createdBy), action: '创建记录', time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-  ];
   const anchors = [
     { key: 'basic', label: '基础信息' },
     { key: 'address', label: '地址信息' },
@@ -171,7 +164,7 @@ export default function CompanyDetailPage() {
           </SectionCard>
 
           <SectionCard id="operation" title="操作记录" description="按时间查看公司主体档案维护轨迹。">
-            {query.isLoading && !data ? <Skeleton active paragraph={{ rows: 3 }} /> : <OperationTimeline records={operationRecords} />}
+            <ActivityTimeline resourceType="companies" resourceId={companyId} />
           </SectionCard>
         </div>
       </div>

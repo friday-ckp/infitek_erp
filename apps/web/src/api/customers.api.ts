@@ -19,6 +19,8 @@ export interface Customer {
   updatedBy?: string;
 }
 
+export const CUSTOMER_RESOURCE_TYPE = 'customers';
+
 export interface CustomersListParams {
   keyword?: string;
   countryId?: number;

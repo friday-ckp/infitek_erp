@@ -1,4 +1,17 @@
 import type { ReactNode } from 'react';
+import { Tooltip, Tag } from 'antd';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
+
+dayjs.extend(relativeTime);
+dayjs.locale('zh-cn');
+
+const ACTION_TYPE_LABELS = {
+  CREATE: '新增',
+  UPDATE: '更新',
+  DELETE: '删除',
+} as const;
 
 function joinClassNames(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(' ');
@@ -101,7 +114,19 @@ export function OperationTimeline({
   records,
   emptyClassName,
 }: {
-  records: Array<{ key: string; operator: string; action: string; time: string }>;
+  records: Array<{
+    key: string;
+    operator: string;
+    action: string;
+    time: string;
+    actionType?: 'CREATE' | 'UPDATE' | 'DELETE';
+    changes?: Array<{
+      key: string;
+      fieldLabel: string;
+      oldValue: string;
+      newValue: string;
+    }>;
+  }>;
   emptyClassName?: string;
 }) {
   if (!records.length) {
@@ -114,9 +139,30 @@ export function OperationTimeline({
         <div className="master-tl-item" key={record.key}>
           <div className={`master-tl-dot${index === records.length - 1 ? ' gray' : ''}`} />
           <div className="master-tl-content">
-            <div className="master-tl-operator">操作人：{record.operator}</div>
+            <div className="master-tl-head">
+              <div className="master-tl-operator">操作人：{record.operator}</div>
+              {record.actionType ? (
+                <Tag className={`master-tl-tag master-tl-tag-${record.actionType.toLowerCase()}`}>
+                  {ACTION_TYPE_LABELS[record.actionType]}
+                </Tag>
+              ) : null}
+            </div>
             <div className="master-tl-action">操作记录：{record.action}</div>
-            <div className="master-tl-time">操作时间：{record.time}</div>
+            {record.changes?.length ? (
+              <div className="master-tl-changes">
+                {record.changes.map((change) => (
+                  <div className="master-tl-change-chip" key={change.key}>
+                    <span className="master-tl-change-field">{change.fieldLabel}</span>
+                    <span className="master-tl-change-old">{change.oldValue}</span>
+                    <span className="master-tl-change-arrow">→</span>
+                    <span className="master-tl-change-new">{change.newValue}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            <Tooltip title={dayjs(record.time).fromNow()}>
+              <div className="master-tl-time">操作时间：{dayjs(record.time).format('YYYY-MM-DD HH:mm:ss')}</div>
+            </Tooltip>
           </div>
         </div>
       ))}
