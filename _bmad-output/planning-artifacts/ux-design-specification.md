@@ -1,4 +1,6 @@
 ---
+status: DEPRECATED
+superseded-by: _bmad-output/planning-artifacts/ux-spec.md
 stepsCompleted: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
 inputDocuments:
   - _bmad-output/planning-artifacts/product-brief-infitek_erp.md

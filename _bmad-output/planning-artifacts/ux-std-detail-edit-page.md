@@ -1,4 +1,6 @@
 ---
+status: DEPRECATED
+superseded-by: _bmad-output/planning-artifacts/ux-spec.md
 type: ux-standard
 scope: detail-edit-page
 status: approved
