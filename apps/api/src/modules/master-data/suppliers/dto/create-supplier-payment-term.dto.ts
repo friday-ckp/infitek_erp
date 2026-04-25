@@ -12,11 +12,13 @@ import {
   SupplierSettlementDateType,
   SupplierSettlementType,
 } from '@infitek/shared';
+import { Type } from 'class-transformer';
 
 export class CreateSupplierPaymentTermDto {
   @IsInt()
   @IsPositive()
   @IsOptional()
+  @Type(() => Number)
   companyId?: number;
 
   @IsString()
@@ -36,12 +38,14 @@ export class CreateSupplierPaymentTermDto {
   @IsInt()
   @Min(0)
   @IsOptional()
+  @Type(() => Number)
   settlementDays?: number;
 
   @IsInt()
   @Min(1)
   @Max(31)
   @IsOptional()
+  @Type(() => Number)
   monthlySettlementDate?: number;
 
   @IsEnum(SupplierSettlementDateType)

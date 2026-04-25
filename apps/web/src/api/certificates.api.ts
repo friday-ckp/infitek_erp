@@ -64,7 +64,7 @@ export interface CreateCertificatePayload {
   spuIds?: number[];
 }
 
-export type UpdateCertificatePayload = Partial<CreateCertificatePayload>;
+export type UpdateCertificatePayload = Partial<Omit<CreateCertificatePayload, 'certificateNo'>>;
 
 function normalizeApiError(error: unknown): never {
   if (typeof error === 'object' && error !== null) {

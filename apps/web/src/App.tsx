@@ -100,12 +100,43 @@ function App() {
           locale={zhCN}
           theme={{
             token: {
-              colorPrimary: '#4F46E5',
-              colorBgLayout: '#F9FAFB',
+              colorPrimary: '#2563EB',
+              colorPrimaryHover: '#1D4ED8',
+              colorBgLayout: '#F8FAFC',
               borderRadius: 8,
+              borderRadiusLG: 12,
               colorBgContainer: '#FFFFFF',
-              colorBorder: '#E5E7EB',
-              colorTextBase: '#111827',
+              colorBorder: '#E2E8F0',
+              colorTextBase: '#1E293B',
+              colorTextSecondary: '#64748B',
+              boxShadowTertiary: '0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04)',
+            },
+            components: {
+              Button: {
+                controlHeight: 34,
+                fontWeight: 500,
+              },
+              Input: {
+                controlHeight: 36,
+              },
+              Select: {
+                controlHeight: 36,
+              },
+              Tabs: {
+                itemColor: '#64748B',
+                itemSelectedColor: '#2563EB',
+                inkBarColor: '#2563EB',
+              },
+              Breadcrumb: {
+                itemColor: '#94A3B8',
+                lastItemColor: '#1E293B',
+                linkColor: '#94A3B8',
+                separatorColor: '#CBD5E1',
+              },
+              Table: {
+                headerBg: '#F8FAFC',
+                headerColor: '#64748B',
+              },
             },
           }}
         >

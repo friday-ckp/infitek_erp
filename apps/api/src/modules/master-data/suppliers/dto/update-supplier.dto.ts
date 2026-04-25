@@ -46,6 +46,7 @@ export class UpdateSupplierDto {
   @IsInt()
   @IsPositive()
   @IsOptional()
+  @Type(() => Number)
   countryId?: number;
 
   @IsString()
@@ -73,6 +74,7 @@ export class UpdateSupplierDto {
 
   @IsInt()
   @IsOptional()
+  @Type(() => Number)
   annualRebateEnabled?: number;
 
   @IsString()

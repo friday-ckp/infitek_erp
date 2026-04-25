@@ -6,6 +6,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class UpdateSpuDto {
   @IsString()
@@ -16,6 +17,7 @@ export class UpdateSpuDto {
   @IsInt()
   @IsOptional()
   @IsPositive()
+  @Type(() => Number)
   categoryId?: number;
 
   @IsString()
@@ -31,11 +33,13 @@ export class UpdateSpuDto {
   @IsInt()
   @IsOptional()
   @Min(0)
+  @Type(() => Number)
   customerWarrantyMonths?: number;
 
   @IsInt()
   @IsOptional()
   @Min(0)
+  @Type(() => Number)
   purchaseWarrantyMonths?: number;
 
   @IsString()
@@ -70,5 +74,6 @@ export class UpdateSpuDto {
   @IsInt()
   @IsOptional()
   @IsPositive()
+  @Type(() => Number)
   companyId?: number;
 }

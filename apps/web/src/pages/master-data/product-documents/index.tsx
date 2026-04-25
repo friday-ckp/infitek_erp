@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Empty, Flex, Input, Result, Select, Skeleton, Space, Typography, theme } from 'antd';
+import { Button, Empty, Result, Select, Skeleton, Space, Typography, theme } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -16,8 +16,11 @@ import {
 import { getCountries } from '../../../api/countries.api';
 import { getSpus } from '../../../api/spus.api';
 import { getProductCategoryTree } from '../../../api/product-categories.api';
+import { SearchForm } from '../../../components/common/SearchForm';
+import type { ActiveTag } from '../../../components/common/SearchForm';
 import { findCategoryName } from '../../../utils/category';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function ProductDocumentsListPage() {
   const navigate = useNavigate();
@@ -202,67 +205,130 @@ export default function ProductDocumentsListPage() {
     </Empty>
   );
 
+  const activeTags: ActiveTag[] = [
+    keyword
+      ? {
+          key: 'keyword',
+          label: `关键词: ${keyword}`,
+          onClose: () => {
+            setKeywordInput('');
+            setPage(1);
+          },
+        }
+      : null,
+    docTypeFilter
+      ? {
+          key: 'docType',
+          label: `资料类型: ${DOCUMENT_TYPE_LABELS[docTypeFilter] ?? docTypeFilter}`,
+          onClose: () => {
+            setDocTypeFilter(undefined);
+            setPage(1);
+          },
+        }
+      : null,
+    attributionFilter
+      ? {
+          key: 'attr',
+          label: `归属类型: ${ATTRIBUTION_TYPE_LABELS[attributionFilter] ?? attributionFilter}`,
+          onClose: () => {
+            setAttributionFilter(undefined);
+            setPage(1);
+          },
+        }
+      : null,
+  ].filter(Boolean) as ActiveTag[];
+
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>产品资料库</Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/product-documents/create')}>
-          + 新建资料
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-kicker">Product Management</div>
+            <div className="master-page-title">产品资料库</div>
+            <div className="master-page-description">统一维护资料类型、归属范围和多国家场景下的附件资料。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/product-documents/create')}>
+              新建资料
+            </Button>
+          </div>
+        </div>
 
-      <Space size={token.marginSM} style={{ marginBottom: token.marginSM }}>
-        <Input
-          placeholder="搜索资料名称..."
-          style={{ width: 260 }}
-          value={keywordInput}
-          onChange={(e) => { setKeywordInput(e.target.value); setPage(1); }}
-          allowClear
-        />
-        <Select
-          style={{ width: 140 }}
-          placeholder="全部类型"
-          value={docTypeFilter}
-          onChange={(v) => { setDocTypeFilter(v); setPage(1); }}
-          options={DOCUMENT_TYPE_OPTIONS}
-          allowClear
-        />
-        <Select
-          style={{ width: 180 }}
-          placeholder="全部归属"
-          value={attributionFilter}
-          onChange={(v) => { setAttributionFilter(v); setPage(1); }}
-          options={ATTRIBUTION_TYPE_OPTIONS}
-          allowClear
-        />
-      </Space>
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
+            }}
+            placeholder="搜索资料名称"
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setDocTypeFilter(undefined);
+              setAttributionFilter(undefined);
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              query.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setDocTypeFilter(undefined);
+              setAttributionFilter(undefined);
+              setPage(1);
+            }}
+            advancedContent={(
+              <Space wrap>
+                <Select
+                  style={{ width: 160 }}
+                  placeholder="全部类型"
+                  value={docTypeFilter}
+                  onChange={(v) => { setDocTypeFilter(v); setPage(1); }}
+                  options={DOCUMENT_TYPE_OPTIONS}
+                  allowClear
+                />
+                <Select
+                  style={{ width: 180 }}
+                  placeholder="全部归属"
+                  value={attributionFilter}
+                  onChange={(v) => { setAttributionFilter(v); setPage(1); }}
+                  options={ATTRIBUTION_TYPE_OPTIONS}
+                  allowClear
+                />
+              </Space>
+            )}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data}>
-        <ProTable<ProductDocument>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 1000, y: 540 }}
-          rowClassName={() => 'product-doc-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) { setPage(1); } else { setPage(nextPage); }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data}>
+            <ProTable<ProductDocument>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 1000, y: 540 }}
+              rowClassName={() => 'product-doc-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) { setPage(1); } else { setPage(nextPage); }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`.product-doc-row-height .ant-table-cell { height: 48px; }`}</style>
     </div>

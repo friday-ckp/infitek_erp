@@ -133,7 +133,14 @@ export class ProductDocumentsService {
   private async withFileUrl<T extends { fileKey: string | null }>(
     item: T,
   ): Promise<T & { fileUrl: string | null }> {
-    const fileUrl = item.fileKey ? await this.filesService.getSignedUrl(item.fileKey) : null;
+    let fileUrl: string | null = null;
+    if (item.fileKey) {
+      try {
+        fileUrl = await this.filesService.getSignedUrl(item.fileKey);
+      } catch {
+        fileUrl = item.fileKey;
+      }
+    }
     return { ...item, fileUrl };
   }
 

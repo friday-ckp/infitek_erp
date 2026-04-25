@@ -3,12 +3,10 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
-  Flex,
   Rate,
   Result,
   Skeleton,
   Space,
-  Typography,
   theme,
 } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
@@ -19,6 +17,7 @@ import { getLogisticsProviders, type LogisticsProvider } from '../../../api/logi
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function LogisticsProvidersListPage() {
   const navigate = useNavigate();
@@ -160,68 +159,75 @@ export default function LogisticsProvidersListPage() {
   );
 
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          物流供应商管理
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/logistics-providers/create')}>
-          新建物流供应商
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">物流供应商管理</div>
+            <div className="master-page-description">统一维护物流供应商、联系人、国家地区与合作等级。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/logistics-providers/create')}>
+              新建物流供应商
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(value) => {
-          setKeywordInput(value);
-          setPage(1);
-        }}
-        placeholder="快捷搜索名称/编码/联系人/电话"
-        activeTags={activeTags}
-        onClearAll={() => {
-          setKeywordInput('');
-          setPage(1);
-        }}
-        onQuery={() => {
-          setPage(1);
-          query.refetch();
-        }}
-        onReset={() => {
-          setKeywordInput('');
-          setPage(1);
-        }}
-      />
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(value) => {
+              setKeywordInput(value);
+              setPage(1);
+            }}
+            placeholder="快捷搜索名称/编码/联系人/电话"
+            activeTags={activeTags}
+            onClearAll={() => {
+              setKeywordInput('');
+              setPage(1);
+            }}
+            onQuery={() => {
+              setPage(1);
+              query.refetch();
+            }}
+            onReset={() => {
+              setKeywordInput('');
+              setPage(1);
+            }}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<LogisticsProvider>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 1220, y: 540 }}
-          rowClassName={() => 'logistics-provider-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<LogisticsProvider>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 1220, y: 540 }}
+              rowClassName={() => 'logistics-provider-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .logistics-provider-row-height .ant-table-cell {

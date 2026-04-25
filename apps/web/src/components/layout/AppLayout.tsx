@@ -115,10 +115,19 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     editLabel: '编辑公司主体',
   }),
   ...createCrudBreadcrumbRoutes({
+    basePath: '/master-data/suppliers',
+    sectionLabel: '基础数据',
+    sectionPath: BASIC_DATA_SECTION_PATH,
+    listLabel: '采购供应商管理',
+    createLabel: '新建供应商',
+    detailLabel: '供应商详情',
+    editLabel: '编辑供应商',
+  }),
+  ...createCrudBreadcrumbRoutes({
     basePath: '/master-data/customers',
     sectionLabel: '基础数据',
     sectionPath: BASIC_DATA_SECTION_PATH,
-    listLabel: '客户主数据管理',
+    listLabel: '客户管理',
     createLabel: '新建客户',
     detailLabel: '客户详情',
     editLabel: '编辑客户',
@@ -269,20 +278,29 @@ export default function AppLayout() {
   const displayName = sanitizeText(user?.name || '用户');
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#F9FAFB' }}>
+    <div
+      style={{
+        display: 'flex',
+        height: '100vh',
+        overflow: 'hidden',
+        background: '#F8FAFC',
+      }}
+    >
       <Sidebar />
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {/* Topbar */}
-        <div style={{
-          background: '#fff',
-          borderBottom: '1px solid #E5E7EB',
-          padding: '0 28px',
-          height: 56,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          flexShrink: 0,
-        }}>
+        <div
+          style={{
+            background: '#fff',
+            borderBottom: '1px solid #E2E8F0',
+            padding: '0 28px',
+            height: 56,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            flexShrink: 0,
+          }}
+        >
           {/* 面包屑 */}
           <Breadcrumb
             separator={<span style={{ color: '#D1D5DB' }}>›</span>}
@@ -299,12 +317,26 @@ export default function AppLayout() {
 
           {/* 右侧操作区 */}
           <div style={{ marginLeft: 'auto', display: 'flex', gap: 12, alignItems: 'center' }}>
-            <div style={{ position: 'relative', cursor: 'pointer', color: '#6B7280', display: 'flex', alignItems: 'center' }}>
+            <div
+              style={{
+                cursor: 'pointer',
+                color: '#64748B',
+                display: 'flex',
+                alignItems: 'center',
+                width: 32,
+                height: 32,
+                justifyContent: 'center',
+                borderRadius: 8,
+              }}
+            >
               <BellOutlined style={{ fontSize: 18 }} />
             </div>
             <div style={{
-              width: 28, height: 28, borderRadius: '50%',
-              background: '#4F46E5', color: '#fff',
+              width: 30,
+              height: 30,
+              borderRadius: '50%',
+              background: '#2563EB',
+              color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 11, fontWeight: 700, cursor: 'pointer',
             }}>
@@ -314,7 +346,14 @@ export default function AppLayout() {
         </div>
 
         {/* 内容区 */}
-        <Content style={{ flex: 1, overflow: 'auto', padding: '24px 28px', background: '#F9FAFB' }}>
+        <Content
+          style={{
+            flex: 1,
+            overflow: 'auto',
+            padding: '24px',
+            background: '#F8FAFC',
+          }}
+        >
           <Outlet />
         </Content>
       </div>

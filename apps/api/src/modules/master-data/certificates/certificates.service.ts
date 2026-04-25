@@ -23,7 +23,14 @@ export class CertificatesService {
   private async withFileUrl<T extends { fileKey: string | null }>(
     item: T,
   ): Promise<T & { fileUrl: string | null; status: CertificateStatus }> {
-    const fileUrl = item.fileKey ? await this.filesService.getSignedUrl(item.fileKey) : null;
+    let fileUrl: string | null = null;
+    if (item.fileKey) {
+      try {
+        fileUrl = await this.filesService.getSignedUrl(item.fileKey);
+      } catch {
+        fileUrl = item.fileKey;
+      }
+    }
     const status = this.computeStatus((item as unknown as { validUntil: string }).validUntil);
     return { ...item, fileUrl, status };
   }

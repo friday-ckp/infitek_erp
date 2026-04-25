@@ -1,22 +1,11 @@
-import { useRef } from 'react';
-import { Breadcrumb, Button, Result, Skeleton, Tabs } from 'antd';
-import type { TabsProps } from 'antd';
-import {
-  ProForm,
-  ProFormSelect,
-  ProFormText,
-  type ProFormInstance,
-} from '@ant-design/pro-components';
+import { useRef, useState } from 'react';
+import { Button, Result, Skeleton } from 'antd';
+import { ProForm, ProFormSelect, ProFormText, type ProFormInstance } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
-import {
-  createCompany,
-  getCompanyById,
-  updateCompany,
-  type CreateCompanyPayload,
-  type UpdateCompanyPayload,
-} from '../../../api/companies.api';
+import { createCompany, getCompanyById, updateCompany, type CreateCompanyPayload, type UpdateCompanyPayload } from '../../../api/companies.api';
 import request from '../../../api/request';
+import { AnchorNav, SectionCard } from '../components/page-scaffold';
 import '../master-page.css';
 
 interface CurrencyOption {
@@ -45,6 +34,7 @@ export default function CompanyFormPage() {
   const companyId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
   const formRef = useRef<ProFormInstance>(undefined);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const detailQuery = useQuery({
     queryKey: ['company-detail', companyId],
@@ -79,9 +69,7 @@ export default function CompanyFormPage() {
     );
   }
 
-  if (isEdit && detailQuery.isLoading) {
-    return <Skeleton active />;
-  }
+  if (isEdit && detailQuery.isLoading) return <Skeleton active />;
 
   if (isEdit && detailQuery.isError && !detailQuery.data) {
     return (
@@ -122,257 +110,22 @@ export default function CompanyFormPage() {
       }
     : {};
 
-  const basicTab = (
-    <>
-      <ProForm.Group>
-        <ProFormText
-          name="nameCn"
-          label="公司中文名称"
-          width="md"
-          placeholder="请输入公司中文名称"
-          rules={[
-            { required: true, message: '请输入公司中文名称' },
-            { max: 200, message: '公司名称最多 200 个字符' },
-          ]}
-        />
-        <ProFormText
-          name="nameEn"
-          label="公司英文名称"
-          width="md"
-          placeholder="请输入公司英文名称（可选）"
-          rules={[{ max: 200, message: '公司英文名称最多 200 个字符' }]}
-        />
-        <ProFormText
-          name="abbreviation"
-          label="公司简称"
-          width="sm"
-          placeholder="请输入公司简称（可选）"
-          rules={[{ max: 50, message: '公司简称最多 50 个字符' }]}
-        />
-      </ProForm.Group>
-      <ProForm.Group>
-        <ProFormSelect
-          name="countryId"
-          label="国家/地区"
-          width="md"
-          placeholder="请搜索国家/地区"
-          showSearch
-          request={async (params) => {
-            try {
-              const res = await request.get<any, { list: Array<{ id: number; name: string; code: string }> }>('/countries', {
-                params: { keyword: params.keyWords, pageSize: 20 },
-              });
-              const options = (res.list || []).map((item) => ({
-                label: `${item.name} (${item.code})`,
-                value: Number(item.id),
-                name: item.name,
-              }));
-              if (!params.keyWords && detailQuery.data?.countryId) {
-                const exists = options.some((item) => item.value === detailQuery.data?.countryId);
-                if (!exists) {
-                  options.unshift({
-                    label: detailQuery.data.countryName || '',
-                    value: detailQuery.data.countryId,
-                    name: detailQuery.data.countryName || '',
-                  });
-                }
-              }
-              return options;
-            } catch {
-              return [];
-            }
-          }}
-          fieldProps={{
-            onChange: (_: number | undefined, option: any) => {
-              formRef.current?.setFieldsValue({
-                countryName: option?.name ?? null,
-              });
-            },
-          }}
-        />
-        <ProFormText
-          name="signingLocation"
-          label="签订地点"
-          width="md"
-          placeholder="请输入签订地点"
-          rules={[{ max: 200, message: '签订地点最多 200 个字符' }]}
-        />
-      </ProForm.Group>
-    </>
-  );
-
-  const addressTab = (
-    <ProForm.Group>
-      <ProFormText
-        name="addressCn"
-        label="中文地址"
-        width="xl"
-        placeholder="请输入中文地址"
-        rules={[{ max: 500, message: '中文地址最多 500 个字符' }]}
-      />
-      <ProFormText
-        name="addressEn"
-        label="英文地址"
-        width="xl"
-        placeholder="请输入英文地址"
-        rules={[{ max: 500, message: '英文地址最多 500 个字符' }]}
-      />
-    </ProForm.Group>
-  );
-
-  const contactTab = (
-    <ProForm.Group>
-      <ProFormText
-        name="contactPerson"
-        label="联系人"
-        width="md"
-        placeholder="请输入联系人姓名"
-        rules={[{ max: 100, message: '联系人最多 100 个字符' }]}
-      />
-      <ProFormText
-        name="contactPhone"
-        label="联系电话"
-        width="md"
-        placeholder="请输入联系电话"
-        rules={[{ max: 50, message: '联系电话最多 50 个字符' }]}
-      />
-      <ProFormSelect
-        name="chiefAccountantId"
-        label="总账会计"
-        width="md"
-        placeholder="请搜索用户名或姓名"
-        showSearch
-        request={async (params) => {
-          try {
-            const res = await request.get<any, { list: Array<{ id: string; name: string; username: string }> }>('/users', {
-              params: { search: params.keyWords, pageSize: 20 },
-            });
-            const options = (res.list || []).map((item) => ({
-              label: `${item.name} (${item.username})`,
-              value: Number(item.id),
-              name: item.name,
-            }));
-            if (!params.keyWords && detailQuery.data?.chiefAccountantId) {
-              const exists = options.some((item) => item.value === detailQuery.data?.chiefAccountantId);
-              if (!exists) {
-                options.unshift({
-                  label: detailQuery.data.chiefAccountantName || '',
-                  value: detailQuery.data.chiefAccountantId,
-                  name: detailQuery.data.chiefAccountantName || '',
-                });
-              }
-            }
-            return options;
-          } catch {
-            return [];
-          }
-        }}
-        fieldProps={{
-          onChange: (_: number | undefined, option: any) => {
-            formRef.current?.setFieldsValue({
-              chiefAccountantName: option?.name ?? null,
-            });
-          },
-        }}
-      />
-    </ProForm.Group>
-  );
-
-  const bankTab = (
-    <ProForm.Group>
-      <ProFormText
-        name="bankName"
-        label="开户行"
-        width="md"
-        placeholder="请输入开户行名称"
-        rules={[{ max: 200, message: '开户行名称最多 200 个字符' }]}
-      />
-      <ProFormText
-        name="bankAccount"
-        label="银行账号"
-        width="md"
-        placeholder="请输入银行账号"
-        rules={[{ max: 100, message: '银行账号最多 100 个字符' }]}
-      />
-      <ProFormText
-        name="swiftCode"
-        label="SWIFT CODE"
-        width="sm"
-        placeholder="请输入 SWIFT CODE"
-        rules={[{ max: 20, message: 'SWIFT CODE 最多 20 个字符' }]}
-      />
-      <ProFormSelect
-        name="defaultCurrencyCode"
-        label="默认币种"
-        width="sm"
-        placeholder="请选择默认币种"
-        request={fetchCurrencyOptions}
-        fieldProps={{
-          onChange: (_: string | undefined, option: any) => {
-            formRef.current?.setFieldsValue({
-              defaultCurrencyName: option?.currencyName ?? null,
-            });
-          },
-        }}
-      />
-    </ProForm.Group>
-  );
-
-  const complianceTab = (
-    <ProForm.Group>
-      <ProFormText
-        name="taxId"
-        label="纳税人识别号"
-        width="md"
-        placeholder="请输入纳税人识别号"
-        rules={[{ max: 100, message: '纳税人识别号最多 100 个字符' }]}
-      />
-      <ProFormText
-        name="customsCode"
-        label="海关备案号"
-        width="md"
-        placeholder="请输入海关备案号"
-        rules={[{ max: 100, message: '海关备案号最多 100 个字符' }]}
-      />
-      <ProFormText
-        name="quarantineCode"
-        label="检疫备案号"
-        width="md"
-        placeholder="请输入检疫备案号"
-        rules={[{ max: 100, message: '检疫备案号最多 100 个字符' }]}
-      />
-    </ProForm.Group>
-  );
-
-  const tabItems: TabsProps['items'] = [
-    { key: 'basic', label: '基本信息', children: <div className="master-form-body">{basicTab}</div> },
-    { key: 'address', label: '地址信息', children: <div className="master-form-body">{addressTab}</div> },
-    { key: 'contact', label: '联系信息', children: <div className="master-form-body">{contactTab}</div> },
-    { key: 'bank', label: '银行信息', children: <div className="master-form-body">{bankTab}</div> },
-    { key: 'compliance', label: '合规信息', children: <div className="master-form-body">{complianceTab}</div> },
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'address', label: '地址信息' },
+    { key: 'contact', label: '联系信息' },
+    { key: 'bank', label: '银行信息' },
+    { key: 'compliance', label: '合规信息' },
   ];
 
   return (
     <div className="master-page master-form-page">
-      <Breadcrumb
-        items={[
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/companies')}>
-                主数据
-              </Button>
-            ),
-          },
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/companies')}>
-                公司主体管理
-              </Button>
-            ),
-          },
-          { title: isEdit ? `编辑 ${detailQuery.data?.nameCn || ''}` : '新建公司主体' },
-        ]}
-      />
+      <div className="master-page-header">
+        <div className="master-page-heading">
+          <div className="master-page-title">{isEdit ? '编辑公司主体' : '新建公司主体'}</div>
+          <div className="master-page-description">统一维护公司主体基础信息、地址、银行和合规资料。</div>
+        </div>
+      </div>
 
       <ProForm
         formRef={formRef}
@@ -411,19 +164,223 @@ export default function CompanyFormPage() {
           return true;
         }}
       >
-        <div className="master-info-card">
-          <Tabs className="master-info-tabs" defaultActiveKey="basic" items={tabItems} />
-          <div className="master-form-footer">
-            <Button onClick={() => navigate(isEdit ? `/master-data/companies/${companyId}` : '/master-data/companies')}>
-              取消
-            </Button>
-            <Button
-              type="primary"
-              loading={createMutation.isPending || updateMutation.isPending}
-              onClick={() => formRef.current?.submit?.()}
-            >
-              {isEdit ? '保存' : '创建'}
-            </Button>
+        <div className="master-form-layout">
+          <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
+          <div className="master-form-main">
+            <SectionCard id="basic" title="基础信息" description="填写公司主体名称、简称、归属国家与签订地点。">
+              <div className="master-form-grid">
+                <ProFormText
+                  name="nameCn"
+                  label="公司中文名称"
+                  placeholder="请输入公司中文名称"
+                  rules={[
+                    { required: true, message: '请输入公司中文名称' },
+                    { max: 200, message: '公司名称最多 200 个字符' },
+                  ]}
+                />
+                <ProFormText
+                  name="nameEn"
+                  label="公司英文名称"
+                  placeholder="请输入公司英文名称（可选）"
+                  rules={[{ max: 200, message: '公司英文名称最多 200 个字符' }]}
+                />
+                <ProFormText
+                  name="abbreviation"
+                  label="公司简称"
+                  placeholder="请输入公司简称（可选）"
+                  rules={[{ max: 50, message: '公司简称最多 50 个字符' }]}
+                />
+                <ProFormSelect
+                  name="countryId"
+                  label="国家/地区"
+                  placeholder="请搜索国家/地区"
+                  showSearch
+                  request={async (params) => {
+                    try {
+                      const res = await request.get<any, { list: Array<{ id: number; name: string; code: string }> }>('/countries', {
+                        params: { keyword: params.keyWords, pageSize: 20 },
+                      });
+                      const options = (res.list || []).map((item) => ({
+                        label: `${item.name} (${item.code})`,
+                        value: Number(item.id),
+                        name: item.name,
+                      }));
+                      if (!params.keyWords && detailQuery.data?.countryId) {
+                        const exists = options.some((item) => item.value === detailQuery.data?.countryId);
+                        if (!exists) {
+                          options.unshift({
+                            label: detailQuery.data.countryName || '',
+                            value: detailQuery.data.countryId,
+                            name: detailQuery.data.countryName || '',
+                          });
+                        }
+                      }
+                      return options;
+                    } catch {
+                      return [];
+                    }
+                  }}
+                  fieldProps={{
+                    onChange: (_: number | undefined, option: any) => {
+                      formRef.current?.setFieldsValue({ countryName: option?.name ?? null });
+                    },
+                  }}
+                />
+                <ProFormText
+                  name="signingLocation"
+                  label="签订地点"
+                  placeholder="请输入签订地点"
+                  rules={[{ max: 200, message: '签订地点最多 200 个字符' }]}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard id="address" title="地址信息" description="填写公司主体中英文地址。">
+              <div className="master-form-grid">
+                <div className="full">
+                  <ProFormText
+                    name="addressCn"
+                    label="中文地址"
+                    placeholder="请输入中文地址"
+                    rules={[{ max: 500, message: '中文地址最多 500 个字符' }]}
+                  />
+                </div>
+                <div className="full">
+                  <ProFormText
+                    name="addressEn"
+                    label="英文地址"
+                    placeholder="请输入英文地址"
+                    rules={[{ max: 500, message: '英文地址最多 500 个字符' }]}
+                  />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard id="contact" title="联系信息" description="维护联系人、电话和总账会计信息。">
+              <div className="master-form-grid">
+                <ProFormText
+                  name="contactPerson"
+                  label="联系人"
+                  placeholder="请输入联系人姓名"
+                  rules={[{ max: 100, message: '联系人最多 100 个字符' }]}
+                />
+                <ProFormText
+                  name="contactPhone"
+                  label="联系电话"
+                  placeholder="请输入联系电话"
+                  rules={[{ max: 50, message: '联系电话最多 50 个字符' }]}
+                />
+                <ProFormSelect
+                  name="chiefAccountantId"
+                  label="总账会计"
+                  placeholder="请搜索用户名或姓名"
+                  showSearch
+                  request={async (params) => {
+                    try {
+                      const res = await request.get<any, { list: Array<{ id: string; name: string; username: string }> }>('/users', {
+                        params: { search: params.keyWords, pageSize: 20 },
+                      });
+                      const options = (res.list || []).map((item) => ({
+                        label: `${item.name} (${item.username})`,
+                        value: Number(item.id),
+                        name: item.name,
+                      }));
+                      if (!params.keyWords && detailQuery.data?.chiefAccountantId) {
+                        const exists = options.some((item) => item.value === detailQuery.data?.chiefAccountantId);
+                        if (!exists) {
+                          options.unshift({
+                            label: detailQuery.data.chiefAccountantName || '',
+                            value: detailQuery.data.chiefAccountantId,
+                            name: detailQuery.data.chiefAccountantName || '',
+                          });
+                        }
+                      }
+                      return options;
+                    } catch {
+                      return [];
+                    }
+                  }}
+                  fieldProps={{
+                    onChange: (_: number | undefined, option: any) => {
+                      formRef.current?.setFieldsValue({ chiefAccountantName: option?.name ?? null });
+                    },
+                  }}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard id="bank" title="银行信息" description="填写开户行、账号、SWIFT 与默认币种。">
+              <div className="master-form-grid">
+                <ProFormText
+                  name="bankName"
+                  label="开户行"
+                  placeholder="请输入开户行名称"
+                  rules={[{ max: 200, message: '开户行名称最多 200 个字符' }]}
+                />
+                <ProFormText
+                  name="bankAccount"
+                  label="银行账号"
+                  placeholder="请输入银行账号"
+                  rules={[{ max: 100, message: '银行账号最多 100 个字符' }]}
+                />
+                <ProFormText
+                  name="swiftCode"
+                  label="SWIFT CODE"
+                  placeholder="请输入 SWIFT CODE"
+                  rules={[{ max: 20, message: 'SWIFT CODE 最多 20 个字符' }]}
+                />
+                <ProFormSelect
+                  name="defaultCurrencyCode"
+                  label="默认币种"
+                  placeholder="请选择默认币种"
+                  request={fetchCurrencyOptions}
+                  fieldProps={{
+                    onChange: (_: string | undefined, option: any) => {
+                      formRef.current?.setFieldsValue({ defaultCurrencyName: option?.currencyName ?? null });
+                    },
+                  }}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard id="compliance" title="合规信息" description="维护纳税、海关和检疫备案字段。">
+              <div className="master-form-grid">
+                <ProFormText
+                  name="taxId"
+                  label="纳税人识别号"
+                  placeholder="请输入纳税人识别号"
+                  rules={[{ max: 100, message: '纳税人识别号最多 100 个字符' }]}
+                />
+                <ProFormText
+                  name="customsCode"
+                  label="海关备案号"
+                  placeholder="请输入海关备案号"
+                  rules={[{ max: 100, message: '海关备案号最多 100 个字符' }]}
+                />
+                <ProFormText
+                  name="quarantineCode"
+                  label="检疫备案号"
+                  placeholder="请输入检疫备案号"
+                  rules={[{ max: 100, message: '检疫备案号最多 100 个字符' }]}
+                />
+              </div>
+            </SectionCard>
+
+            <div className="master-form-footer">
+              <div className="master-form-footer-tip">本页仅统一布局与视觉层级，不改变公司主体接口和提交字段。</div>
+              <div className="master-form-footer-actions">
+                <Button onClick={() => navigate(isEdit ? `/master-data/companies/${companyId}` : '/master-data/companies')}>
+                  取消
+                </Button>
+                <Button
+                  type="primary"
+                  loading={createMutation.isPending || updateMutation.isPending}
+                  onClick={() => formRef.current?.submit?.()}
+                >
+                  {isEdit ? '保存' : '创建'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </ProForm>

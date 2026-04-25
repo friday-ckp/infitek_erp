@@ -4,14 +4,12 @@ import {
   Badge,
   Button,
   Empty,
-  Flex,
   Popconfirm,
   Result,
   Select,
   Skeleton,
   Space,
   Tag,
-  Typography,
   message,
   theme,
 } from 'antd';
@@ -24,6 +22,7 @@ import { getCurrencies, updateCurrency, type Currency } from '../../../api/curre
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 const CURRENCY_STATUS_ACTIVE = 'active' as CurrencyStatus;
 const CURRENCY_STATUS_INACTIVE = 'inactive' as CurrencyStatus;
@@ -223,69 +222,76 @@ export default function CurrenciesListPage() {
   ].filter(Boolean) as ActiveTag[];
 
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          币种管理
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/currencies/create')}>
-          新建币种
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">币种管理</div>
+            <div className="master-page-description">统一维护币种代码、本位币标识与启停用状态。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/currencies/create')}>
+              新建币种
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
-        placeholder="快捷搜索币种代码/名称"
-        activeTags={activeTags}
-        onClearAll={() => { setKeywordInput(''); setStatus(undefined); setPage(1); }}
-        onQuery={() => { setPage(1); query.refetch(); }}
-        onReset={() => { setKeywordInput(''); setStatus(undefined); setPage(1); }}
-        advancedContent={
-          <Select<CurrencyStatus>
-            allowClear
-            placeholder="按状态筛选"
-            options={statusOptions}
-            value={status}
-            onChange={(value) => {
-              setStatus(value);
-              setPage(1);
-            }}
-            style={{ width: 200 }}
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
+            placeholder="快捷搜索币种代码/名称"
+            activeTags={activeTags}
+            onClearAll={() => { setKeywordInput(''); setStatus(undefined); setPage(1); }}
+            onQuery={() => { setPage(1); query.refetch(); }}
+            onReset={() => { setKeywordInput(''); setStatus(undefined); setPage(1); }}
+            advancedContent={
+              <Select<CurrencyStatus>
+                allowClear
+                placeholder="按状态筛选"
+                options={statusOptions}
+                value={status}
+                onChange={(value) => {
+                  setStatus(value);
+                  setPage(1);
+                }}
+                style={{ width: 200 }}
+              />
+            }
           />
-        }
-      />
 
-      <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<Currency>
-          search={false}
-          options={false}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 900, y: 540 }}
-          rowClassName={() => 'currency-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<Currency>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 900, y: 540 }}
+              rowClassName={() => 'currency-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .currency-row-height .ant-table-cell {

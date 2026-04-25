@@ -1,21 +1,11 @@
-import { useRef } from 'react';
-import { Breadcrumb, Button, Result, Skeleton } from 'antd';
-import {
-  ProForm,
-  ProFormSelect,
-  ProFormText,
-  type ProFormInstance,
-} from '@ant-design/pro-components';
+import { useRef, useState } from 'react';
+import { Button, Result, Skeleton } from 'antd';
+import { ProForm, ProFormSelect, ProFormText, type ProFormInstance } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import type { UnitStatus } from '@infitek/shared';
-import {
-  createUnit,
-  getUnitById,
-  updateUnit,
-  type CreateUnitPayload,
-  type UpdateUnitPayload,
-} from '../../../api/units.api';
+import { createUnit, getUnitById, updateUnit, type CreateUnitPayload, type UpdateUnitPayload } from '../../../api/units.api';
+import { AnchorNav, SectionCard } from '../components/page-scaffold';
 import '../master-page.css';
 
 const statusOptions: Array<{ label: string; value: UnitStatus }> = [
@@ -30,6 +20,7 @@ export default function UnitFormPage() {
   const unitId = id ? Number(id) : undefined;
   const isEdit = Boolean(id);
   const formRef = useRef<ProFormInstance>(undefined);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const detailQuery = useQuery({
     queryKey: ['unit-detail', unitId],
@@ -64,9 +55,7 @@ export default function UnitFormPage() {
     );
   }
 
-  if (isEdit && detailQuery.isLoading) {
-    return <Skeleton active />;
-  }
+  if (isEdit && detailQuery.isLoading) return <Skeleton active />;
 
   if (isEdit && detailQuery.isError && !detailQuery.data) {
     return (
@@ -82,104 +71,93 @@ export default function UnitFormPage() {
     );
   }
 
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'status', label: '状态设置' },
+  ];
+
   return (
     <div className="master-page master-form-page">
-      <Breadcrumb
-        items={[
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/units')}>
-                主数据
-              </Button>
-            ),
-          },
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/units')}>
-                单位管理
-              </Button>
-            ),
-          },
-          { title: isEdit ? `编辑 ${detailQuery.data?.code || ''}` : '新建单位' },
-        ]}
-      />
+      <div className="master-page-header">
+        <div className="master-page-heading">
+          <div className="master-page-title">{isEdit ? '编辑单位' : '新建单位'}</div>
+          <div className="master-page-description">统一维护单位名称、编码与启停状态。</div>
+        </div>
+      </div>
 
-      <ProForm<{
-        code: string;
-        name: string;
-        status?: UnitStatus;
-      }>
+      <ProForm<{ code: string; name: string; status?: UnitStatus }>
         formRef={formRef}
         submitter={false}
         loading={detailQuery.isLoading}
         initialValues={
           detailQuery.data
-            ? {
-                code: detailQuery.data.code,
-                name: detailQuery.data.name,
-                status: detailQuery.data.status,
-              }
+            ? { code: detailQuery.data.code, name: detailQuery.data.name, status: detailQuery.data.status }
             : { status: 'active' as UnitStatus }
         }
         onFinish={async (values) => {
           if (isEdit) {
-            await updateMutation.mutateAsync({
-              code: values.code,
-              name: values.name,
-              status: values.status,
-            });
+            await updateMutation.mutateAsync({ code: values.code, name: values.name, status: values.status });
             return true;
           }
-          await createMutation.mutateAsync({
-            code: values.code,
-            name: values.name,
-          });
+          await createMutation.mutateAsync({ code: values.code, name: values.name });
           return true;
         }}
       >
-        <div className="master-info-card">
-          <div className="master-form-body">
-            <ProForm.Group>
-              <ProFormText
-                name="name"
-                label="单位名称"
-                placeholder="请输入单位名称"
-                width="md"
-                rules={[
-                  { required: true, message: '请输入单位名称' },
-                  { max: 100, message: '单位名称最多 100 个字符' },
-                ]}
-              />
-              <ProFormText
-                name="code"
-                label="单位编码"
-                placeholder="请输入单位编码"
-                width="sm"
-                rules={[
-                  { required: true, message: '请输入单位编码' },
-                  { max: 50, message: '单位编码最多 50 个字符' },
-                ]}
-              />
-              {isEdit ? (
-                <ProFormSelect
-                  name="status"
-                  label="状态"
-                  width="sm"
-                  options={statusOptions}
-                  rules={[{ required: true, message: '请选择状态' }]}
+        <div className="master-form-layout">
+          <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
+
+          <div className="master-form-main">
+            <SectionCard id="basic" title="基础信息" description="填写单位主标识与业务显示名称。">
+              <div className="master-form-grid">
+                <ProFormText
+                  name="name"
+                  label="单位名称"
+                  placeholder="请输入单位名称"
+                  rules={[
+                    { required: true, message: '请输入单位名称' },
+                    { max: 100, message: '单位名称最多 100 个字符' },
+                  ]}
                 />
-              ) : null}
-            </ProForm.Group>
-          </div>
-          <div className="master-form-footer">
-            <Button onClick={() => navigate('/master-data/units')}>取消</Button>
-            <Button
-              type="primary"
-              loading={createMutation.isPending || updateMutation.isPending}
-              onClick={() => formRef.current?.submit?.()}
-            >
-              {isEdit ? '保存' : '创建'}
-            </Button>
+                <ProFormText
+                  name="code"
+                  label="单位编码"
+                  placeholder="请输入单位编码"
+                  rules={[
+                    { required: true, message: '请输入单位编码' },
+                    { max: 50, message: '单位编码最多 50 个字符' },
+                  ]}
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard id="status" title="状态设置" description="编辑时支持维护单位启停状态。">
+              <div className="master-form-grid">
+                {isEdit ? (
+                  <ProFormSelect
+                    name="status"
+                    label="状态"
+                    options={statusOptions}
+                    rules={[{ required: true, message: '请选择状态' }]}
+                  />
+                ) : (
+                  <div className="master-info-tip" style={{ marginTop: 0 }}>新建后默认为启用状态，如需调整可在详情页进入编辑后修改。</div>
+                )}
+              </div>
+            </SectionCard>
+
+            <div className="master-form-footer">
+              <div className="master-form-footer-tip">本页仅统一表单排版与层级，不调整单位接口逻辑。</div>
+              <div className="master-form-footer-actions">
+                <Button onClick={() => navigate('/master-data/units')}>取消</Button>
+                <Button
+                  type="primary"
+                  loading={createMutation.isPending || updateMutation.isPending}
+                  onClick={() => formRef.current?.submit?.()}
+                >
+                  {isEdit ? '保存' : '创建'}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </ProForm>

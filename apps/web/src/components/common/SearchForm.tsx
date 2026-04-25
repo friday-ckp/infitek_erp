@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Flex, Input, Space, Tag, theme } from 'antd';
-import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { DownOutlined, FilterOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import './search-form.css';
 
 export interface ActiveTag {
   /** 唯一标识，用作 React key */
@@ -50,40 +51,61 @@ export function SearchForm({
   onReset,
 }: SearchFormProps) {
   const { token } = theme.useToken();
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const hasActions = onQuery != null || onReset != null;
+  const hasAdvanced = advancedContent != null;
+  const showAdvanced = hasAdvanced && (advancedOpen || activeTags.length > 0);
 
   return (
-    <Space direction="vertical" size={token.marginSM} style={{ width: '100%' }}>
-      {/* 搜索框行 + 高级筛选项（全部直接展示）+ 操作按钮 */}
-      <Flex gap={token.marginSM} wrap align="center">
+    <div className="search-form-card">
+      <Flex gap={token.marginSM} wrap align="center" className="search-form-row">
         <Input
           placeholder={placeholder}
-          style={{ width: 320 }}
+          className="search-form-input"
           value={searchValue}
           onChange={(e) => onSearchChange(e.target.value)}
           allowClear
+          prefix={<SearchOutlined style={{ color: token.colorTextQuaternary }} />}
         />
-        {advancedContent}
+        {hasAdvanced ? (
+          <Button
+            icon={<FilterOutlined />}
+            className="search-form-toggle"
+            onClick={() => setAdvancedOpen((prev) => !prev)}
+          >
+            高级筛选
+            <DownOutlined
+              style={{
+                marginLeft: 4,
+                transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            />
+          </Button>
+        ) : null}
         {hasActions && (
-          <>
-            {onQuery && (
-              <Button type="primary" icon={<SearchOutlined />} onClick={onQuery}>
-                查询
-              </Button>
-            )}
-            {onReset && (
-              <Button icon={<ReloadOutlined />} onClick={onReset}>
-                重置
-              </Button>
-            )}
-          </>
+          <div className="search-form-actions">
+            <Space wrap>
+              {onQuery && (
+                <Button type="primary" icon={<SearchOutlined />} onClick={onQuery}>
+                  查询
+                </Button>
+              )}
+              {onReset && (
+                <Button icon={<ReloadOutlined />} onClick={onReset}>
+                  重置
+                </Button>
+              )}
+            </Space>
+          </div>
         )}
       </Flex>
 
-      {/* 已选筛选条件 Tag 列表 */}
+      {showAdvanced ? <div className="search-form-advanced">{advancedContent}</div> : null}
+
       {activeTags.length > 0 && (
-        <Space wrap>
+        <Space wrap className="search-form-tags">
           {activeTags.map((item) => (
             <Tag closable key={item.key} onClose={item.onClose}>
               {item.label}
@@ -96,6 +118,6 @@ export function SearchForm({
           )}
         </Space>
       )}
-    </Space>
+    </div>
   );
 }

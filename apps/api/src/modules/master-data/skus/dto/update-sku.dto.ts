@@ -53,6 +53,35 @@ export class UpdateSkuDto {
   @IsString()
   @IsOptional()
   @MaxLength(200)
+  productModel?: string;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  accessoryParentSkuId?: number;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  categoryLevel1Id?: number;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  categoryLevel2Id?: number;
+
+  @IsInt()
+  @IsOptional()
+  @IsPositive()
+  @Type(() => Number)
+  categoryLevel3Id?: number;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
   principle?: string;
 
   @IsString()
@@ -147,6 +176,10 @@ export class UpdateSkuDto {
 
   @IsString()
   @IsOptional()
+  packagingList?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(20)
   @Matches(/^\d{8,10}$/, { message: 'HS 码必须为 8-10 位数字' })
   hsCode?: string;
@@ -194,4 +227,8 @@ export class UpdateSkuDto {
   @IsOptional()
   @MaxLength(500)
   productImageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  productImageUrls?: string;
 }

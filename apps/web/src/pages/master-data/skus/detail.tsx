@@ -1,7 +1,6 @@
-import { useMemo, type ReactNode } from 'react';
-import { Breadcrumb, Button, Image, Modal, Result, Skeleton, Table, Tabs, message } from 'antd';
+import { useMemo, useState } from 'react';
+import { Button, Image, Modal, Result, Skeleton, Table, message } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import type { TabsProps } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -9,21 +8,15 @@ import { deleteSku, getSkuById, type PackagingRow, type Sku } from '../../../api
 import { getSpuById } from '../../../api/spus.api';
 import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
 import { getCertificates, type Certificate } from '../../../api/certificates.api';
+import {
+  AnchorNav,
+  MetaItem,
+  OperationTimeline,
+  SectionCard,
+  SummaryMetaItem,
+  displayOrDash,
+} from '../components/page-scaffold';
 import '../master-page.css';
-
-function displayOrDash(value?: string | number | null): string {
-  if (value === null || value === undefined || value === '') return '—';
-  return String(value);
-}
-
-function MetaItem({ label, value, full = false }: { label: string; value: ReactNode; full?: boolean }) {
-  return (
-    <div className={`master-meta-item${full ? ' full' : ''}`}>
-      <div className="master-meta-label">{label}</div>
-      <div className={`master-meta-value${value === '—' ? ' empty' : ''}`}>{value}</div>
-    </div>
-  );
-}
 
 function findCategoryNode(nodes: ProductCategoryNode[], id: number): ProductCategoryNode | undefined {
   for (const node of nodes) {
@@ -70,6 +63,7 @@ export default function SkuDetailPage() {
   const queryClient = useQueryClient();
   const { id = '' } = useParams();
   const skuId = Number(id);
+  const [activeAnchor, setActiveAnchor] = useState('basic');
 
   const query = useQuery({
     queryKey: ['sku-detail', skuId],
@@ -197,6 +191,17 @@ export default function SkuDetailPage() {
       : []),
   ];
 
+  const anchors = [
+    { key: 'basic', label: '基本信息' },
+    { key: 'spec', label: '规格参数' },
+    { key: 'images', label: '产品图片' },
+    { key: 'packaging', label: '包装信息' },
+    { key: 'customs', label: '报关信息' },
+    { key: 'owner', label: '负责人信息' },
+    { key: 'certs', label: '证书资料' },
+    { key: 'operation', label: '操作记录' },
+  ];
+
   const certColumns: ColumnsType<Certificate> = [
     { title: '证书编号', dataIndex: 'certificateNo', width: 160 },
     { title: '证书名称', dataIndex: 'certificateName' },
@@ -234,179 +239,20 @@ export default function SkuDetailPage() {
     { title: '体积(CBM)', dataIndex: 'volumeCbm', render: (value) => (value ?? '—') },
   ];
 
-  const basicTab = (
-    <div className="master-info-body">
-      <div className="master-meta-grid">
-        <MetaItem label="SKU 编码" value={displayOrDash(sku?.skuCode)} />
-        <MetaItem label="状态" value={statusInfo.text} />
-        <MetaItem label="所属 SPU" value={displayOrDash(spuQuery.data?.name)} />
-        <MetaItem label="分类路径" value={categoryPath} />
-        <MetaItem label="产品型号" value={displayOrDash(sku?.productModel)} />
-        <MetaItem label="中文名称" value={displayOrDash(sku?.nameCn)} />
-        <MetaItem label="英文名称" value={displayOrDash(sku?.nameEn)} />
-        <MetaItem label="规格描述" value={displayOrDash(sku?.specification)} full />
-      </div>
-    </div>
-  );
-
-  const specTab = (
-    <div className="master-info-body">
-      <div className="master-meta-grid">
-        <MetaItem label="产品类型" value={displayOrDash(sku?.productType)} />
-        <MetaItem label="工作原理" value={displayOrDash(sku?.principle)} />
-        <MetaItem label="材质" value={displayOrDash(sku?.material)} />
-        <MetaItem label="是否含插头" value={sku?.hasPlug === null || sku?.hasPlug === undefined ? '—' : sku.hasPlug ? '是' : '否'} />
-        <MetaItem label="客户质保期（月）" value={sku?.customerWarrantyMonths ?? '—'} />
-        <MetaItem label="特殊属性" value={displayOrDash(sku?.specialAttributes)} />
-        <MetaItem label="特殊属性说明" value={displayOrDash(sku?.specialAttributesNote)} full />
-        <MetaItem label="核心参数" value={displayOrDash(sku?.coreParams)} full />
-        <MetaItem label="电参数" value={displayOrDash(sku?.electricalParams)} full />
-        <MetaItem label="产品用途" value={displayOrDash(sku?.productUsage)} full />
-        <MetaItem label="禁止经营国家" value={displayOrDash(sku?.forbiddenCountries)} full />
-      </div>
-    </div>
-  );
-
-  const imageTab = (
-    <div className="master-info-body">
-      {imageUrls.length > 0 ? (
-        <Image.PreviewGroup>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {imageUrls.map((url, index) => (
-              <Image key={`${url}-${index}`} width={120} src={url} />
-            ))}
-          </div>
-        </Image.PreviewGroup>
-      ) : (
-        <div className="master-meta-value empty">—</div>
-      )}
-    </div>
-  );
-
-  const packagingTab = (
-    <div className="master-info-body">
-      {packagingRows.length ? (
-        <>
-          <Table
-            rowKey="key"
-            size="small"
-            pagination={false}
-            columns={packagingColumns}
-            dataSource={packagingRows.map((row, index) => ({ ...row, key: index }))}
-          />
-          <div className="master-info-tip">包装体积字段为业务维护值，非详情页实时计算。</div>
-        </>
-      ) : (
-        <div className="master-meta-value empty">—</div>
-      )}
-    </div>
-  );
-
-  const customsTab = (
-    <div className="master-info-body">
-      <div className="master-meta-grid">
-        <MetaItem label="HS 码" value={displayOrDash(sku?.hsCode)} />
-        <MetaItem label="报关中文品名" value={displayOrDash(sku?.customsNameCn)} />
-        <MetaItem label="报关英文品名" value={displayOrDash(sku?.customsNameEn)} />
-        <MetaItem label="申报价值参考（USD）" value={sku?.declaredValueRef ?? '—'} />
-        <MetaItem label="是否需要检验" value={sku?.isInspectionRequired === null || sku?.isInspectionRequired === undefined ? '—' : sku.isInspectionRequired ? '是' : '否'} />
-        <MetaItem label="退税率（%）" value={sku?.taxRefundRate ?? '—'} />
-        <MetaItem label="报关信息是否维护" value={sku?.customsInfoMaintained === null || sku?.customsInfoMaintained === undefined ? '—' : sku.customsInfoMaintained ? '是' : '否'} />
-        <MetaItem label="监管条件" value={displayOrDash(sku?.regulatoryConditions)} full />
-        <MetaItem label="申报要素" value={displayOrDash(sku?.declarationElements)} full />
-      </div>
-    </div>
-  );
-
-  const ownerTab = (
-    <div className="master-info-body">
-      <div className="master-meta-grid">
-        <MetaItem label="采购负责人" value={displayOrDash(level3Node?.purchaseOwner)} />
-        <MetaItem label="产品负责人" value={displayOrDash(level3Node?.productOwner)} />
-      </div>
-      <div className="master-info-tip">负责人信息来源于产品三级分类配置，如需修改请前往产品分类管理。</div>
-    </div>
-  );
-
-  const certsTab = (
-    <div className="master-info-body">
-      {matchedCertificates.length ? (
-        <Table
-          rowKey="id"
-          size="small"
-          pagination={false}
-          columns={certColumns}
-          dataSource={matchedCertificates}
-        />
-      ) : (
-        <div className="master-meta-value empty">—</div>
-      )}
-    </div>
-  );
-
-  const operationTab = (
-    <div className="master-info-body">
-      {operationRecords.length ? (
-        <div className="master-status-timeline">
-          {operationRecords.map((record, index) => (
-            <div className="master-tl-item" key={record.key}>
-              <div className={`master-tl-dot${index === operationRecords.length - 1 ? ' gray' : ''}`} />
-              <div className="master-tl-content">
-                <div className="master-tl-operator">操作人：{record.operator}</div>
-                <div className="master-tl-action">操作记录：{record.action}</div>
-                <div className="master-tl-time">操作时间：{record.time}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="master-meta-value empty">—</div>
-      )}
-    </div>
-  );
-
-  const tabItems: TabsProps['items'] = [
-    { key: 'basic', label: '基本信息', children: basicTab },
-    { key: 'spec', label: '规格参数', children: specTab },
-    { key: 'images', label: '产品图片', children: imageTab },
-    { key: 'packaging', label: '包装信息', children: packagingTab },
-    { key: 'customs', label: '报关信息', children: customsTab },
-    { key: 'owner', label: '负责人信息', children: ownerTab },
-    { key: 'certs', label: '证书资料', children: certsTab },
-    { key: 'operation', label: '操作记录', children: operationTab },
-  ];
-
   return (
     <div className="master-page">
-      <Breadcrumb
-        items={[
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/skus')}>
-                主数据
-              </Button>
-            ),
-          },
-          {
-            title: (
-              <Button type="link" className="master-breadcrumb-link" onClick={() => navigate('/master-data/skus')}>
-                SKU 管理
-              </Button>
-            ),
-          },
-          { title: sku?.skuCode || '详情' },
-        ]}
-      />
-
       <div className="master-summary-card">
         {query.isLoading && !sku ? (
           <Skeleton active paragraph={{ rows: 2 }} />
         ) : (
           <>
+            <div className="master-summary-code">{displayOrDash(sku?.skuCode)}</div>
             <div className="master-summary-header">
               <div className="master-summary-title-wrap">
-                <div className="master-summary-title">{displayOrDash(sku?.skuCode)}</div>
-                <span className={`master-pill ${statusInfo.className}`}>{statusInfo.text}</span>
+                <div className="master-summary-title-row">
+                  <div className="master-summary-title">{displayOrDash(sku?.skuCode)}</div>
+                  <span className={`master-pill ${statusInfo.className}`}>{statusInfo.text}</span>
+                </div>
               </div>
               <div className="master-summary-actions">
                 <Button onClick={() => navigate(`/master-data/skus/${id}/edit`)}>编辑</Button>
@@ -414,35 +260,195 @@ export default function SkuDetailPage() {
               </div>
             </div>
             <div className="master-summary-meta">
-              <div className="master-summary-meta-item">
-                <div className="master-summary-meta-label">所属 SPU</div>
-                <div className="master-summary-meta-value">{displayOrDash(spuQuery.data?.name)}</div>
-              </div>
-              <div className="master-summary-meta-item">
-                <div className="master-summary-meta-label">分类路径</div>
-                <div className="master-summary-meta-value">{categoryPath}</div>
-              </div>
-              <div className="master-summary-meta-item">
-                <div className="master-summary-meta-label">产品型号</div>
-                <div className="master-summary-meta-value">{displayOrDash(sku?.productModel)}</div>
-              </div>
-              <div className="master-summary-meta-item">
-                <div className="master-summary-meta-label">规格描述</div>
-                <div className="master-summary-meta-value">{displayOrDash(sku?.specification)}</div>
-              </div>
+              <SummaryMetaItem label="所属 SPU" value={displayOrDash(spuQuery.data?.name)} />
+              <SummaryMetaItem label="分类路径" value={categoryPath} />
+              <SummaryMetaItem label="产品型号" value={displayOrDash(sku?.productModel)} />
+              <SummaryMetaItem label="规格描述" value={displayOrDash(sku?.specification)} />
             </div>
           </>
         )}
       </div>
 
-      <div className="master-info-card">
-        {query.isLoading && !sku ? (
-          <div className="master-info-body">
-            <Skeleton active paragraph={{ rows: 10 }} />
-          </div>
-        ) : (
-          <Tabs className="master-info-tabs" defaultActiveKey="basic" items={tabItems} />
-        )}
+      <div className="master-detail-layout">
+        <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
+
+        <div className="master-detail-main">
+          <SectionCard
+            id="basic"
+            title="基本信息"
+            description="展示 SKU 标识、SPU 归属、分类路径与产品命名信息。"
+          >
+            {query.isLoading && !sku ? (
+              <Skeleton active paragraph={{ rows: 4 }} />
+            ) : (
+              <div className="master-meta-grid">
+                <MetaItem label="SKU 编码" value={displayOrDash(sku?.skuCode)} />
+                <MetaItem label="状态" value={statusInfo.text} />
+                <MetaItem label="所属 SPU" value={displayOrDash(spuQuery.data?.name)} />
+                <MetaItem label="分类路径" value={categoryPath} />
+                <MetaItem label="产品型号" value={displayOrDash(sku?.productModel)} />
+                <MetaItem label="中文名称" value={displayOrDash(sku?.nameCn)} />
+                <MetaItem label="英文名称" value={displayOrDash(sku?.nameEn)} />
+                <MetaItem label="规格描述" value={displayOrDash(sku?.specification)} full />
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="spec"
+            title="规格参数"
+            description="统一承载产品属性、电参数、用途及经营限制信息。"
+          >
+            {query.isLoading && !sku ? (
+              <Skeleton active paragraph={{ rows: 5 }} />
+            ) : (
+              <div className="master-meta-grid">
+                <MetaItem label="产品类型" value={displayOrDash(sku?.productType)} />
+                <MetaItem label="工作原理" value={displayOrDash(sku?.principle)} />
+                <MetaItem label="材质" value={displayOrDash(sku?.material)} />
+                <MetaItem label="是否含插头" value={sku?.hasPlug === null || sku?.hasPlug === undefined ? '—' : sku.hasPlug ? '是' : '否'} />
+                <MetaItem label="客户质保期（月）" value={sku?.customerWarrantyMonths ?? '—'} />
+                <MetaItem label="特殊属性" value={displayOrDash(sku?.specialAttributes)} />
+                <MetaItem label="特殊属性说明" value={displayOrDash(sku?.specialAttributesNote)} full />
+                <MetaItem label="核心参数" value={displayOrDash(sku?.coreParams)} full />
+                <MetaItem label="电参数" value={displayOrDash(sku?.electricalParams)} full />
+                <MetaItem label="产品用途" value={displayOrDash(sku?.productUsage)} full />
+                <MetaItem label="禁止经营国家" value={displayOrDash(sku?.forbiddenCountries)} full />
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="images"
+            title="产品图片"
+            description="保留图片预览能力，并与统一详情视觉保持一致。"
+          >
+            {query.isLoading && !sku ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : imageUrls.length > 0 ? (
+              <Image.PreviewGroup>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {imageUrls.map((url, index) => (
+                    <Image key={`${url}-${index}`} width={120} src={url} />
+                  ))}
+                </div>
+              </Image.PreviewGroup>
+            ) : (
+              <div className="master-meta-value empty">—</div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="packaging"
+            title="包装信息"
+            description="包装数据展示方式统一为表格区块，便于快速扫描。"
+            bodyClassName="master-section-table"
+          >
+            {query.isLoading && !sku ? (
+              <div className="master-info-body">
+                <Skeleton active paragraph={{ rows: 4 }} />
+              </div>
+            ) : packagingRows.length ? (
+              <>
+                <div className="master-table-shell">
+                  <Table
+                    rowKey="key"
+                    size="small"
+                    pagination={false}
+                    columns={packagingColumns}
+                    dataSource={packagingRows.map((row, index) => ({ ...row, key: index }))}
+                  />
+                </div>
+                <div className="master-info-tip" style={{ margin: '12px 20px 20px' }}>
+                  包装体积字段为业务维护值，非详情页实时计算。
+                </div>
+              </>
+            ) : (
+              <div className="master-info-body">
+                <div className="master-meta-value empty">—</div>
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="customs"
+            title="报关信息"
+            description="集中查看 HS 码、品名、申报价值与监管字段。"
+          >
+            {query.isLoading && !sku ? (
+              <Skeleton active paragraph={{ rows: 4 }} />
+            ) : (
+              <div className="master-meta-grid">
+                <MetaItem label="HS 码" value={displayOrDash(sku?.hsCode)} />
+                <MetaItem label="报关中文品名" value={displayOrDash(sku?.customsNameCn)} />
+                <MetaItem label="报关英文品名" value={displayOrDash(sku?.customsNameEn)} />
+                <MetaItem label="申报价值参考（USD）" value={sku?.declaredValueRef ?? '—'} />
+                <MetaItem label="是否需要检验" value={sku?.isInspectionRequired === null || sku?.isInspectionRequired === undefined ? '—' : sku.isInspectionRequired ? '是' : '否'} />
+                <MetaItem label="退税率（%）" value={sku?.taxRefundRate ?? '—'} />
+                <MetaItem label="报关信息是否维护" value={sku?.customsInfoMaintained === null || sku?.customsInfoMaintained === undefined ? '—' : sku.customsInfoMaintained ? '是' : '否'} />
+                <MetaItem label="监管条件" value={displayOrDash(sku?.regulatoryConditions)} full />
+                <MetaItem label="申报要素" value={displayOrDash(sku?.declarationElements)} full />
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="owner"
+            title="负责人信息"
+            description="负责人来源于三级分类配置，详情页仅做引用展示。"
+          >
+            {query.isLoading && !sku ? (
+              <Skeleton active paragraph={{ rows: 2 }} />
+            ) : (
+              <>
+                <div className="master-meta-grid">
+                  <MetaItem label="采购负责人" value={displayOrDash(level3Node?.purchaseOwner)} />
+                  <MetaItem label="产品负责人" value={displayOrDash(level3Node?.productOwner)} />
+                </div>
+                <div className="master-info-tip">负责人信息来源于产品三级分类配置，如需修改请前往产品分类管理。</div>
+              </>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="certs"
+            title="证书资料"
+            description="自动汇总与当前 SKU/SPU 或分类关联的证书信息。"
+            bodyClassName="master-section-table"
+          >
+            {query.isLoading && !sku ? (
+              <div className="master-info-body">
+                <Skeleton active paragraph={{ rows: 4 }} />
+              </div>
+            ) : matchedCertificates.length ? (
+              <div className="master-table-shell">
+                <Table
+                  rowKey="id"
+                  size="small"
+                  pagination={false}
+                  columns={certColumns}
+                  dataSource={matchedCertificates}
+                />
+              </div>
+            ) : (
+              <div className="master-info-body">
+                <div className="master-meta-value empty">—</div>
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard
+            id="operation"
+            title="操作记录"
+            description="按时间展示 SKU 主数据的创建与维护轨迹。"
+          >
+            {query.isLoading && !sku ? (
+              <Skeleton active paragraph={{ rows: 3 }} />
+            ) : (
+              <OperationTimeline records={operationRecords} />
+            )}
+          </SectionCard>
+        </div>
       </div>
     </div>
   );

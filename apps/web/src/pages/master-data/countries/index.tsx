@@ -3,11 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import {
   Button,
   Empty,
-  Flex,
   Result,
   Skeleton,
   Space,
-  Typography,
   theme,
 } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
@@ -18,6 +16,7 @@ import { getCountries, type Country } from '../../../api/countries.api';
 import { SearchForm } from '../../../components/common/SearchForm';
 import type { ActiveTag } from '../../../components/common/SearchForm';
 import { useDebouncedValue } from '../../../hooks/useDebounce';
+import '../master-page.css';
 
 export default function CountriesListPage() {
   const navigate = useNavigate();
@@ -154,56 +153,63 @@ export default function CountriesListPage() {
   ].filter(Boolean) as ActiveTag[];
 
   return (
-    <div>
-      <Flex align="center" justify="space-between" style={{ marginBottom: token.marginMD }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          国家/地区管理
-        </Typography.Title>
-        <Button type="primary" onClick={() => navigate('/master-data/countries/create')}>
-          新建国家/地区
-        </Button>
-      </Flex>
+    <div className="master-page">
+      <div className="master-page-shell">
+        <div className="master-page-header">
+          <div className="master-page-heading">
+            <div className="master-page-title">国家/地区管理</div>
+            <div className="master-page-description">统一维护国家地区代码、名称与基础归档信息。</div>
+          </div>
+          <div className="master-page-actions">
+            <Button type="primary" onClick={() => navigate('/master-data/countries/create')}>
+              新建国家/地区
+            </Button>
+          </div>
+        </div>
 
-      <SearchForm
-        searchValue={keywordInput}
-        onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
-        placeholder="快捷搜索国家/地区代码/名称"
-        activeTags={activeTags}
-        onClearAll={() => { setKeywordInput(''); setPage(1); }}
-        onQuery={() => { setPage(1); query.refetch(); }}
-        onReset={() => { setKeywordInput(''); setPage(1); }}
-      />
+        <div className="master-list-shell">
+          <SearchForm
+            searchValue={keywordInput}
+            onSearchChange={(v) => { setKeywordInput(v); setPage(1); }}
+            placeholder="快捷搜索国家/地区代码/名称"
+            activeTags={activeTags}
+            onClearAll={() => { setKeywordInput(''); setPage(1); }}
+            onQuery={() => { setPage(1); query.refetch(); }}
+            onReset={() => { setKeywordInput(''); setPage(1); }}
+          />
 
-      <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
-        <ProTable<Country>
-          search={false}
-          options={{ density: false, setting: true }}
-          toolBarRender={false}
-          rowKey="id"
-          loading={query.isFetching}
-          columns={columns}
-          dataSource={query.data?.list ?? []}
-          scroll={{ x: 700, y: 540 }}
-          rowClassName={() => 'country-row-height'}
-          locale={{ emptyText }}
-          pagination={{
-            current: page,
-            pageSize,
-            total: query.data?.total ?? 0,
-            showSizeChanger: true,
-            pageSizeOptions: [10, 20, 50],
-            showTotal: (total) => `共 ${total} 条记录`,
-            onChange: (nextPage, nextPageSize) => {
-              if (nextPageSize !== pageSize) {
-                setPage(1);
-              } else {
-                setPage(nextPage);
-              }
-              setPageSize(nextPageSize);
-            },
-          }}
-        />
-      </Skeleton>
+          <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
+            <ProTable<Country>
+              search={false}
+              options={false}
+              toolBarRender={false}
+              rowKey="id"
+              loading={query.isFetching}
+              columns={columns}
+              dataSource={query.data?.list ?? []}
+              scroll={{ x: 700, y: 540 }}
+              rowClassName={() => 'country-row-height'}
+              locale={{ emptyText }}
+              pagination={{
+                current: page,
+                pageSize,
+                total: query.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (nextPage, nextPageSize) => {
+                  if (nextPageSize !== pageSize) {
+                    setPage(1);
+                  } else {
+                    setPage(nextPage);
+                  }
+                  setPageSize(nextPageSize);
+                },
+              }}
+            />
+          </Skeleton>
+        </div>
+      </div>
 
       <style>{`
         .country-row-height .ant-table-cell {
