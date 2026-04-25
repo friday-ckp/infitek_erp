@@ -1,0 +1,85 @@
+- generic [ref=e4]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: 星辰科技 ERP
+      - generic [ref=e9]: INFITEK ENTERPRISE
+    - navigation [ref=e10]:
+      - generic [ref=e11]:
+        - generic [ref=e12] [cursor=pointer]:
+          - img [ref=e14]
+          - generic [ref=e17]: 销售管理
+          - img [ref=e19]
+        - generic [ref=e22] [cursor=pointer]: 销售订单
+      - generic [ref=e23]:
+        - generic [ref=e24] [cursor=pointer]:
+          - img [ref=e26]
+          - generic [ref=e30]: 商务管理
+          - img [ref=e32]
+        - generic [ref=e35] [cursor=pointer]: 发货需求
+      - generic [ref=e36]:
+        - generic [ref=e37] [cursor=pointer]:
+          - img [ref=e39]
+          - generic [ref=e42]: 采购管理
+          - img [ref=e44]
+        - generic [ref=e47] [cursor=pointer]: 采购订单
+      - generic [ref=e48]:
+        - generic [ref=e49] [cursor=pointer]:
+          - img [ref=e51]
+          - generic [ref=e54]: 产品管理
+          - img [ref=e56]
+        - generic [ref=e58]:
+          - generic [ref=e59] [cursor=pointer]: 产品分类
+          - generic [ref=e60] [cursor=pointer]: SPU 管理
+          - generic [ref=e61] [cursor=pointer]: SKU 管理
+          - generic [ref=e62] [cursor=pointer]: 证书管理
+          - generic [ref=e63] [cursor=pointer]: FAQ 管理
+          - generic [ref=e64] [cursor=pointer]: 资料管理
+      - generic [ref=e65]:
+        - generic [ref=e66] [cursor=pointer]:
+          - img [ref=e68]
+          - generic [ref=e72]: 库存管理
+          - img [ref=e74]
+        - generic [ref=e77] [cursor=pointer]: 库存查询
+      - generic:
+        - generic:
+          - generic:
+            - img
+          - generic: 财务管理
+          - generic: 即将上线
+      - generic [ref=e79]:
+        - generic [ref=e80] [cursor=pointer]:
+          - img [ref=e82]
+          - generic [ref=e85]: 基础数据
+          - img [ref=e87]
+        - generic [ref=e89]:
+          - generic [ref=e90] [cursor=pointer]: 单位管理
+          - generic [ref=e91] [cursor=pointer]: 公司主体
+          - generic [ref=e92] [cursor=pointer]: 用户管理
+          - generic [ref=e93] [cursor=pointer]: 仓库管理
+          - generic [ref=e94] [cursor=pointer]: 币种管理
+          - generic [ref=e95] [cursor=pointer]: 国家/地区
+          - generic [ref=e96] [cursor=pointer]: 港口信息
+          - generic [ref=e97] [cursor=pointer]: 物流供应商管理
+          - generic [ref=e98] [cursor=pointer]: 合同条款范本
+          - generic [ref=e99] [cursor=pointer]: 采购供应商管理
+          - generic [ref=e100] [cursor=pointer]: 客户管理
+    - generic [ref=e101]:
+      - generic [ref=e102]: AD
+      - generic [ref=e103]:
+        - generic [ref=e104]: admin
+        - generic [ref=e105]: 管理员
+      - button "退出登录" [ref=e107] [cursor=pointer]:
+        - img [ref=e108]
+  - generic [ref=e111]:
+    - generic [ref=e112]:
+      - navigation:
+        - list
+      - generic [ref=e113]:
+        - img "bell" [ref=e115] [cursor=pointer]:
+          - img [ref=e116]
+        - generic [ref=e118] [cursor=pointer]: AD
+    - main [ref=e119]:
+      - generic [ref=e121]:
+        - generic [ref=e122]: 晚上好，admin
+        - generic [ref=e123]: 欢迎使用 Infitek ERP
+        - generic [ref=e124]: 2026年4月25日星期六

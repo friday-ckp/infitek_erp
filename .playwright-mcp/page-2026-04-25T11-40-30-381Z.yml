@@ -1,0 +1,195 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]:
+        - generic [ref=e8]: 星辰科技 ERP
+        - generic [ref=e9]: INFITEK ENTERPRISE
+      - navigation [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12] [cursor=pointer]:
+            - img [ref=e14]
+            - generic [ref=e19]: 数据看板
+            - img [ref=e21]
+          - generic [ref=e25] [cursor=pointer]: 总览
+        - generic [ref=e26]:
+          - generic [ref=e27] [cursor=pointer]:
+            - img [ref=e29]
+            - generic [ref=e32]: 销售管理
+            - img [ref=e34]
+          - generic [ref=e37] [cursor=pointer]: 销售订单
+        - generic [ref=e38]:
+          - generic [ref=e39] [cursor=pointer]:
+            - img [ref=e41]
+            - generic [ref=e45]: 商务管理
+            - img [ref=e47]
+          - generic [ref=e50] [cursor=pointer]: 发货需求
+        - generic [ref=e51]:
+          - generic [ref=e52] [cursor=pointer]:
+            - img [ref=e54]
+            - generic [ref=e57]: 采购管理
+            - img [ref=e59]
+          - generic [ref=e62] [cursor=pointer]: 采购订单
+        - generic [ref=e63]:
+          - generic [ref=e64] [cursor=pointer]:
+            - img [ref=e66]
+            - generic [ref=e69]: 产品管理
+            - img [ref=e71]
+          - generic [ref=e73]:
+            - generic [ref=e74] [cursor=pointer]: 产品分类
+            - generic [ref=e75] [cursor=pointer]: SPU 管理
+            - generic [ref=e76] [cursor=pointer]: SKU 管理
+            - generic [ref=e77] [cursor=pointer]: 证书管理
+            - generic [ref=e78] [cursor=pointer]: FAQ 管理
+            - generic [ref=e79] [cursor=pointer]: 资料管理
+        - generic [ref=e80]:
+          - generic [ref=e81] [cursor=pointer]:
+            - img [ref=e83]
+            - generic [ref=e87]: 库存管理
+            - img [ref=e89]
+          - generic [ref=e92] [cursor=pointer]: 库存查询
+        - generic:
+          - generic:
+            - generic:
+              - img
+            - generic: 财务管理
+            - generic: 即将上线
+        - generic [ref=e94]:
+          - generic [ref=e95] [cursor=pointer]:
+            - img [ref=e97]
+            - generic [ref=e100]: 基础数据
+            - img [ref=e102]
+          - generic [ref=e104]:
+            - generic [ref=e105] [cursor=pointer]: 单位管理
+            - generic [ref=e106] [cursor=pointer]: 公司主体
+            - generic [ref=e107] [cursor=pointer]: 用户管理
+            - generic [ref=e108] [cursor=pointer]: 仓库管理
+            - generic [ref=e109] [cursor=pointer]: 币种管理
+            - generic [ref=e110] [cursor=pointer]: 国家/地区
+            - generic [ref=e111] [cursor=pointer]: 港口信息
+            - generic [ref=e112] [cursor=pointer]: 物流供应商管理
+            - generic [ref=e113] [cursor=pointer]: 合同条款范本
+            - generic [ref=e114] [cursor=pointer]: 采购供应商管理
+            - generic [ref=e115] [cursor=pointer]: 客户管理
+      - generic [ref=e116]:
+        - generic [ref=e117]: AD
+        - generic [ref=e118]:
+          - generic [ref=e119]: admin
+          - generic [ref=e120]: 管理员
+        - button "退出登录" [ref=e122] [cursor=pointer]:
+          - img [ref=e123]
+    - generic [ref=e126]:
+      - generic [ref=e127]:
+        - navigation:
+          - list
+        - generic [ref=e128]:
+          - img "bell" [ref=e130] [cursor=pointer]:
+            - img [ref=e131]
+          - generic [ref=e133] [cursor=pointer]: AD
+      - main [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e137]:
+            - generic [ref=e138]: 🌆 晚上好
+            - generic [ref=e139]: admin，辛苦一天了，收尾工作加油 🌆
+            - generic [ref=e140]: 2026年4月25日星期六
+          - generic [ref=e142]:
+            - generic [ref=e143]: 核心指标
+            - generic [ref=e144]:
+              - generic [ref=e145]:
+                - generic [ref=e146]: SKU 总数
+                - generic [ref=e147]: 248个
+              - generic [ref=e148]:
+                - generic [ref=e149]: SPU 总计
+                - generic [ref=e150]: 86个
+              - generic [ref=e151]:
+                - generic [ref=e152]: 供应商
+                - generic [ref=e153]: 34家
+              - generic [ref=e154]:
+                - generic [ref=e155]: 客户
+                - generic [ref=e156]: 52家
+              - generic [ref=e157]:
+                - generic [ref=e158]: 有效证书
+                - generic [ref=e159]: 41张
+              - generic [ref=e160]:
+                - generic [ref=e161]: 已通过合同模板
+                - generic [ref=e162]: 7份
+          - generic [ref=e163]:
+            - generic [ref=e164]: 产品与合同分析
+            - generic [ref=e165]:
+              - generic [ref=e166]:
+                - generic [ref=e167]: SKU 状态分布
+                - application [ref=e170]
+              - generic [ref=e171]:
+                - generic [ref=e172]: 合同模板状态分布
+                - application [ref=e175]:
+                  - generic [ref=e187]:
+                    - generic [ref=e188]:
+                      - generic [ref=e190]: 待提交
+                      - generic [ref=e192]: 审核中
+                      - generic [ref=e194]: 审核通过
+                      - generic [ref=e196]: 已拒绝
+                      - generic [ref=e198]: 已作废
+                    - generic [ref=e199]:
+                      - generic [ref=e201]: "0"
+                      - generic [ref=e203]: "2"
+                      - generic [ref=e205]: "4"
+                      - generic [ref=e207]: "6"
+                      - generic [ref=e209]: "8"
+              - generic [ref=e210]:
+                - generic [ref=e211]: 近 6 个月 SPU / SKU 趋势
+                - generic [ref=e213]:
+                  - list [ref=e215]:
+                    - listitem [ref=e216]:
+                      - img "SKU legend icon" [ref=e217]
+                      - text: SKU
+                    - listitem [ref=e219]:
+                      - img "SPU legend icon" [ref=e220]
+                      - text: SPU
+                  - application [ref=e222]:
+                    - generic [ref=e256]:
+                      - generic [ref=e257]:
+                        - generic [ref=e259]: 11月
+                        - generic [ref=e261]: 12月
+                        - generic [ref=e263]: 1月
+                        - generic [ref=e265]: 2月
+                        - generic [ref=e267]: 3月
+                        - generic [ref=e269]: 4月
+                      - generic [ref=e270]:
+                        - generic [ref=e272]: "0"
+                        - generic [ref=e274]: "65"
+                        - generic [ref=e276]: "130"
+                        - generic [ref=e278]: "195"
+                        - generic [ref=e280]: "260"
+          - generic [ref=e281]:
+            - generic [ref=e282]: 供应链 & 合规
+            - generic [ref=e283]:
+              - generic [ref=e284]:
+                - generic [ref=e285]: 供应商状态分布
+                - generic [ref=e287]:
+                  - list [ref=e289]:
+                    - listitem [ref=e290]:
+                      - img "临拓 legend icon" [ref=e291]
+                      - text: 临拓
+                    - listitem [ref=e293]:
+                      - img "合作 legend icon" [ref=e294]
+                      - text: 合作
+                    - listitem [ref=e296]:
+                      - img "淘汰 legend icon" [ref=e297]
+                      - text: 淘汰
+                  - application [ref=e299]
+              - generic [ref=e300]:
+                - generic [ref=e301]: 证书有效性
+                - generic [ref=e303]:
+                  - list [ref=e305]:
+                    - listitem [ref=e306]:
+                      - img "已过期 legend icon" [ref=e307]
+                      - text: 已过期
+                    - listitem [ref=e309]:
+                      - img "有效 legend icon" [ref=e310]
+                      - text: 有效
+                  - application [ref=e312]
+              - generic [ref=e313]:
+                - generic [ref=e314]: 销售 / 采购 / 库存
+                - generic [ref=e315]:
+                  - text: 业务模块数据
+                  - text: 接口接入后展示
+  - generic [ref=e316]: "65"
