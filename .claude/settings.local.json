@@ -35,7 +35,20 @@
       "Bash(grep \"/index.tsx$\")",
       "Bash(grep \"package.json$\")",
       "Bash(pnpm add *)",
-      "Bash(open *)"
+      "Bash(open *)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(pnpm --filter api migration:show)",
+      "Bash(mv 20260420000100-create-warehouses-table.ts 20260420000101-create-warehouses-table.ts)",
+      "Bash(mv 20260422000200-create-skus-table.ts 20260422000201-create-skus-table.ts)",
+      "Bash(mv 20260422000200-create-spu-faqs-table.ts 20260422000202-create-spu-faqs-table.ts)",
+      "Bash(mv 20260424000100-create-suppliers-table.ts 20260424000101-create-suppliers-table.ts)",
+      "Bash(mv 20260424000200-create-customers-table.ts 20260424000201-create-customers-table.ts)",
+      "Bash(sed -i '' 's/CreateWarehousesTable20260420000100/CreateWarehousesTable20260420000101/g' 20260420000101-create-warehouses-table.ts)",
+      "Bash(sed -i '' 's/CreateSkusTable20260422000200/CreateSkusTable20260422000201/g' 20260422000201-create-skus-table.ts)",
+      "Bash(sed -i '' 's/CreateSpuFaqsTable20260422000200/CreateSpuFaqsTable20260422000202/g' 20260422000202-create-spu-faqs-table.ts)",
+      "Bash(sed -i '' 's/CreateSuppliersTable20260424000100/CreateSuppliersTable20260424000101/g' 20260424000101-create-suppliers-table.ts)",
+      "Bash(sed -i '' 's/CreateCustomersTable20260424000200/CreateCustomersTable20260424000201/g' 20260424000201-create-customers-table.ts)",
+      "Bash(pnpm --filter api build)"
     ]
   }
 }
