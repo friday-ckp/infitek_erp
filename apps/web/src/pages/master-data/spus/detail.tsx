@@ -4,6 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { deleteSpu, getSpuById } from '../../../api/spus.api';
 import { getProductCategoryTree } from '../../../api/product-categories.api';
 import { findCategoryName } from '../../../utils/category';
@@ -11,7 +12,6 @@ import { getSkus, type Sku } from '../../../api/skus.api';
 import {
   AnchorNav,
   MetaItem,
-  OperationTimeline,
   SectionCard,
   SummaryMetaItem,
   displayOrDash,
@@ -98,29 +98,6 @@ export default function SpuDetailPage() {
     : '—';
   const summaryStatusClass = data?.categoryId ? 'master-pill-blue' : 'master-pill-default';
   const summaryStatusText = data?.categoryId ? '已分类' : '待分类';
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [
-          {
-            key: 'updated',
-            operator: displayOrDash(data.updatedBy),
-            action: '更新记录',
-            time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-    ...(data?.createdAt
-      ? [
-          {
-            key: 'created',
-            operator: displayOrDash(data.createdBy),
-            action: '创建记录',
-            time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-  ];
-
   const anchors = [
     { key: 'basic', label: '基础信息' },
     { key: 'supplier', label: '供应与开票' },
@@ -319,11 +296,7 @@ export default function SpuDetailPage() {
             title="操作记录"
             description="按时间展示 SPU 主数据的创建与更新轨迹。"
           >
-            {query.isLoading && !data ? (
-              <Skeleton active paragraph={{ rows: 3 }} />
-            ) : (
-              <OperationTimeline records={operationRecords} />
-            )}
+            <ActivityTimeline resourceType="spus" resourceId={spuId} />
           </SectionCard>
         </div>
       </div>

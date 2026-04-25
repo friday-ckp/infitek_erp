@@ -3,7 +3,9 @@ import { Button, Result, Skeleton } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCustomerById } from '../../../api/customers.api';
+import { CUSTOMER_RESOURCE_TYPE, getCustomerById } from '../../../api/customers.api';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
+import { AnchorNav } from '../components/page-scaffold';
 import '../master-page.css';
 
 function displayOrDash(value?: string | number | null): string {
@@ -25,6 +27,13 @@ export default function CustomerDetailPage() {
   const { id = '' } = useParams();
   const customerId = Number(id);
   const [activeAnchor, setActiveAnchor] = useState('basic');
+  const anchors = [
+    { key: 'basic', label: '基础信息' },
+    { key: 'contact', label: '联系信息' },
+    { key: 'billing', label: '开票需求' },
+    { key: 'audit', label: '审计信息' },
+    { key: 'operation', label: '操作记录' },
+  ];
 
   const query = useQuery({
     queryKey: ['customer-detail', customerId],
@@ -57,37 +66,6 @@ export default function CustomerDetailPage() {
   }
 
   const data = query.data;
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [
-          {
-            key: 'updated',
-            operator: displayOrDash(data.updatedBy),
-            action: '更新记录',
-            time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-    ...(data?.createdAt
-      ? [
-          {
-            key: 'created',
-            operator: displayOrDash(data.createdBy),
-            action: '创建记录',
-            time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-  ];
-
-  const anchors = [
-    { key: 'basic', label: '基础信息' },
-    { key: 'contact', label: '联系信息' },
-    { key: 'billing', label: '开票需求' },
-    { key: 'audit', label: '审计信息' },
-    { key: 'operation', label: '操作记录' },
-  ];
-
   return (
     <div className="master-page">
       <div className="master-summary-card">
@@ -130,18 +108,7 @@ export default function CustomerDetailPage() {
       </div>
 
       <div className="master-detail-layout">
-        <div className="master-anchor-nav">
-          {anchors.map((anchor) => (
-            <a
-              key={anchor.key}
-              href={`#${anchor.key}`}
-              className={`master-anchor-link${activeAnchor === anchor.key ? ' active' : ''}`}
-              onClick={() => setActiveAnchor(anchor.key)}
-            >
-              {anchor.label}
-            </a>
-          ))}
-        </div>
+        <AnchorNav anchors={anchors} activeKey={activeAnchor} onChange={setActiveAnchor} />
 
         <div className="master-detail-main">
           <section id="basic" className="master-section-card">
@@ -239,24 +206,7 @@ export default function CustomerDetailPage() {
               </div>
             </div>
             <div className="master-section-body">
-              {query.isLoading && !data ? (
-                <Skeleton active paragraph={{ rows: 3 }} />
-              ) : operationRecords.length ? (
-                <div className="master-status-timeline">
-                  {operationRecords.map((record, index) => (
-                    <div className="master-tl-item" key={record.key}>
-                      <div className={`master-tl-dot${index === operationRecords.length - 1 ? ' gray' : ''}`} />
-                      <div className="master-tl-content">
-                        <div className="master-tl-operator">操作人：{record.operator}</div>
-                        <div className="master-tl-action">操作记录：{record.action}</div>
-                        <div className="master-tl-time">操作时间：{record.time}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="master-meta-value empty">—</div>
-              )}
+              <ActivityTimeline resourceType={CUSTOMER_RESOURCE_TYPE} resourceId={customerId} />
             </div>
           </section>
         </div>

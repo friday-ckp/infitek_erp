@@ -4,6 +4,7 @@ import type { ColumnsType } from 'antd/es/table';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { deleteSku, getSkuById, type PackagingRow, type Sku } from '../../../api/skus.api';
 import { getSpuById } from '../../../api/spus.api';
 import { getProductCategoryTree, type ProductCategoryNode } from '../../../api/product-categories.api';
@@ -11,7 +12,6 @@ import { getCertificates, type Certificate } from '../../../api/certificates.api
 import {
   AnchorNav,
   MetaItem,
-  OperationTimeline,
   SectionCard,
   SummaryMetaItem,
   displayOrDash,
@@ -167,29 +167,6 @@ export default function SkuDetailPage() {
         cert.attributionType === '通用归属',
     );
   }, [sku, certificatesQuery.data]);
-
-  const operationRecords = [
-    ...(sku?.updatedAt
-      ? [
-          {
-            key: 'updated',
-            operator: displayOrDash(sku.updatedBy),
-            action: '更新记录',
-            time: dayjs(sku.updatedAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-    ...(sku?.createdAt
-      ? [
-          {
-            key: 'created',
-            operator: displayOrDash(sku.createdBy),
-            action: '创建记录',
-            time: dayjs(sku.createdAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-  ];
 
   const anchors = [
     { key: 'basic', label: '基本信息' },
@@ -442,11 +419,7 @@ export default function SkuDetailPage() {
             title="操作记录"
             description="按时间展示 SKU 主数据的创建与维护轨迹。"
           >
-            {query.isLoading && !sku ? (
-              <Skeleton active paragraph={{ rows: 3 }} />
-            ) : (
-              <OperationTimeline records={operationRecords} />
-            )}
+            <ActivityTimeline resourceType="skus" resourceId={skuId} />
           </SectionCard>
         </div>
       </div>

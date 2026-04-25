@@ -9,6 +9,7 @@ import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { AuditInterceptor } from './common/interceptors/audit.interceptor';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { AuthModule } from './modules/auth/auth.module';
@@ -30,6 +31,7 @@ import { CertificatesModule } from './modules/master-data/certificates/certifica
 import { ProductDocumentsModule } from './modules/master-data/product-documents/product-documents.module';
 import { ContractTemplatesModule } from './modules/master-data/contract-templates/contract-templates.module';
 import { CustomersModule } from './modules/master-data/customers/customers.module';
+import { OperationLogsModule } from './modules/operation-logs/operation-logs.module';
 import databaseConfig from './config/database.config';
 import { createLoggerConfig } from './config/logger.config';
 
@@ -67,6 +69,7 @@ import { createLoggerConfig } from './config/logger.config';
     CertificatesModule,
     ProductDocumentsModule,
     ContractTemplatesModule,
+    OperationLogsModule,
     FilesModule,
   ],
   controllers: [AppController],
@@ -76,6 +79,7 @@ import { createLoggerConfig } from './config/logger.config';
     { provide: APP_INTERCEPTOR, useClass: ClassSerializerInterceptor },
     { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
   ],
 })

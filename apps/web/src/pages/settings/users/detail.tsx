@@ -3,6 +3,7 @@ import { Button, Result, Skeleton } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import { getUserById } from '../../../api/users.api';
 import '../../master-data/master-page.css';
 
@@ -58,28 +59,6 @@ export default function UserDetailPage() {
   const data = query.data;
   const statusText = data?.status === 'active' ? '活跃' : '停用';
   const statusClass = data?.status === 'active' ? 'master-pill-success' : 'master-pill-default';
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [
-          {
-            key: 'updated',
-            operator: displayOrDash(data.updatedBy),
-            action: '更新记录',
-            time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-    ...(data?.createdAt
-      ? [
-          {
-            key: 'created',
-            operator: displayOrDash(data.createdBy),
-            action: '创建记录',
-            time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm'),
-          },
-        ]
-      : []),
-  ];
 
   const anchors = [
     { key: 'basic', label: '基础信息' },
@@ -208,24 +187,7 @@ export default function UserDetailPage() {
               </div>
             </div>
             <div className="master-section-body">
-              {query.isLoading && !data ? (
-                <Skeleton active paragraph={{ rows: 3 }} />
-              ) : operationRecords.length ? (
-                <div className="master-status-timeline">
-                  {operationRecords.map((record, index) => (
-                    <div className="master-tl-item" key={record.key}>
-                      <div className={`master-tl-dot${index === operationRecords.length - 1 ? ' gray' : ''}`} />
-                      <div className="master-tl-content">
-                        <div className="master-tl-operator">操作人：{record.operator}</div>
-                        <div className="master-tl-action">操作记录：{record.action}</div>
-                        <div className="master-tl-time">操作时间：{record.time}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="master-meta-value empty">—</div>
-              )}
+              <ActivityTimeline resourceType="users" resourceId={id} />
             </div>
           </section>
         </div>

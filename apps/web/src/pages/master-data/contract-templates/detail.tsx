@@ -3,6 +3,7 @@ import { Button, Popconfirm, Result, Skeleton, message } from 'antd';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useNavigate, useParams } from 'react-router-dom';
+import { ActivityTimeline } from '../../../components/ActivityTimeline';
 import {
   approveContractTemplate,
   CONTRACT_TEMPLATE_STATUS_LABELS,
@@ -12,7 +13,7 @@ import {
   voidContractTemplate,
   type ContractTemplate,
 } from '../../../api/contract-templates.api';
-import { AnchorNav, MetaItem, OperationTimeline, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
+import { AnchorNav, MetaItem, SectionCard, SummaryMetaItem, displayOrDash } from '../components/page-scaffold';
 import '../master-page.css';
 
 function statusPillClass(status: ContractTemplate['status']) {
@@ -106,14 +107,6 @@ export default function ContractTemplateDetailPage() {
   }
 
   const data = query.data;
-  const operationRecords = [
-    ...(data?.updatedAt
-      ? [{ key: 'updated', operator: displayOrDash(data.updatedBy), action: '更新记录', time: dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-    ...(data?.createdAt
-      ? [{ key: 'created', operator: displayOrDash(data.createdBy), action: '创建记录', time: dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') }]
-      : []),
-  ];
 
   const actionLoading =
     submitMutation.isPending ||
@@ -235,7 +228,7 @@ export default function ContractTemplateDetailPage() {
           </SectionCard>
 
           <SectionCard id="operation" title="操作记录" description="按时间查看条款模板维护轨迹。">
-            {query.isLoading && !data ? <Skeleton active paragraph={{ rows: 3 }} /> : <OperationTimeline records={operationRecords} />}
+            <ActivityTimeline resourceType="contract-templates" resourceId={templateId} />
           </SectionCard>
         </div>
       </div>

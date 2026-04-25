@@ -525,11 +525,43 @@
   min-width: 0;
 }
 
+.master-tl-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .master-tl-operator {
   font-size: 13px;
   color: var(--erp-text);
   line-height: 1.5;
   font-weight: 700;
+}
+
+.master-tl-tag {
+  margin-inline-end: 0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.master-tl-tag-create {
+  color: #166534;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.master-tl-tag-update {
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.master-tl-tag-delete {
+  color: #b91c1c;
+  border-color: #fecaca;
+  background: #fef2f2;
 }
 
 .master-tl-action {
@@ -540,10 +572,62 @@
   margin-top: 2px;
 }
 
+.master-tl-changes {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.master-tl-change-field {
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+  color: var(--erp-text);
+}
+
+.master-tl-change-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  border: 1px solid var(--erp-border);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: #f8fafc;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 100%;
+}
+
+.master-tl-change-old,
+.master-tl-change-new {
+  border-radius: 8px;
+  padding: 1px 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.master-tl-change-old {
+  color: #9f1239;
+  background: #fff1f2;
+}
+
+.master-tl-change-new {
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.master-tl-change-arrow {
+  color: var(--erp-text-light);
+  font-weight: 700;
+}
+
 .master-tl-time {
   font-size: 11px;
   color: var(--erp-text-light);
-  margin-top: 3px;
+  margin-top: 6px;
   font-weight: 600;
 }
 
