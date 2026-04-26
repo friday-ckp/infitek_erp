@@ -39,7 +39,6 @@ export default function SalesOrderDetailPage() {
   const { id = '' } = useParams();
   const salesOrderId = Number(id);
   const [activeAnchor, setActiveAnchor] = useState('basic');
-  const [pendingAction, setPendingAction] = useState<'submit' | 'approve' | 'reject' | 'void' | null>(null);
 
   const query = useQuery({
     queryKey: ['sales-order-detail', salesOrderId],
@@ -57,10 +56,6 @@ export default function SalesOrderDetailPage() {
         queryClient.invalidateQueries({ queryKey: ['sales-order-detail', salesOrderId] });
         queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
         message.success(successMessage);
-        setPendingAction(null);
-      },
-      onError: () => {
-        setPendingAction(null);
       },
     });
 
@@ -118,7 +113,7 @@ export default function SalesOrderDetailPage() {
       <Result
         status="404"
         title="销售订单不存在"
-        extra={<Button type="primary" onClick={() => navigate('/sales-orders/create')}>新建销售订单</Button>}
+        extra={<Button type="primary" onClick={() => navigate('/sales-orders')}>返回列表</Button>}
       />
     );
   }
@@ -130,19 +125,18 @@ export default function SalesOrderDetailPage() {
         title="销售订单详情加载失败"
         extra={[
           <Button key="retry" type="primary" onClick={() => query.refetch()}>重试</Button>,
-          <Button key="back" onClick={() => navigate('/sales-orders/create')}>返回创建页</Button>,
+          <Button key="back" onClick={() => navigate('/sales-orders')}>返回列表</Button>,
         ]}
       />
     );
   }
 
   const data = query.data;
-  const actionHandlers = {
-    submit: () => submitMutation.mutateAsync(),
-    approve: () => approveMutation.mutateAsync(),
-    reject: () => rejectMutation.mutateAsync(),
-    void: () => voidMutation.mutateAsync(),
-  };
+  const isActionLoading =
+    submitMutation.isPending ||
+    approveMutation.isPending ||
+    rejectMutation.isPending ||
+    voidMutation.isPending;
 
   return (
     <div className="master-page">
@@ -161,19 +155,60 @@ export default function SalesOrderDetailPage() {
               </div>
               <div className="master-summary-actions">
                 <Space wrap>
+                  <Button onClick={() => navigate('/sales-orders')}>返回列表</Button>
                   {['pending_submit', 'rejected'].includes(data?.status ?? '') ? (
-                    <Button type="primary" onClick={() => setPendingAction('submit')}>提交审核</Button>
+                    <Popconfirm
+                      title="确认提交审核？"
+                      description="本阶段只实现状态流转，不做真实审批权限。"
+                      okText="确认"
+                      cancelText="取消"
+                      onConfirm={() => submitMutation.mutateAsync()}
+                    >
+                      <Button type="primary" loading={submitMutation.isPending} disabled={isActionLoading}>
+                        提交审核
+                      </Button>
+                    </Popconfirm>
                   ) : null}
                   {data?.status === 'in_review' ? (
                     <>
-                      <Button type="primary" onClick={() => setPendingAction('approve')}>审核通过</Button>
-                      <Button danger onClick={() => setPendingAction('reject')}>驳回</Button>
+                      <Popconfirm
+                        title="确认审核通过？"
+                        description="本阶段只实现状态流转，不做真实审批权限。"
+                        okText="确认"
+                        cancelText="取消"
+                        onConfirm={() => approveMutation.mutateAsync()}
+                      >
+                        <Button type="primary" loading={approveMutation.isPending} disabled={isActionLoading}>
+                          审核通过
+                        </Button>
+                      </Popconfirm>
+                      <Popconfirm
+                        title="确认驳回该订单？"
+                        description="本阶段只实现状态流转，不做真实审批权限。"
+                        okText="确认"
+                        cancelText="取消"
+                        onConfirm={() => rejectMutation.mutateAsync()}
+                      >
+                        <Button danger loading={rejectMutation.isPending} disabled={isActionLoading}>
+                          驳回
+                        </Button>
+                      </Popconfirm>
                     </>
                   ) : null}
                   {['pending_submit', 'in_review', 'rejected', 'approved'].includes(data?.status ?? '') ? (
-                    <Button danger onClick={() => setPendingAction('void')}>作废</Button>
+                    <Popconfirm
+                      title="确认作废该订单？"
+                      description="本阶段只实现状态流转，不做真实审批权限。"
+                      okText="确认"
+                      cancelText="取消"
+                      onConfirm={() => voidMutation.mutateAsync()}
+                    >
+                      <Button danger loading={voidMutation.isPending} disabled={isActionLoading}>
+                        作废
+                      </Button>
+                    </Popconfirm>
                   ) : null}
-                  <Button onClick={() => navigate('/sales-orders/create')}>再建一单</Button>
+                  <Button type="primary" ghost onClick={() => navigate('/sales-orders/create')}>新建销售订单</Button>
                 </Space>
               </div>
             </div>
@@ -338,29 +373,6 @@ export default function SalesOrderDetailPage() {
         </div>
       </div>
 
-      <Popconfirm
-        title={
-          pendingAction === 'submit'
-            ? '确认提交审核？'
-            : pendingAction === 'approve'
-              ? '确认审核通过？'
-              : pendingAction === 'reject'
-                ? '确认驳回该订单？'
-                : '确认作废该订单？'
-        }
-        description="本阶段只实现状态流转，不做真实审批权限。"
-        open={Boolean(pendingAction)}
-        okText="确认"
-        cancelText="取消"
-        onCancel={() => setPendingAction(null)}
-        onConfirm={async () => {
-          if (pendingAction) {
-            await actionHandlers[pendingAction]();
-          }
-        }}
-      >
-        <span />
-      </Popconfirm>
     </div>
   );
 }

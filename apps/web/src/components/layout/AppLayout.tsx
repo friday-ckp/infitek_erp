@@ -12,7 +12,7 @@ type BreadcrumbRoute = { pattern: RegExp; items: BreadcrumbItem[] };
 
 const BASIC_DATA_SECTION_PATH = '/master-data/units';
 const PRODUCT_SECTION_PATH = '/master-data/product-categories';
-const SALES_SECTION_PATH = '/sales-orders/create';
+const SALES_SECTION_PATH = '/sales-orders';
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

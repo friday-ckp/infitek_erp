@@ -712,7 +712,7 @@ export default function SalesOrderFormPage() {
                   readonly
                   disabled
                 />
-                <div className="full">
+                <div className="full master-upload-field">
                   <label className="ant-form-item-required master-upload-label">PI&SC合同文件</label>
                   <Upload
                     multiple
@@ -751,7 +751,7 @@ export default function SalesOrderFormPage() {
                 <ProFormSelect name="requiresWarrantyCard" label="是否需要质保卡" options={YES_NO_OPTIONS} />
                 <ProFormSelect name="requiresMaternityHandover" label="是否产假交接单" options={YES_NO_OPTIONS} />
                 <ProFormSelect name="customsDeclarationMethod" label="报关方式" options={CUSTOMS_METHOD_OPTIONS} />
-                <div className="full">
+                <div className="full master-upload-field">
                   <label className="master-upload-label">插头照片</label>
                   <Upload
                     multiple
@@ -948,7 +948,7 @@ export default function SalesOrderFormPage() {
               <div className="master-form-grid">
                 <ProFormSelect name="usesDefaultShippingMark" label="是否公司常规唛头" options={YES_NO_OPTIONS} />
                 <ProFormText name="shippingMarkNote" label="唛头补充信息" />
-                <div className="full">
+                <div className="full master-upload-field">
                   <label className="master-upload-label">唛头模板</label>
                   <Upload
                     maxCount={1}
