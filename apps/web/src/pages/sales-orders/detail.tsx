@@ -161,7 +161,7 @@ export default function SalesOrderDetailPage() {
               </div>
               <div className="master-summary-actions">
                 <Space wrap>
-                  {data?.status === 'pending_submit' ? (
+                  {['pending_submit', 'rejected'].includes(data?.status ?? '') ? (
                     <Button type="primary" onClick={() => setPendingAction('submit')}>提交审核</Button>
                   ) : null}
                   {data?.status === 'in_review' ? (

@@ -42,3 +42,4 @@ export * from './enums/bl-type.enum';
 // Types
 export * from './types/api-response.types';
 export * from './types/pagination.types';
+export * from './types/operation-log-field-labels';

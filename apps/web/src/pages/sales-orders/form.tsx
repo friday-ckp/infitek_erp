@@ -782,18 +782,18 @@ export default function SalesOrderFormPage() {
                 creatorButtonProps={{ creatorButtonText: '添加产品明细' }}
                 copyIconProps={false}
                 itemRender={({ listDom, action }, { index }) => (
-                  <div className="master-section-card" style={{ marginBottom: 16 }}>
+                  <div className="master-section-card sales-order-item-card" style={{ marginBottom: 16 }}>
                     <div className="master-section-header">
                       <div className="master-section-title">产品明细 #{index + 1}</div>
                       {action}
                     </div>
-                    <div className="master-section-body">{listDom}</div>
+                    <div className="master-section-body sales-order-item-card-body">{listDom}</div>
                   </div>
                 )}
               >
                 {(_meta, index) => (
                   <>
-                    <div className="master-form-grid">
+                    <div className="sales-order-item-row-grid">
                       <ProFormSelect
                         name="skuId"
                         label="SKU"
@@ -864,7 +864,7 @@ export default function SalesOrderFormPage() {
                       <ProFormDigit name="amount" label="总金额" readonly fieldProps={{ precision: 2 }} />
                       <ProFormText name="unitName" label="单位" readonly />
                       <ProFormText name="material" label="产品材质" readonly />
-                      <div className="full">
+                      <div className="sales-order-item-image-field">
                         <ProFormText name="imageUrl" label="图片地址" readonly />
                         {formRef.current?.getFieldValue(['items', index, 'imageUrl']) ? (
                           <div style={{ marginTop: 8 }}>
@@ -880,7 +880,7 @@ export default function SalesOrderFormPage() {
                       <ProFormDigit name="unitWeightKg" label="单品重量(kg)" readonly fieldProps={{ precision: 4 }} />
                       <ProFormDigit name="unitVolumeCbm" label="单品体积(m³)" readonly fieldProps={{ precision: 4 }} />
                     </div>
-                    <Divider style={{ margin: '8px 0 16px' }} />
+                    <Divider style={{ margin: '12px 0 0' }} />
                   </>
                 )}
               </ProFormList>
