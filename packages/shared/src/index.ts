@@ -24,6 +24,7 @@ export * from './enums/logistics-provider-status.enum';
 export * from './enums/contract-template-status.enum';
 export * from './enums/sales-order-status.enum';
 export * from './enums/sales-order-type.enum';
+export * from './enums/sales-order-source.enum';
 export * from './enums/domestic-trade-type.enum';
 export * from './enums/payment-term.enum';
 export * from './enums/trade-term.enum';

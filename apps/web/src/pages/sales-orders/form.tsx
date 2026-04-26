@@ -12,10 +12,10 @@ import {
 } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
+  App,
   Button,
   Divider,
   Image,
-  Modal,
   Result,
   Skeleton,
   Upload,
@@ -32,6 +32,7 @@ import {
   PrimaryIndustry,
   ProductLineType,
   ReceiptStatus,
+  SalesOrderSource,
   SalesOrderStatus,
   SalesOrderType,
   SecondaryIndustry,
@@ -67,6 +68,11 @@ const ORDER_TYPE_OPTIONS = [
   { label: '销售订单', value: SalesOrderType.SALES },
   { label: '售后订单', value: SalesOrderType.AFTER_SALES },
   { label: '样品销售', value: SalesOrderType.SAMPLE },
+];
+
+const ORDER_SOURCE_OPTIONS = [
+  { label: '手工录单', value: SalesOrderSource.MANUAL },
+  { label: '第三方获取', value: SalesOrderSource.THIRD_PARTY },
 ];
 
 const STATUS_LABELS: Record<SalesOrderStatus, string> = {
@@ -195,6 +201,7 @@ function toNumber(value: unknown): number | undefined {
 }
 
 export default function SalesOrderFormPage() {
+  const { modal, message: appMessage } = App.useApp();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const formRef = useRef<ProFormInstance>(undefined);
@@ -226,7 +233,7 @@ export default function SalesOrderFormPage() {
     mutationFn: (payload: CreateSalesOrderPayload) => createSalesOrder(payload),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
-      message.success('销售订单创建成功');
+      appMessage.success('销售订单创建成功');
       navigate(`/sales-orders/${created.id}`);
     },
   });
@@ -254,6 +261,7 @@ export default function SalesOrderFormPage() {
 
   const initialValues = {
     orderType: SalesOrderType.SALES,
+    orderSource: SalesOrderSource.MANUAL,
     domesticTradeType: DomesticTradeType.FOREIGN,
     receiptStatus: ReceiptStatus.UNPAID,
     status: optionsQuery.data?.initialStatus ?? SalesOrderStatus.PENDING_SUBMIT,
@@ -459,6 +467,7 @@ export default function SalesOrderFormPage() {
     return {
       domesticTradeType: values.domesticTradeType,
       externalOrderCode: values.externalOrderCode,
+      orderSource: values.orderSource,
       orderType: values.orderType,
       customerId: Number(values.customerId),
       afterSalesSourceOrderId: toNumber(values.afterSalesSourceOrderId),
@@ -535,6 +544,39 @@ export default function SalesOrderFormPage() {
     return true;
   };
 
+  const handleFinishFailed = (errorFields: Array<{ name: (string | number)[]; errors?: string[] }>) => {
+    if (errorFields.length > 0) {
+      formRef.current?.scrollToField?.(errorFields[0].name);
+      message.error(errorFields[0]?.errors?.[0] || '请先完善必填信息');
+    }
+  };
+
+  const openSubmitConfirm = (values: Record<string, any>) => {
+    modal.confirm({
+      title: '确认提交销售订单？',
+      content: '提交后将创建订单并进入待审核流转。',
+      okText: '确认提交',
+      cancelText: '取消',
+      onOk: async () => {
+        await handleSubmit(values);
+      },
+    });
+  };
+
+  const handleClickSubmit = async () => {
+    try {
+      const values = await formRef.current?.validateFields();
+      if (!values) {
+        message.error('表单尚未初始化，请刷新后重试');
+        return;
+      }
+      openSubmitConfirm(values as Record<string, any>);
+    } catch (error) {
+      const errorFields = (error as { errorFields?: Array<{ name: (string | number)[]; errors?: string[] }> })?.errorFields;
+      handleFinishFailed(errorFields ?? []);
+    }
+  };
+
   if (optionsQuery.isLoading && !optionsQuery.data) {
     return <Skeleton active />;
   }
@@ -589,16 +631,11 @@ export default function SalesOrderFormPage() {
           formRef.current?.setFieldValue('items', items);
         }}
         onFinish={async (values) => {
-          Modal.confirm({
-            title: '确认提交销售订单？',
-            content: '提交后将创建订单并进入待审核流转。',
-            okText: '确认提交',
-            cancelText: '取消',
-            onOk: async () => {
-              await handleSubmit(values);
-            },
-          });
+          openSubmitConfirm(values);
           return false;
+        }}
+        onFinishFailed={({ errorFields }) => {
+          handleFinishFailed(errorFields);
         }}
       >
         <div className="master-form-layout">
@@ -608,6 +645,12 @@ export default function SalesOrderFormPage() {
             <SectionCard id="basic" title="基础信息" description="维护销售订单主表关键信息。">
               <div className="master-form-grid">
                 <ProFormText name="erpSalesOrderCode" label="ERP销售订单号" readonly placeholder="系统保存后自动生成" />
+                <ProFormSelect
+                  name="orderSource"
+                  label="订单来源"
+                  options={ORDER_SOURCE_OPTIONS}
+                  rules={[{ required: true, message: '请选择订单来源' }]}
+                />
                 <ProFormSelect
                   name="domesticTradeType"
                   label="内外销"
@@ -1016,7 +1059,9 @@ export default function SalesOrderFormPage() {
             <Button
               type="primary"
               loading={createMutation.isPending}
-              onClick={() => formRef.current?.submit?.()}
+              onClick={() => {
+                void handleClickSubmit();
+              }}
             >
               提交
             </Button>

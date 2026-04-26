@@ -238,6 +238,7 @@ export const RESOURCE_OPERATION_LOG_FIELD_LABELS: Record<string, Record<string, 
   },
   'sales-orders': {
     erpSalesOrderCode: 'ERP销售订单号',
+    orderSource: '订单来源',
     domesticTradeType: '内外销',
     externalOrderCode: '订单号',
     orderType: '订单类型',

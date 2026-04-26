@@ -6,6 +6,7 @@ import {
 import {
   ReceiptStatus,
   SalesOrderStatus,
+  SalesOrderSource,
   SalesOrderType,
   YesNo,
 } from '@infitek/shared';
@@ -219,6 +220,7 @@ export class SalesOrdersService {
         erpSalesOrderCode,
         domesticTradeType: dto.domesticTradeType,
         externalOrderCode: dto.externalOrderCode,
+        orderSource: dto.orderSource ?? SalesOrderSource.MANUAL,
         orderType: dto.orderType,
         customerId: customer.id,
         customerName: customer.customerName,

@@ -1,4 +1,5 @@
 import { Button, Image, Popconfirm, Result, Skeleton, Space, Table, message } from 'antd';
+import { SalesOrderSource } from '@infitek/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
@@ -31,6 +32,11 @@ const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
   partially_shipped: { className: 'master-pill-orange', text: '部分发货' },
   shipped: { className: 'master-pill-success', text: '已发货' },
   voided: { className: 'master-pill-red', text: '已作废' },
+};
+
+const ORDER_SOURCE_LABELS: Record<string, string> = {
+  [SalesOrderSource.MANUAL]: '手工录单',
+  [SalesOrderSource.THIRD_PARTY]: '第三方获取',
 };
 
 export default function SalesOrderDetailPage() {
@@ -232,6 +238,7 @@ export default function SalesOrderDetailPage() {
             ) : (
               <div className="master-meta-grid">
                 <MetaItem label="ERP销售订单号" value={displayOrDash(data?.erpSalesOrderCode)} />
+                <MetaItem label="订单来源" value={data?.orderSource ? ORDER_SOURCE_LABELS[data.orderSource] ?? data.orderSource : '—'} />
                 <MetaItem label="内外销" value={displayOrDash(data?.domesticTradeType)} />
                 <MetaItem label="订单号" value={displayOrDash(data?.externalOrderCode)} />
                 <MetaItem label="订单类型" value={displayOrDash(data?.orderType)} />

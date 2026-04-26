@@ -12,6 +12,7 @@ export class CreateSalesOrdersTable20260426000100 implements MigrationInterface 
           { name: 'erp_sales_order_code', type: 'varchar', length: '32' },
           { name: 'domestic_trade_type', type: 'varchar', length: '20' },
           { name: 'external_order_code', type: 'varchar', length: '100' },
+          { name: 'order_source', type: 'varchar', length: '30', default: "'manual'" },
           { name: 'order_type', type: 'varchar', length: '30' },
           { name: 'customer_id', type: 'bigint', unsigned: true },
           { name: 'customer_name', type: 'varchar', length: '200' },

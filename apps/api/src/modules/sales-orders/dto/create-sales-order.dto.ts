@@ -22,6 +22,7 @@ import {
   PrimaryIndustry,
   ReceiptStatus,
   SalesOrderStatus,
+  SalesOrderSource,
   SalesOrderType,
   SecondaryIndustry,
   TradeTerm,
@@ -39,6 +40,10 @@ export class CreateSalesOrderDto {
   @IsNotEmpty()
   @MaxLength(100)
   externalOrderCode: string;
+
+  @IsOptional()
+  @IsIn(Object.values(SalesOrderSource))
+  orderSource?: SalesOrderSource;
 
   @IsIn(Object.values(SalesOrderType))
   orderType: SalesOrderType;

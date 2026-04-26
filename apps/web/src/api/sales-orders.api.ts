@@ -7,6 +7,7 @@ import {
   PaymentTerm,
   PrimaryIndustry,
   ReceiptStatus,
+  SalesOrderSource,
   SalesOrderStatus,
   SalesOrderType,
   SecondaryIndustry,
@@ -64,6 +65,7 @@ export interface SalesOrder {
   erpSalesOrderCode: string;
   domesticTradeType: DomesticTradeType;
   externalOrderCode: string;
+  orderSource: SalesOrderSource;
   orderType: SalesOrderType;
   customerId: number;
   customerName: string;
@@ -197,6 +199,7 @@ export interface CreateSalesOrderExpensePayload {
 export interface CreateSalesOrderPayload {
   domesticTradeType: DomesticTradeType;
   externalOrderCode: string;
+  orderSource?: SalesOrderSource;
   orderType: SalesOrderType;
   customerId: number;
   afterSalesSourceOrderId?: number;

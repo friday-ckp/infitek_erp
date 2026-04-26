@@ -9,6 +9,7 @@ import {
   PrimaryIndustry,
   ReceiptStatus,
   SalesOrderStatus,
+  SalesOrderSource,
   SalesOrderType,
   SecondaryIndustry,
   TradeTerm,
@@ -38,6 +39,10 @@ export class SalesOrder extends BaseEntity {
   @Column({ name: 'external_order_code', type: 'varchar', length: 100 })
   @Expose()
   externalOrderCode: string;
+
+  @Column({ name: 'order_source', type: 'varchar', length: 30, default: `'manual'` })
+  @Expose()
+  orderSource: SalesOrderSource;
 
   @Column({ name: 'order_type', type: 'varchar', length: 30 })
   @Expose()

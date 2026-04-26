@@ -1,5 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { ReceiptStatus, SalesOrderStatus, SalesOrderType, YesNo } from '@infitek/shared';
+import { ReceiptStatus, SalesOrderSource, SalesOrderStatus, SalesOrderType, YesNo } from '@infitek/shared';
 import { SalesOrdersService } from '../sales-orders.service';
 
 describe('SalesOrdersService', () => {
@@ -104,6 +104,7 @@ describe('SalesOrdersService', () => {
 
     expect(salesOrdersRepository.createWithRelations).toHaveBeenCalled();
     expect(result.erpSalesOrderCode).toBe('SO2026042600001');
+    expect(result.orderSource).toBe(SalesOrderSource.MANUAL);
     expect(result.status).toBe(SalesOrderStatus.PENDING_SUBMIT);
     expect(result.outstandingAmount).toBe('800.00');
     expect(result.productTotalAmount).toBe('600.00');

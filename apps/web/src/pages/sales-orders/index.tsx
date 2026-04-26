@@ -5,7 +5,7 @@ import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
 import dayjs from 'dayjs';
-import { SalesOrderStatus, SalesOrderType } from '@infitek/shared';
+import { SalesOrderSource, SalesOrderStatus, SalesOrderType } from '@infitek/shared';
 import { getCustomers, type Customer } from '../../api/customers.api';
 import { getSalesOrders, type SalesOrder } from '../../api/sales-orders.api';
 import { SearchForm } from '../../components/common/SearchForm';
@@ -41,6 +41,11 @@ const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
   [SalesOrderStatus.PARTIALLY_SHIPPED]: { className: 'master-pill-orange', text: '部分发货' },
   [SalesOrderStatus.SHIPPED]: { className: 'master-pill-success', text: '已发货' },
   [SalesOrderStatus.VOIDED]: { className: 'master-pill-red', text: '已作废' },
+};
+
+const ORDER_SOURCE_LABELS: Record<string, string> = {
+  [SalesOrderSource.MANUAL]: '手工录单',
+  [SalesOrderSource.THIRD_PARTY]: '第三方获取',
 };
 
 function formatMoney(value?: string | null) {
@@ -144,6 +149,12 @@ export default function SalesOrdersListPage() {
         dataIndex: 'orderType',
         width: 120,
         render: (_, record) => formatOrderType(record.orderType),
+      },
+      {
+        title: '订单来源',
+        dataIndex: 'orderSource',
+        width: 120,
+        render: (_, record) => ORDER_SOURCE_LABELS[record.orderSource] ?? record.orderSource ?? '—',
       },
       {
         title: '订单状态',
