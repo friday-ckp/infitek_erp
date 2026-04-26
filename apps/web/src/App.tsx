@@ -55,6 +55,8 @@ import ProductDocumentFormPage from './pages/master-data/product-documents/form'
 import ContractTemplatesListPage from './pages/master-data/contract-templates/index';
 import ContractTemplateDetailPage from './pages/master-data/contract-templates/detail';
 import ContractTemplateFormPage from './pages/master-data/contract-templates/form';
+import SalesOrderFormPage from './pages/sales-orders/form';
+import SalesOrderDetailPage from './pages/sales-orders/detail';
 import HomePage from './pages/home/index';
 import './App.css';
 
@@ -218,6 +220,9 @@ function App() {
                   <Route path="/master-data/contract-templates/create" element={<ContractTemplateFormPage />} />
                   <Route path="/master-data/contract-templates/:id" element={<ContractTemplateDetailPage />} />
                   <Route path="/master-data/contract-templates/:id/edit" element={<ContractTemplateFormPage />} />
+                  <Route path="/sales-orders" element={<Navigate to="/sales-orders/create" replace />} />
+                  <Route path="/sales-orders/create" element={<SalesOrderFormPage />} />
+                  <Route path="/sales-orders/:id" element={<SalesOrderDetailPage />} />
                 </Route>
 
                 {/* 兜底重定向 */}

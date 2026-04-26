@@ -42,18 +42,36 @@ export enum PurchaseOrderStatus {
   CANCELLED = 'cancelled',
 }
 
-export enum SalesOrderStatus {
-  DRAFT = 'draft',
-  CONFIRMED = 'confirmed',
-  CANCELLED = 'cancelled',
-}
+export const SalesOrderStatus = {
+  PENDING_SUBMIT: 'pending_submit',
+  IN_REVIEW: 'in_review',
+  APPROVED: 'approved',
+  REJECTED: 'rejected',
+  PREPARING: 'preparing',
+  PREPARED: 'prepared',
+  PARTIALLY_SHIPPED: 'partially_shipped',
+  SHIPPED: 'shipped',
+  VOIDED: 'voided',
+} as const;
+export type SalesOrderStatus =
+  (typeof SalesOrderStatus)[keyof typeof SalesOrderStatus];
 
-export enum ShippingDemandStatus {
-  PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-}
+export const SalesOrderType = {
+  SALES: 'sales',
+  AFTER_SALES: 'after_sales',
+  SAMPLE: 'sample',
+} as const;
+export type SalesOrderType =
+  (typeof SalesOrderType)[keyof typeof SalesOrderType];
+
+export const ShippingDemandStatus = {
+  PENDING: 'pending',
+  IN_PROGRESS: 'in_progress',
+  COMPLETED: 'completed',
+  CANCELLED: 'cancelled',
+} as const;
+export type ShippingDemandStatus =
+  (typeof ShippingDemandStatus)[keyof typeof ShippingDemandStatus];
 
 export const CurrencyStatus = {
   ACTIVE: 'active',
@@ -187,6 +205,136 @@ export const ContractTemplateStatus = {
 } as const;
 export type ContractTemplateStatus =
   (typeof ContractTemplateStatus)[keyof typeof ContractTemplateStatus];
+
+export const DomesticTradeType = {
+  DOMESTIC: 'domestic',
+  FOREIGN: 'foreign',
+} as const;
+export type DomesticTradeType =
+  (typeof DomesticTradeType)[keyof typeof DomesticTradeType];
+
+export const PaymentTerm = {
+  TT_IN_ADVANCE_100: '100_tt_in_advance',
+  DEPOSIT_30_BALANCE_70_BEFORE_DELIVERY: '30_deposit_70_balance_before_delivery',
+  DEPOSIT_40_BALANCE_60_BEFORE_DELIVERY: '40_deposit_60_balance_before_delivery',
+  DEPOSIT_50_BALANCE_50_BEFORE_DELIVERY: '50_deposit_50_balance_before_delivery',
+  DEPOSIT_60_BALANCE_40_BEFORE_DELIVERY: '60_deposit_40_balance_before_delivery',
+  DEPOSIT_70_BALANCE_30_BEFORE_DELIVERY: '70_deposit_30_balance_before_delivery',
+  PAYMENT_100_BEFORE_DELIVERY: '100_payment_before_delivery',
+  DEPOSIT_40_BALANCE_60_AGAINST_BL_COPY: '40_deposit_60_balance_against_bl_copy',
+  DEPOSIT_50_BALANCE_50_AGAINST_BL_COPY: '50_deposit_50_balance_against_bl_copy',
+  DEPOSIT_70_BALANCE_30_AGAINST_BL_COPY: '70_deposit_30_balance_against_bl_copy',
+  LC_AT_SIGHT: 'lc_at_sight',
+  CAD: 'cad',
+  DP_AT_SIGHT: 'dp_at_sight',
+  DA_30_DAYS: 'da_30_days',
+  OA_30_DAYS: 'oa_30_days',
+} as const;
+export type PaymentTerm = (typeof PaymentTerm)[keyof typeof PaymentTerm];
+
+export const TradeTerm = {
+  EXW: 'EXW',
+  FCA: 'FCA',
+  FOB: 'FOB',
+  CFR: 'CFR',
+  CIF: 'CIF',
+  CIP: 'CIP',
+  CPT: 'CPT',
+} as const;
+export type TradeTerm = (typeof TradeTerm)[keyof typeof TradeTerm];
+
+export const TransportationMethod = {
+  SEA: 'sea',
+  AIR: 'air',
+  ROAD: 'road',
+  RAIL: 'rail',
+  EXPRESS: 'express',
+  OTHER: 'other',
+} as const;
+export type TransportationMethod =
+  (typeof TransportationMethod)[keyof typeof TransportationMethod];
+
+export const PrimaryIndustry = {
+  EDUCATION: 'education',
+  GOVERNMENT: 'government',
+  MEDICAL: 'medical',
+  ENTERPRISE: 'enterprise',
+} as const;
+export type PrimaryIndustry =
+  (typeof PrimaryIndustry)[keyof typeof PrimaryIndustry];
+
+export const SecondaryIndustry = {
+  AGRICULTURE_COLLEGE: 'agriculture_college',
+  FOOD: 'food',
+  ANIMAL_SCIENCE: 'animal_science',
+  PHARMACY: 'pharmacy',
+  MEDICAL_COLLEGE: 'medical_college',
+  PUBLIC_HEALTH: 'public_health',
+  LIFE_SCIENCE: 'life_science',
+  ENVIRONMENT: 'environment',
+} as const;
+export type SecondaryIndustry =
+  (typeof SecondaryIndustry)[keyof typeof SecondaryIndustry];
+
+export const OrderNature = {
+  BIDDING: 'bidding',
+  RETAIL: 'retail',
+  STOCK_PREPARE: 'stock_prepare',
+} as const;
+export type OrderNature =
+  (typeof OrderNature)[keyof typeof OrderNature];
+
+export const ReceiptStatus = {
+  UNPAID: 'unpaid',
+  PARTIALLY_PAID: 'partially_paid',
+  PAID: 'paid',
+} as const;
+export type ReceiptStatus =
+  (typeof ReceiptStatus)[keyof typeof ReceiptStatus];
+
+export const YesNo = {
+  YES: 'yes',
+  NO: 'no',
+} as const;
+export type YesNo = (typeof YesNo)[keyof typeof YesNo];
+
+export const CustomsDeclarationMethod = {
+  SELF: 'self',
+  ALI_ONE_TOUCH: 'ali_one_touch',
+} as const;
+export type CustomsDeclarationMethod =
+  (typeof CustomsDeclarationMethod)[keyof typeof CustomsDeclarationMethod];
+
+export const ProductLineType = {
+  MAIN: 'main',
+  OPTIONAL: 'optional',
+  STANDARD: 'standard',
+  GIFT: 'gift',
+} as const;
+export type ProductLineType =
+  (typeof ProductLineType)[keyof typeof ProductLineType];
+
+export const PlugType = {
+  EU: 'eu',
+  UK: 'uk',
+  US: 'us',
+  CN: 'cn',
+  OTHER: 'other',
+  NONE: 'none',
+} as const;
+export type PlugType = (typeof PlugType)[keyof typeof PlugType];
+
+export const InvoiceType = {
+  VAT_SPECIAL: 'vat_special',
+  VAT_NORMAL: 'vat_normal',
+} as const;
+export type InvoiceType = (typeof InvoiceType)[keyof typeof InvoiceType];
+
+export const BlType = {
+  TELEX_RELEASE: 'telex_release',
+  ORIGINAL: 'original',
+} as const;
+export type BlType = (typeof BlType)[keyof typeof BlType];
 
 // types
 export interface ApiResponse<T = unknown> {
