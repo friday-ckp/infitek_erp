@@ -15,7 +15,7 @@ import {
   Button,
   Divider,
   Image,
-  Popconfirm,
+  Modal,
   Result,
   Skeleton,
   Upload,
@@ -199,8 +199,6 @@ export default function SalesOrderFormPage() {
   const queryClient = useQueryClient();
   const formRef = useRef<ProFormInstance>(undefined);
   const [activeAnchor, setActiveAnchor] = useState('basic');
-  const [confirmVisible, setConfirmVisible] = useState(false);
-  const [pendingValues, setPendingValues] = useState<Record<string, any> | null>(null);
   const [contractFileList, setContractFileList] = useState<UploadFile[]>([]);
   const [contractFiles, setContractFiles] = useState<Array<{ key: string; name: string }>>([]);
   const [plugPhotoFileList, setPlugPhotoFileList] = useState<UploadFile[]>([]);
@@ -591,8 +589,15 @@ export default function SalesOrderFormPage() {
           formRef.current?.setFieldValue('items', items);
         }}
         onFinish={async (values) => {
-          setPendingValues(values);
-          setConfirmVisible(true);
+          Modal.confirm({
+            title: '确认提交销售订单？',
+            content: '提交后将创建订单并进入待审核流转。',
+            okText: '确认提交',
+            cancelText: '取消',
+            onOk: async () => {
+              await handleSubmit(values);
+            },
+          });
           return false;
         }}
       >
@@ -986,39 +991,13 @@ export default function SalesOrderFormPage() {
           </div>
           <div className="master-form-footer-actions">
             <Button onClick={() => navigate('/')}>取消</Button>
-            <Popconfirm
-              title="确认提交销售订单？"
-              description="提交后将创建订单并进入待审核流转。"
-              open={confirmVisible}
-              onOpenChange={setConfirmVisible}
-              onConfirm={async () => {
-                if (pendingValues) {
-                  await handleSubmit(pendingValues);
-                }
-                setConfirmVisible(false);
-                setPendingValues(null);
-              }}
-              onCancel={() => {
-                setConfirmVisible(false);
-                setPendingValues(null);
-              }}
-              okText="确认提交"
-              cancelText="取消"
+            <Button
+              type="primary"
+              loading={createMutation.isPending}
+              onClick={() => formRef.current?.submit?.()}
             >
-              <Button
-                type="primary"
-                loading={createMutation.isPending}
-                onClick={async () => {
-                  const values = await formRef.current?.validateFields();
-                  if (values) {
-                    setPendingValues(values);
-                    setConfirmVisible(true);
-                  }
-                }}
-              >
-                提交
-              </Button>
-            </Popconfirm>
+              提交
+            </Button>
           </div>
         </div>
       </ProForm>
