@@ -68,4 +68,46 @@ describe('AuditInterceptor', () => {
     expect((interceptor as any).resolveAction('POST', '/api/v1/contract-templates/8/approve', '8')).toBe('UPDATE');
     expect((interceptor as any).resolveAction('POST', '/api/v1/users', null)).toBe('CREATE');
   });
+
+  it('creates a single summary item for create actions', () => {
+    const { interceptor } = createInterceptor();
+
+    const result = (interceptor as any).buildChangeSummary(
+      'CREATE',
+      'users',
+      null,
+      { username: 'alice', name: 'Alice' },
+      { username: 'alice', name: 'Alice' },
+    );
+
+    expect(result).toEqual([
+      {
+        field: '__create__',
+        fieldLabel: '新增数据',
+        oldValue: null,
+        newValue: '已新增',
+      },
+    ]);
+  });
+
+  it('uses shared chinese labels for update fields', () => {
+    const { interceptor } = createInterceptor();
+
+    const result = (interceptor as any).buildChangeSummary(
+      'UPDATE',
+      'users',
+      { username: 'old_name' },
+      { username: 'new_name' },
+      {},
+    );
+
+    expect(result).toEqual([
+      {
+        field: 'username',
+        fieldLabel: '用户名',
+        oldValue: 'old_name',
+        newValue: 'new_name',
+      },
+    ]);
+  });
 });

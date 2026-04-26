@@ -433,12 +433,78 @@
   grid-column: 1 / -1;
 }
 
+.master-upload-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+  margin-bottom: 20px;
+}
+
+.master-upload-label {
+  display: block;
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+.master-upload-field .ant-upload-wrapper {
+  width: 100%;
+}
+
+.master-upload-field .ant-upload-select {
+  display: inline-flex;
+}
+
+.master-upload-field .ant-upload-list {
+  margin-top: 8px;
+}
+
 .master-form-grid .ant-row.ant-form-item-row {
   display: block;
 }
 
 .master-form-grid .ant-form-item-control {
   width: 100%;
+}
+
+.sales-order-item-card {
+  min-width: 0;
+}
+
+.sales-order-item-card-body {
+  overflow-x: auto;
+}
+
+.sales-order-item-row-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(180px, 180px);
+  gap: 0 16px;
+  min-width: max-content;
+  align-items: start;
+}
+
+.sales-order-item-row-grid .ant-form-item,
+.sales-order-item-row-grid .ant-form-item:last-child {
+  margin-bottom: 0;
+}
+
+.sales-order-item-row-grid .ant-row.ant-form-item-row {
+  display: block;
+}
+
+.sales-order-item-row-grid .ant-form-item-control {
+  width: 100%;
+}
+
+.sales-order-item-image-field {
+  width: 240px;
 }
 
 .master-form-page .ant-input,
@@ -696,6 +762,21 @@
 
   .master-form-grid .full {
     grid-column: span 1;
+  }
+
+  .sales-order-item-card-body {
+    overflow-x: visible;
+  }
+
+  .sales-order-item-row-grid {
+    grid-auto-flow: row;
+    grid-auto-columns: unset;
+    grid-template-columns: 1fr;
+    min-width: 0;
+  }
+
+  .sales-order-item-image-field {
+    width: auto;
   }
 
   .master-section-header {

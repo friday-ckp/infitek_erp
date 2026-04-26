@@ -22,7 +22,24 @@ export * from './enums/product-document-attribution-type.enum';
 export * from './enums/port-type.enum';
 export * from './enums/logistics-provider-status.enum';
 export * from './enums/contract-template-status.enum';
+export * from './enums/sales-order-status.enum';
+export * from './enums/sales-order-type.enum';
+export * from './enums/domestic-trade-type.enum';
+export * from './enums/payment-term.enum';
+export * from './enums/trade-term.enum';
+export * from './enums/transportation-method.enum';
+export * from './enums/primary-industry.enum';
+export * from './enums/secondary-industry.enum';
+export * from './enums/order-nature.enum';
+export * from './enums/receipt-status.enum';
+export * from './enums/yes-no.enum';
+export * from './enums/customs-declaration-method.enum';
+export * from './enums/product-line-type.enum';
+export * from './enums/plug-type.enum';
+export * from './enums/invoice-type.enum';
+export * from './enums/bl-type.enum';
 
 // Types
 export * from './types/api-response.types';
 export * from './types/pagination.types';
+export * from './types/operation-log-field-labels';

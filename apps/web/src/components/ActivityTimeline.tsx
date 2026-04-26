@@ -1,6 +1,11 @@
 import { Skeleton } from 'antd';
 import { useMemo } from 'react';
 import { useQueries, useQuery } from '@tanstack/react-query';
+import {
+  OPERATION_LOG_CREATE_SUMMARY_FIELD,
+  OPERATION_LOG_CREATE_SUMMARY_LABEL,
+  resolveOperationLogFieldLabel,
+} from '@infitek/shared';
 import { getCompanyById } from '../api/companies.api';
 import { CONTRACT_TEMPLATE_STATUS_LABELS } from '../api/contract-templates.api';
 import { getCountryById } from '../api/countries.api';
@@ -18,32 +23,6 @@ import { getUnitById } from '../api/units.api';
 import { getUserById } from '../api/users.api';
 import { OperationTimeline } from '../pages/master-data/components/page-scaffold';
 
-const COMMON_FIELD_LABELS: Record<string, string> = {
-  id: '编号',
-  code: '编码',
-  name: '名称',
-  nameCn: '中文名称',
-  nameEn: '英文名称',
-  username: '用户名',
-  status: '状态',
-  address: '地址',
-  contactPerson: '联系人',
-  contactPhone: '联系电话',
-  contactEmail: '联系邮箱',
-  createdAt: '创建时间',
-  updatedAt: '更新时间',
-  createdBy: '创建人',
-  updatedBy: '更新人',
-  remarks: '备注',
-  description: '描述',
-  content: '内容',
-  countryId: '国家/地区',
-  countryName: '国家/地区',
-  fileKey: '附件',
-  fileName: '附件名称',
-  fileUrl: '附件链接',
-};
-
 const DISPLAY_COMPANION_FIELDS: Record<string, string> = {
   countryId: 'countryName',
   salespersonId: 'salespersonName',
@@ -53,215 +32,6 @@ const DISPLAY_COMPANION_FIELDS: Record<string, string> = {
   companyId: 'companyName',
 };
 
-const RESOURCE_FIELD_LABELS: Record<string, Record<string, string>> = {
-  users: {
-    username: '用户名',
-    name: '姓名',
-    password: '登录密码',
-    status: '状态',
-  },
-  customers: {
-    customerCode: '客户编码',
-    customerName: '客户名称',
-    salespersonId: '销售员',
-    salespersonName: '销售员',
-    contactPerson: '联系人',
-    contactPhone: '联系电话',
-    contactEmail: '联系邮箱',
-    billingRequirements: '开票要求',
-    address: '地址',
-  },
-  companies: {
-    nameCn: '公司中文名',
-    nameEn: '公司英文名',
-    abbreviation: '简称',
-    signingLocation: '签约地',
-    bankName: '开户行',
-    bankAccount: '银行账号',
-    swiftCode: 'SWIFT',
-    defaultCurrencyCode: '默认币种编码',
-    defaultCurrencyName: '默认币种',
-    taxId: '税号',
-    customsCode: '海关编码',
-    quarantineCode: '检疫编码',
-    addressCn: '中文地址',
-    addressEn: '英文地址',
-    contactPerson: '联系人',
-    contactPhone: '联系电话',
-    chiefAccountantId: '负责人',
-    chiefAccountantName: '负责人',
-  },
-  warehouses: {
-    name: '仓库名称',
-    warehouseCode: '仓库编码',
-    warehouseType: '仓库类型',
-    supplierId: '供应商',
-    supplierName: '供应商',
-    address: '地址',
-    defaultShipProvince: '默认发货省份',
-    defaultShipCity: '默认发货城市',
-    ownership: '权属',
-    isVirtual: '虚拟仓',
-    status: '状态',
-  },
-  suppliers: {
-    name: '供应商名称',
-    shortName: '简称',
-    supplierCode: '供应商编码',
-    contactPerson: '联系人',
-    contactPhone: '联系电话',
-    contactEmail: '联系邮箱',
-    address: '地址',
-    status: '状态',
-    supplierLevel: '供应商等级',
-    invoiceType: '发票类型',
-    origin: '来源',
-    annualRebateEnabled: '年返启用',
-    contractFrameworkFile: '框架合同文件',
-    contractTemplateName: '合同模板',
-    annualRebateNote: '年返说明',
-    contractTerms: '合同条款',
-    paymentTerms: '结算条款',
-  },
-  spus: {
-    spuCode: 'SPU 编码',
-    name: 'SPU 名称',
-    categoryId: '分类',
-    categoryLevel1Id: '一级分类',
-    categoryLevel2Id: '二级分类',
-    categoryLevel3Code: '三级分类编码',
-    unit: '单位',
-    manufacturerModel: '厂家型号',
-    customerWarrantyMonths: '客户质保(月)',
-    purchaseWarrantyMonths: '采购质保(月)',
-    supplierWarrantyNote: '供应商保修说明',
-    forbiddenCountries: '禁售国家',
-    invoiceName: '开票品名',
-    invoiceUnit: '开票单位',
-    invoiceModel: '开票型号',
-    supplierName: '供应商',
-    companyId: '合作主体',
-  },
-  skus: {
-    skuCode: 'SKU 编码',
-    spuId: 'SPU',
-    unitId: '单位',
-    nameCn: '中文名称',
-    nameEn: '英文名称',
-    specification: '规格',
-    status: '状态',
-    productType: '产品类型',
-    productModel: '产品型号',
-    accessoryParentSkuId: '配件母 SKU',
-    categoryLevel1Id: '一级分类',
-    categoryLevel2Id: '二级分类',
-    categoryLevel3Id: '三级分类',
-    principle: '原理',
-    productUsage: '产品用途',
-    coreParams: '核心参数',
-    electricalParams: '电气参数',
-    material: '材质',
-    hasPlug: '是否带插头',
-    specialAttributes: '特殊属性',
-    specialAttributesNote: '特殊属性说明',
-    customerWarrantyMonths: '客户质保(月)',
-    forbiddenCountries: '禁售国家',
-    weightKg: '净重(kg)',
-    grossWeightKg: '毛重(kg)',
-    lengthCm: '长(cm)',
-    widthCm: '宽(cm)',
-    heightCm: '高(cm)',
-    volumeCbm: '体积(cbm)',
-    packagingType: '包装类型',
-    packagingQty: '装箱数量',
-    packagingInfo: '包装信息',
-    packagingList: '包装清单',
-    hsCode: 'HS 编码',
-    customsNameCn: '报关中文名',
-    customsNameEn: '报关英文名',
-    declaredValueRef: '申报价参考',
-    declarationElements: '申报要素',
-    isInspectionRequired: '是否商检',
-    regulatoryConditions: '监管条件',
-    taxRefundRate: '退税率',
-    customsInfoMaintained: '报关信息已维护',
-    productImageUrl: '产品图片',
-    productImageUrls: '产品图片',
-  },
-  certificates: {
-    certificateNo: '证书编号',
-    certificateName: '证书名称',
-    certificateType: '证书类型',
-    directive: '指令法规',
-    issueDate: '签发日期',
-    validFrom: '生效日期',
-    validUntil: '失效日期',
-    issuingAuthority: '发证机构',
-    remarks: '备注',
-    attributionType: '归属类型',
-    categoryId: '分类',
-    spuIds: '关联 SPU',
-  },
-  'product-documents': {
-    documentName: '资料名称',
-    documentType: '资料类型',
-    content: '内容',
-    attributionType: '归属类型',
-    countryId: '国家/地区',
-    categoryLevel1Id: '一级分类',
-    categoryLevel2Id: '二级分类',
-    categoryLevel3Id: '三级分类',
-    spuId: 'SPU',
-  },
-  units: {
-    code: '单位编码',
-    name: '单位名称',
-    status: '状态',
-  },
-  'contract-templates': {
-    name: '模板名称',
-    templateFileKey: '模板文件',
-    templateFileName: '模板文件名',
-    description: '描述',
-    content: '条款内容',
-    isDefault: '默认模板',
-    requiresLegalReview: '需要法务审核',
-    status: '状态',
-    usageCount: '使用次数',
-  },
-  countries: {
-    code: '国家/地区代码',
-    name: '中文名称',
-    nameEn: '英文名称',
-    abbreviation: '简称',
-  },
-  currencies: {
-    code: '币种代码',
-    name: '币种名称',
-    symbol: '币种符号',
-    isBaseCurrency: '本位币',
-    status: '状态',
-  },
-  'logistics-providers': {
-    name: '物流商名称',
-    providerCode: '物流商编码',
-    shortName: '简称',
-    contactPerson: '联系人',
-    contactPhone: '联系电话',
-    contactEmail: '联系邮箱',
-    address: '地址',
-    status: '状态',
-    providerLevel: '服务等级',
-    defaultCompanyId: '默认合作主体',
-    defaultCompanyName: '默认合作主体',
-  },
-  ports: {
-    portType: '港口类型',
-    portCode: '港口编码',
-    nameCn: '中文名称',
-    nameEn: '英文名称',
-  },
-};
 
 const BOOLEAN_FIELDS = new Set([
   'isDefault',
@@ -559,12 +329,7 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
 };
 
 function resolveFieldLabel(resourceType: string, change: OperationLogChangeItem) {
-  return (
-    RESOURCE_FIELD_LABELS[resourceType]?.[change.field] ??
-    COMMON_FIELD_LABELS[change.field] ??
-    change.fieldLabel ??
-    change.field
-  );
+  return resolveOperationLogFieldLabel(resourceType, change.field, change.fieldLabel ?? change.field);
 }
 
 function formatActionText(
@@ -573,7 +338,9 @@ function formatActionText(
   changes: OperationLogChangeItem[],
 ) {
   const fieldText = changes.length
-    ? `涉及 ${changes.slice(0, 3).map((item) => resolveFieldLabel(resourceType, item)).join('、')}${changes.length > 3 ? ' 等字段' : ''}`
+    ? action === 'CREATE' && changes[0]?.field === OPERATION_LOG_CREATE_SUMMARY_FIELD
+      ? resolveFieldLabel(resourceType, changes[0])
+      : `涉及 ${changes.slice(0, 3).map((item) => resolveFieldLabel(resourceType, item)).join('、')}${changes.length > 3 ? ' 等字段' : ''}`
     : '无字段差异';
 
   if (action === 'CREATE') {
@@ -672,6 +439,17 @@ function normalizeChanges(
   const consumedFields = new Set<string>();
 
   return changes.flatMap((change, index) => {
+    if (change.field === OPERATION_LOG_CREATE_SUMMARY_FIELD) {
+      return [
+        {
+          key: `${change.field}-${index}`,
+          fieldLabel: OPERATION_LOG_CREATE_SUMMARY_LABEL,
+          oldValue: '—',
+          newValue: formatFieldValue(change.field, change.newValue),
+        },
+      ];
+    }
+
     if (consumedFields.has(change.field)) {
       return [];
     }

@@ -31,6 +31,7 @@ import { CertificatesModule } from './modules/master-data/certificates/certifica
 import { ProductDocumentsModule } from './modules/master-data/product-documents/product-documents.module';
 import { ContractTemplatesModule } from './modules/master-data/contract-templates/contract-templates.module';
 import { CustomersModule } from './modules/master-data/customers/customers.module';
+import { SalesOrdersModule } from './modules/sales-orders/sales-orders.module';
 import { OperationLogsModule } from './modules/operation-logs/operation-logs.module';
 import databaseConfig from './config/database.config';
 import { createLoggerConfig } from './config/logger.config';
@@ -61,6 +62,7 @@ import { createLoggerConfig } from './config/logger.config';
     PortsModule,
     LogisticsProvidersModule,
     CustomersModule,
+    SalesOrdersModule,
     ProductCategoriesModule,
     SuppliersModule,
     SpusModule,

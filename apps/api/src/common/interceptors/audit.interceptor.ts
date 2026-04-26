@@ -8,6 +8,12 @@ import { PinoLogger } from 'nestjs-pino';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { DataSource, type EntityMetadata, type ObjectLiteral, Repository } from 'typeorm';
+import {
+  OPERATION_LOG_CREATE_SUMMARY_FIELD,
+  OPERATION_LOG_CREATE_SUMMARY_LABEL,
+  OPERATION_LOG_CREATE_SUMMARY_VALUE,
+  resolveOperationLogFieldLabel,
+} from '@infitek/shared';
 import { OperationLogsService } from '../../modules/operation-logs/operation-logs.service';
 import {
   OperationLogAction,
@@ -37,14 +43,6 @@ const SENSITIVE_FIELDS = new Set([
   'refreshToken',
   'authorization',
 ]);
-const BASE_FIELD_LABELS: Record<string, string> = {
-  id: 'ID',
-  createdAt: '创建时间',
-  updatedAt: '更新时间',
-  createdBy: '创建人',
-  updatedBy: '更新人',
-  deletedAt: '删除时间',
-};
 const OMITTED_CHANGE_FIELDS = new Set([
   'id',
   'createdAt',
@@ -154,6 +152,7 @@ export class AuditInterceptor implements NestInterceptor {
         : afterSnapshot;
     const changeSummary = this.buildChangeSummary(
       auditContext.action,
+      auditContext.resourceType,
       auditContext.beforeSnapshot,
       normalizedAfterSnapshot,
       auditContext.requestSummary,
@@ -314,6 +313,7 @@ export class AuditInterceptor implements NestInterceptor {
 
   private buildChangeSummary(
     action: OperationLogAction,
+    resourceType: string,
     beforeSnapshot: EntitySnapshot,
     afterSnapshot: unknown,
     requestSummary: unknown,
@@ -326,14 +326,15 @@ export class AuditInterceptor implements NestInterceptor {
           : {};
 
     if (action === OperationLogAction.CREATE) {
-      return Object.entries(source)
-        .filter(([field]) => !OMITTED_CHANGE_FIELDS.has(field))
-        .map(([field, newValue]) => ({
-          field,
-          fieldLabel: this.humanizeField(field),
+      return [
+        {
+          field: OPERATION_LOG_CREATE_SUMMARY_FIELD,
+          fieldLabel: OPERATION_LOG_CREATE_SUMMARY_LABEL,
           oldValue: null,
-          newValue,
-        }));
+          newValue:
+            source && Object.keys(source).length ? OPERATION_LOG_CREATE_SUMMARY_VALUE : '已新增',
+        },
+      ];
     }
 
     if (action === OperationLogAction.DELETE) {
@@ -342,7 +343,7 @@ export class AuditInterceptor implements NestInterceptor {
         .filter(([field]) => !OMITTED_CHANGE_FIELDS.has(field))
         .map(([field, oldValue]) => ({
           field,
-          fieldLabel: this.humanizeField(field),
+          fieldLabel: this.humanizeField(resourceType, field),
           oldValue,
           newValue: null,
         }));
@@ -360,22 +361,14 @@ export class AuditInterceptor implements NestInterceptor {
       .filter((field) => !this.areValuesEqual(before[field], after[field]))
       .map((field) => ({
         field,
-        fieldLabel: this.humanizeField(field),
+        fieldLabel: this.humanizeField(resourceType, field),
         oldValue: before[field] ?? null,
         newValue: after[field] ?? null,
       }));
   }
 
-  private humanizeField(field: string) {
-    if (BASE_FIELD_LABELS[field]) {
-      return BASE_FIELD_LABELS[field];
-    }
-
-    return field
-      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-      .replace(/_/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+  private humanizeField(resourceType: string, field: string) {
+    return resolveOperationLogFieldLabel(resourceType, field);
   }
 
   private extractResourceId(snapshot: unknown) {
