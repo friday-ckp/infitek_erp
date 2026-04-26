@@ -18,6 +18,7 @@ Execution: Read `workflow/story-dev-workflow-single-repo.md` and follow the work
 ## Project Standards
 
 - Coding standards: refer to project-specific documentation (e.g. `docs/CODE_STYLE.md` or equivalent)
+- Operation log standards: all operation log changes must follow `docs/operation-log-standard.md`
 - Before making changes, read relevant existing code to understand patterns and conventions
 <!-- /bmad-project-config -->
 

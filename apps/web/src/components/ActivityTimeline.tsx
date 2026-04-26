@@ -9,12 +9,15 @@ import {
 import { getCompanyById } from '../api/companies.api';
 import { CONTRACT_TEMPLATE_STATUS_LABELS } from '../api/contract-templates.api';
 import { getCountryById } from '../api/countries.api';
+import { getCurrencyById } from '../api/currencies.api';
+import { getCustomerById } from '../api/customers.api';
 import { ATTRIBUTION_TYPE_LABELS, DOCUMENT_TYPE_LABELS } from '../api/product-documents.api';
 import {
   getOperationLogs,
   type OperationLogAction,
   type OperationLogChangeItem,
 } from '../api/operation-logs.api';
+import { getPortById } from '../api/ports.api';
 import { getProductCategoryById } from '../api/product-categories.api';
 import { getSkuById } from '../api/skus.api';
 import { getSpuById } from '../api/spus.api';
@@ -30,6 +33,15 @@ const DISPLAY_COMPANION_FIELDS: Record<string, string> = {
   defaultCompanyId: 'defaultCompanyName',
   chiefAccountantId: 'chiefAccountantName',
   companyId: 'companyName',
+  customerId: 'customerName',
+  destinationCountryId: 'destinationCountryName',
+  shipmentOriginCountryId: 'shipmentOriginCountryName',
+  signingCompanyId: 'signingCompanyName',
+  currencyId: 'currencyName',
+  destinationPortId: 'destinationPortName',
+  extraViewerId: 'extraViewerName',
+  merchandiserId: 'merchandiserName',
+  shipperOtherInfoCompanyId: 'shipperOtherInfoCompanyName',
 };
 
 
@@ -42,6 +54,19 @@ const BOOLEAN_FIELDS = new Set([
   'hasPlug',
   'isInspectionRequired',
   'customsInfoMaintained',
+  'isSharedOrder',
+  'isSinosure',
+  'isPalletized',
+  'requiresCustomsCertificate',
+  'isSplitInAdvance',
+  'usesMarketingFund',
+  'requiresExportCustoms',
+  'requiresWarrantyCard',
+  'requiresMaternityHandover',
+  'isInsured',
+  'isAliTradeAssurance',
+  'usesDefaultShippingMark',
+  'needsInvoice',
 ]);
 
 const ENUM_VALUE_LABELS: Record<string, Record<string, string>> = {
@@ -122,6 +147,91 @@ const ENUM_VALUE_LABELS: Record<string, Record<string, string>> = {
     ISO13485: 'ISO13485',
     其它: '其它',
   },
+  orderSource: {
+    manual: '手工创建',
+    third_party: '第三方导入',
+  },
+  domesticTradeType: {
+    domestic: '内销',
+    foreign: '外销',
+  },
+  orderType: {
+    sales: '销售订单',
+    after_sales: '售后订单',
+    sample: '样品订单',
+  },
+  paymentTerm: {
+    '100_tt_in_advance': '100% TT预付',
+    '30_deposit_70_balance_before_delivery': '30%定金 + 70%发货前付清',
+    '40_deposit_60_balance_before_delivery': '40%定金 + 60%发货前付清',
+    '50_deposit_50_balance_before_delivery': '50%定金 + 50%发货前付清',
+    '60_deposit_40_balance_before_delivery': '60%定金 + 40%发货前付清',
+    '70_deposit_30_balance_before_delivery': '70%定金 + 30%发货前付清',
+    '100_payment_before_delivery': '100%发货前付清',
+    '40_deposit_60_balance_against_bl_copy': '40%定金 + 60%见提单副本付清',
+    '50_deposit_50_balance_against_bl_copy': '50%定金 + 50%见提单副本付清',
+    '70_deposit_30_balance_against_bl_copy': '70%定金 + 30%见提单副本付清',
+    lc_at_sight: '即期信用证',
+    cad: '交单付款(CAD)',
+    dp_at_sight: '即期付款交单(D/P)',
+    da_30_days: '30天承兑交单(D/A)',
+    oa_30_days: '30天赊账(OA)',
+  },
+  tradeTerm: {
+    EXW: 'EXW 工厂交货',
+    FCA: 'FCA 货交承运人',
+    FOB: 'FOB 船上交货',
+    CFR: 'CFR 成本加运费',
+    CIF: 'CIF 成本保险加运费',
+    CIP: 'CIP 运费保险费付至',
+    CPT: 'CPT 运费付至',
+  },
+  transportationMethod: {
+    sea: '海运',
+    air: '空运',
+    road: '陆运',
+    rail: '铁路',
+    express: '快递',
+    other: '其它',
+  },
+  primaryIndustry: {
+    education: '教育',
+    government: '政府',
+    medical: '医疗',
+    enterprise: '企业',
+  },
+  secondaryIndustry: {
+    agriculture_college: '农学院',
+    food: '食品',
+    animal_science: '动物科学',
+    pharmacy: '药学',
+    medical_college: '医学院',
+    public_health: '公共卫生',
+    life_science: '生命科学',
+    environment: '环境',
+  },
+  orderNature: {
+    bidding: '招投标',
+    retail: '零售',
+    stock_prepare: '备货',
+  },
+  receiptStatus: {
+    unpaid: '未收款',
+    partially_paid: '部分收款',
+    paid: '已收款',
+  },
+  customsDeclarationMethod: {
+    self: '自理报关',
+    ali_one_touch: '一达通',
+  },
+  invoiceType: {
+    vat_special: '增值税专票',
+    vat_normal: '增值税普票',
+  },
+  blType: {
+    telex_release: '电放',
+    original: '正本',
+  },
 };
 
 const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, string>>> = {
@@ -165,6 +275,156 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, s
     status: {
       合作: '合作',
       淘汰: '淘汰',
+    },
+  },
+  'sales-orders': {
+    orderSource: {
+      manual: '手工创建',
+      third_party: '第三方导入',
+    },
+    domesticTradeType: {
+      domestic: '内销',
+      foreign: '外销',
+    },
+    orderType: {
+      sales: '销售订单',
+      after_sales: '售后订单',
+      sample: '样品订单',
+    },
+    paymentTerm: {
+      '100_tt_in_advance': '100% TT预付',
+      '30_deposit_70_balance_before_delivery': '30%定金 + 70%发货前付清',
+      '40_deposit_60_balance_before_delivery': '40%定金 + 60%发货前付清',
+      '50_deposit_50_balance_before_delivery': '50%定金 + 50%发货前付清',
+      '60_deposit_40_balance_before_delivery': '60%定金 + 40%发货前付清',
+      '70_deposit_30_balance_before_delivery': '70%定金 + 30%发货前付清',
+      '100_payment_before_delivery': '100%发货前付清',
+      '40_deposit_60_against_bl_copy': '40%定金 + 60%见提单副本付清',
+      '50_deposit_50_against_bl_copy': '50%定金 + 50%见提单副本付清',
+      '70_deposit_30_against_bl_copy': '70%定金 + 30%见提单副本付清',
+      lc_at_sight: '即期信用证',
+      cad: '交单付款(CAD)',
+      dp_at_sight: '即期付款交单(D/P)',
+      da_30_days: '30天承兑交单(D/A)',
+      oa_30_days: '30天赊账(OA)',
+    },
+    tradeTerm: {
+      EXW: 'EXW 工厂交货',
+      FCA: 'FCA 货交承运人',
+      FOB: 'FOB 船上交货',
+      CFR: 'CFR 成本加运费',
+      CIF: 'CIF 成本保险加运费',
+      CIP: 'CIP 运费保险费付至',
+      CPT: 'CPT 运费付至',
+    },
+    transportationMethod: {
+      sea: '海运',
+      air: '空运',
+      road: '陆运',
+      rail: '铁路',
+      express: '快递',
+      other: '其它',
+    },
+    primaryIndustry: {
+      education: '教育',
+      government: '政府',
+      medical: '医疗',
+      enterprise: '企业',
+    },
+    secondaryIndustry: {
+      agriculture_college: '农学院',
+      food: '食品',
+      animal_science: '动物科学',
+      pharmacy: '药学',
+      medical_college: '医学院',
+      public_health: '公共卫生',
+      life_science: '生命科学',
+      environment: '环境',
+    },
+    orderNature: {
+      bidding: '招投标',
+      retail: '零售',
+      stock_prepare: '备货',
+    },
+    receiptStatus: {
+      unpaid: '未收款',
+      partially_paid: '部分收款',
+      paid: '已收款',
+    },
+    status: {
+      pending_submit: '待提交',
+      in_review: '审核中',
+      approved: '审核通过',
+      rejected: '已拒绝',
+      preparing: '备货中',
+      prepared: '已备货',
+      partially_shipped: '部分发货',
+      shipped: '已发货',
+      voided: '已作废',
+    },
+    customsDeclarationMethod: {
+      self: '自理报关',
+      ali_one_touch: '一达通',
+    },
+    invoiceType: {
+      vat_special: '增值税专票',
+      vat_normal: '增值税普票',
+    },
+    blType: {
+      telex_release: '电放',
+      original: '正本',
+    },
+    isSharedOrder: {
+      yes: '是',
+      no: '否',
+    },
+    isSinosure: {
+      yes: '是',
+      no: '否',
+    },
+    isPalletized: {
+      yes: '是',
+      no: '否',
+    },
+    requiresCustomsCertificate: {
+      yes: '是',
+      no: '否',
+    },
+    isSplitInAdvance: {
+      yes: '是',
+      no: '否',
+    },
+    usesMarketingFund: {
+      yes: '是',
+      no: '否',
+    },
+    requiresExportCustoms: {
+      yes: '是',
+      no: '否',
+    },
+    requiresWarrantyCard: {
+      yes: '是',
+      no: '否',
+    },
+    requiresMaternityHandover: {
+      yes: '是',
+      no: '否',
+    },
+    isInsured: {
+      yes: '是',
+      no: '否',
+    },
+    isAliTradeAssurance: {
+      yes: '是',
+      no: '否',
+    },
+    usesDefaultShippingMark: {
+      yes: '是',
+      no: '否',
+    },
+    needsInvoice: {
+      yes: '是',
+      no: '否',
     },
   },
 };
@@ -214,7 +474,47 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
       queryFn: () => safeLoadLabel(async () => (await getCountryById(Number(id))).name),
     }),
   },
+  destinationCountryId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `country:${id}`,
+      queryKey: ['audit-lookup', 'country', id],
+      queryFn: () => safeLoadLabel(async () => (await getCountryById(Number(id))).name),
+    }),
+  },
+  shipmentOriginCountryId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `country:${id}`,
+      queryKey: ['audit-lookup', 'country', id],
+      queryFn: () => safeLoadLabel(async () => (await getCountryById(Number(id))).name),
+    }),
+  },
   salespersonId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `user:${id}`,
+      queryKey: ['audit-lookup', 'user', id],
+      queryFn: () =>
+        safeLoadLabel(async () => {
+          const user = await getUserById(id);
+          return user.name || user.username || null;
+        }),
+    }),
+  },
+  extraViewerId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `user:${id}`,
+      queryKey: ['audit-lookup', 'user', id],
+      queryFn: () =>
+        safeLoadLabel(async () => {
+          const user = await getUserById(id);
+          return user.name || user.username || null;
+        }),
+    }),
+  },
+  merchandiserId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `user:${id}`,
@@ -278,7 +578,31 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
       queryFn: () => safeLoadLabel(async () => (await getSupplierById(Number(id))).name),
     }),
   },
+  customerId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `customer:${id}`,
+      queryKey: ['audit-lookup', 'customer', id],
+      queryFn: () => safeLoadLabel(async () => (await getCustomerById(Number(id))).customerName),
+    }),
+  },
   companyId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `company:${id}`,
+      queryKey: ['audit-lookup', 'company', id],
+      queryFn: () => safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
+    }),
+  },
+  signingCompanyId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `company:${id}`,
+      queryKey: ['audit-lookup', 'company', id],
+      queryFn: () => safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
+    }),
+  },
+  shipperOtherInfoCompanyId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `company:${id}`,
@@ -292,6 +616,22 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
       cacheKey: `company:${id}`,
       queryKey: ['audit-lookup', 'company', id],
       queryFn: () => safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
+    }),
+  },
+  currencyId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `currency:${id}`,
+      queryKey: ['audit-lookup', 'currency', id],
+      queryFn: () => safeLoadLabel(async () => (await getCurrencyById(Number(id))).name),
+    }),
+  },
+  destinationPortId: {
+    resolveId: normalizeLookupId,
+    buildRequest: (id) => ({
+      cacheKey: `port:${id}`,
+      queryKey: ['audit-lookup', 'port', id],
+      queryFn: () => safeLoadLabel(async () => (await getPortById(Number(id))).nameCn),
     }),
   },
   categoryId: {
