@@ -847,14 +847,36 @@ export default function SalesOrderFormPage() {
                       <ProFormText name="electricalParams" label="电参数" readonly />
                       <ProFormSelect name="hasPlug" label="有无插头" options={YES_NO_OPTIONS} />
                       <ProFormSelect name="plugType" label="插头类型" options={PLUG_TYPE_OPTIONS} />
-                      <ProFormDigit name="unitPrice" label="销售单价" min={0} fieldProps={{ precision: 2 }} />
+                      <ProFormDigit
+                        name="unitPrice"
+                        label="销售单价"
+                        min={0}
+                        fieldProps={{ precision: 2 }}
+                        rules={[{ required: true, message: '请输入销售单价' }]}
+                      />
                       <ProFormSelect
                         name="currencyId"
                         label="币种"
                         showSearch
                         request={async (params) => requestCurrencies(params.keyWords)}
                       />
-                      <ProFormDigit name="quantity" label="签约数量" min={0} precision={0} />
+                      <ProFormDigit
+                        name="quantity"
+                        label="签约数量"
+                        min={1}
+                        precision={0}
+                        rules={[
+                          { required: true, message: '请输入签约数量' },
+                          {
+                            validator: async (_rule: unknown, value: unknown) => {
+                              if (value === undefined || value === null || value === '') return;
+                              if (Number(value) < 1) {
+                                throw new Error('签约数量必须大于等于 1');
+                              }
+                            },
+                          },
+                        ]}
+                      />
                       <ProFormSelect
                         name="purchaserId"
                         label="采购人员"
