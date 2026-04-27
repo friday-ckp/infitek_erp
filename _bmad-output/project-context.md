@@ -113,6 +113,17 @@ export type XxxStatus = typeof XxxStatus[keyof typeof XxxStatus];
 - 状态变更必须通过专用动作端点：`POST /:id/confirm`、`POST /:id/cancel` 等
 - **禁止**通过通用 `PATCH /:id` 直接修改状态字段
 
+### Epic 5-7 交易流强制上下文（关键）
+
+- 创建或开发 Epic 5-7 后续 Story（5.0、5.2-5.5、6.2-6.6、7.1-7.4）前，必须加载：
+  - `_bmad-output/planning-artifacts/flow-cross-document-trigger.md`
+  - `_bmad-output/planning-artifacts/flow-state-machine.md`
+  - `_bmad-output/planning-artifacts/flow-quantity-data-lineage.md`
+- 若 PRD、Architecture、UX、旧 Epic 文本或已完成 Story 与上述三份 flow 文档冲突，以三份 flow 文档为准。
+- 发货需求是履约数量权威单据；库存数量权威来源是 `inventory_summary`、`inventory_batch`、库存分配表和库存流水；销售订单明细上的履约数量字段只能作为展示缓存或聚合结果。
+- 状态推进必须由领域动作服务在事务内根据数量聚合结果触发，前端不得直接提交目标状态。
+- 跨单据动作必须保留幂等键、库存分配表、上游数量缓存回填和 ActivityTimeline/审计记录，避免重复确认导致数量重复累加。
+
 ### 数据库迁移
 
 - 生产环境禁止 `synchronize: true`
@@ -293,6 +304,7 @@ token: {
 - Commit 格式：Conventional Commits（`feat(scope): subject`）
 - 每个 Story 完成后更新 `_bmad-output/implementation-artifacts/sprint-status.yaml`
 - 并行开发必须使用 git worktree 隔离（`../worktrees/<BRANCH>`）
+- Epic 5-7 Story 文件的 Dev Notes 必须包含“三份 flow 文档已加载并作为冲突裁决依据”的明确记录；缺失时不得进入实现。
 
 ---
 

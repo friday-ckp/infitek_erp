@@ -33,6 +33,10 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 ### Context
 
 - `project_context` = `**/project-context.md` (load if exists)
+- Epic 5-7 mandatory flow context:
+  - `{project-root}/_bmad-output/planning-artifacts/flow-cross-document-trigger.md`
+  - `{project-root}/_bmad-output/planning-artifacts/flow-state-machine.md`
+  - `{project-root}/_bmad-output/planning-artifacts/flow-quantity-data-lineage.md`
 
 ---
 
@@ -162,6 +166,16 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
     <action>Load comprehensive context from story file's Dev Notes section</action>
     <action>Extract developer guidance from Dev Notes: architecture requirements, previous learnings, technical specifications</action>
     <action>Use enhanced story context to inform implementation decisions and approaches</action>
+    <check if="{{story_key}} starts with '5-' OR {{story_key}} starts with '6-' OR {{story_key}} starts with '7-'">
+      <critical>Epic 5-7 stories require mandatory transaction flow context before implementation.</critical>
+      <action>Verify Dev Notes contains `Epic 5-7 Mandatory Flow Context` or explicit references to all three mandatory flow files</action>
+      <action>Load COMPLETE `_bmad-output/planning-artifacts/flow-cross-document-trigger.md`</action>
+      <action>Load COMPLETE `_bmad-output/planning-artifacts/flow-state-machine.md`</action>
+      <action>Load COMPLETE `_bmad-output/planning-artifacts/flow-quantity-data-lineage.md`</action>
+      <action>Use these three flow documents as the conflict authority over older PRD, Architecture, UX, Epic, or previous Story text</action>
+      <action if="mandatory flow context is missing from Dev Notes">HALT: "Story is missing Epic 5-7 Mandatory Flow Context. Run bmad-create-story again or update the story Dev Notes before implementation."</action>
+      <action if="any mandatory flow file is inaccessible">HALT: "Cannot implement Epic 5-7 story without the three mandatory flow documents."</action>
+    </check>
 
     <action>Identify first incomplete task (unchecked [ ]) in Tasks/Subtasks</action>
 
@@ -180,6 +194,10 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
     <action>Load comprehensive context from story file's Dev Notes section</action>
     <action>Extract developer guidance from Dev Notes: architecture requirements, previous learnings, technical specifications</action>
     <action>Use enhanced story context to inform implementation decisions and approaches</action>
+    <check if="{{story_key}} starts with '5-' OR {{story_key}} starts with '6-' OR {{story_key}} starts with '7-'">
+      <action>Confirm the three mandatory flow documents are loaded and summarize their story-specific implications before coding</action>
+      <action>Apply flow guardrails throughout implementation: no direct target-state PATCH, no duplicate enums outside `packages/shared`, no temporary inventory APIs, no quantity writes outside domain action services, and no status advancement except through transaction-safe domain actions and quantity aggregation</action>
+    </check>
     <output>✅ **Context Loaded**
       Story and project context available for implementation
     </output>
@@ -379,6 +397,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
       - Dev Agent Record contains implementation notes
       - Change Log includes summary of changes
       - Only permitted story sections were modified
+      - For Epic 5-7 stories, implementation follows the three mandatory flow documents and the story records that they were used
     </action>
 
     <!-- Mark story ready for review - sprint status conditional -->

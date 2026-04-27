@@ -973,6 +973,13 @@ So that 销售员创建订单时可以直接选择客户，客户信息有唯一
 
 销售员可以按已落地状态机创建销售订单并完成提交审核/审核通过流转。系统先在 Story 5.0 前置建立 shared 交易状态枚举、库存双层结构、可用库存查询接口与期初库存录入；随后销售员可在审核通过的销售订单详情页手动触发生成发货需求单（含 SKU 应发量和真实库存查询）。商务跟单可以在发货需求枢纽详情页完成完整的库存决策——设置履行类型（全部采购/部分采购/使用现有库存），集中确认后系统按 FIFO 自动跨批次完成库存锁定，以及执行发货需求作废操作（释放锁定库存、销售订单回退、支持重新生成）。
 
+> **强制上下文（Epic 5-7 后续 Story 必读）**：自 2026-04-27 起，创建或开发 Epic 5-7 的任何后续 Story（包括 5.0、5.2-5.5、6.2-6.6、7.1-7.4）时，必须先加载并在 Story Dev Notes 中引用：
+> - `_bmad-output/planning-artifacts/flow-cross-document-trigger.md`
+> - `_bmad-output/planning-artifacts/flow-state-machine.md`
+> - `_bmad-output/planning-artifacts/flow-quantity-data-lineage.md`
+>
+> 若 PRD、Architecture、UX 或旧 Story 描述与上述三份 flow 文档冲突，以三份 flow 文档为准；实现不得跳过跨单据触发链、状态机、数量权威来源、库存分配表、幂等键和回填规则。
+
 **FRs covered:** FR21, FR22, FR23, FR24, FR26（完整实现）, FR28, FR29, FR30, FR39（基础模型）, FR40（期初录入）, FR43（可用库存查询）, FR49（完整实现）
 **NFRs addressed:** NFR-P4, NFR-P6
 **UX-DRs addressed:** UX-DR08, UX-DR09, UX-DR10, UX-DR12, UX-DR13, UX-DR15, UX-DR16, UX-DR18, UX-DR26, UX-DR27
@@ -1223,6 +1230,8 @@ So that 我可以从枢纽页一键操作，作废后系统状态干净彻底，
 
 库存双层数据模型、期初录入和可用库存查询接口已在 Epic 5 Story 5.0 前置落地。Epic 6 不再重复创建库存基础表和查询接口，而是在采购订单、收货入库、请购型收货自动锁定、库存变动流水中消费同一 InventoryModule。采购分组预览面板（按供应商分组确认）同时落地。
 
+> **强制上下文（Epic 5-7 后续 Story 必读）**：Epic 6 所有后续 Story 必须继承 Epic 5 上方列出的三份 flow 文档。请购型采购、收货入库、库存流水和收货后自动锁定必须遵守 `flow-quantity-data-lineage.md` 的数量权威来源、分配表、幂等键与上游数量缓存回填规则；采购订单状态必须遵守 `flow-state-machine.md`。
+
 **FRs covered:** FR27, FR35, FR36, FR37, FR38, FR42, FR43（历史变动流水查询）, FR44, FR45
 **NFRs addressed:** NFR-P5, NFR-P6, NFR-U3
 **UX-DRs addressed:** UX-DR11, UX-DR27, UX-DR29
@@ -1384,6 +1393,8 @@ So that 请购型物资到货即锁定，发货需求的库存分配自动完成
 ## Epic 7: 物流单与发货出库
 
 商务跟单可以从发货需求创建物流单（含装柜信息、港口、物流供应商），仓管可以创建出库单确认发货出库（扣减库存+释放锁定），发货完成后发货需求和销售订单状态自动流转至完成。
+
+> **强制上下文（Epic 5-7 后续 Story 必读）**：Epic 7 所有后续 Story 必须继承 Epic 5 上方列出的三份 flow 文档。物流计划数量只能来自已锁定且未计划出运的数量；出库确认必须消费发货需求库存分配记录，按数量数据流规则扣减实际库存、释放锁定量，并按状态机自动联动物流单、发货需求和销售订单。
 
 **FRs covered:** FR25, FR30, FR31, FR32, FR33, FR34, FR41, FR46, FR47, FR48
 **NFRs addressed:** NFR-P5, NFR-U3

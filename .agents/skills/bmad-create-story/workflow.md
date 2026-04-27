@@ -44,6 +44,7 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 | architecture | Architecture (fallback - epics file should have relevant sections) | whole: `{planning_artifacts}/*architecture*.md`, sharded: `{planning_artifacts}/*architecture*/*.md` | SELECTIVE_LOAD |
 | ux | UX design (fallback - epics file should have relevant sections) | whole: `{planning_artifacts}/*ux*.md`, sharded: `{planning_artifacts}/*ux*/*.md` | SELECTIVE_LOAD |
 | epics | Enhanced epics+stories file with BDD and source hints | whole: `{planning_artifacts}/*epic*.md`, sharded: `{planning_artifacts}/*epic*/*.md` | SELECTIVE_LOAD |
+| flow | Mandatory Epic 5-7 transaction flow context | whole: `{planning_artifacts}/flow-*.md` | SELECTIVE_LOAD |
 
 ---
 
@@ -210,11 +211,19 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
 
 <step n="2" goal="Load and analyze core artifacts">
   <critical>🔬 EXHAUSTIVE ARTIFACT ANALYSIS - This is where you prevent future developer mistakes!</critical>
+  <critical>For Epic 5-7 stories, load `_bmad-output/planning-artifacts/flow-cross-document-trigger.md`, `_bmad-output/planning-artifacts/flow-state-machine.md`, and `_bmad-output/planning-artifacts/flow-quantity-data-lineage.md` completely. Treat them as mandatory, conflict-resolving context over older PRD, Architecture, UX, Epic, or previous Story text.</critical>
 
   <!-- Load all available content through discovery protocol -->
   <action>Read fully and follow `./discover-inputs.md` to load all input files</action>
   <note>Available content: {epics_content}, {prd_content}, {architecture_content}, {ux_content},
-  {project_context}</note>
+  {flow_content}, {project_context}</note>
+  <check if="{{epic_num}} is 5, 6, or 7">
+    <action>Load COMPLETE file `{planning_artifacts}/flow-cross-document-trigger.md` into {flow_cross_document_trigger_content}</action>
+    <action>Load COMPLETE file `{planning_artifacts}/flow-state-machine.md` into {flow_state_machine_content}</action>
+    <action>Load COMPLETE file `{planning_artifacts}/flow-quantity-data-lineage.md` into {flow_quantity_data_lineage_content}</action>
+    <action>Extract mandatory developer guardrails: cross-document trigger chain, document state machines, quantity authority sources, inventory allocation table, idempotency keys, upstream quantity cache backfill, and conflict precedence rule</action>
+    <action if="any mandatory flow file is missing">HALT: "Epic 5-7 story creation requires flow-cross-document-trigger.md, flow-state-machine.md, and flow-quantity-data-lineage.md."</action>
+  </check>
 
   <!-- Analyze epics file for story foundation -->
   <action>From {epics_content}, extract Epic {{epic_num}} complete context:</action> **EPIC ANALYSIS:** - Epic
@@ -332,6 +341,14 @@ Load config from `{project-root}/_bmad/bmm/config.yaml` and resolve:
   <!-- Project context reference -->
   <template-output
     file="{default_output_file}">project_context_reference</template-output>
+  <check if="{{epic_num}} is 5, 6, or 7">
+    <action>Add a mandatory Dev Notes subsection titled `Epic 5-7 Mandatory Flow Context` containing:
+      - References to the three loaded flow documents by path
+      - A clear statement that these documents override conflicting PRD/Architecture/UX/Epic/previous Story text
+      - Story-specific implications from cross-document triggers, state machine transitions, quantity lineage, idempotency, and cache backfill
+      - An implementation boundary forbidding temporary inventory APIs, direct target-state PATCHes, duplicated enums, and quantity writes outside domain action services
+    </action>
+  </check>
 
   <!-- Final status update -->
   <template-output file="{default_output_file}">

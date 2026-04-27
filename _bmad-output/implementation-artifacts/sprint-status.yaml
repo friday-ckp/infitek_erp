@@ -33,9 +33,13 @@
 # - Stories can be worked in parallel if team capacity allows
 # - Developer typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Epic 5-7 backlog/ready stories require mandatory flow context before create-story/dev-story:
+#   _bmad-output/planning-artifacts/flow-cross-document-trigger.md
+#   _bmad-output/planning-artifacts/flow-state-machine.md
+#   _bmad-output/planning-artifacts/flow-quantity-data-lineage.md
 
 generated: 2026-04-15
-last_updated: 2026-04-27 (correct-course-inventory-foundation-precedes-5-2)
+last_updated: 2026-04-27 (correct-course-epic-5-7-mandatory-flow-context)
 project: infitek_erp
 
 project_key: NOKEY

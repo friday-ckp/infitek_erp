@@ -113,6 +113,11 @@ Example: dev story {epic}-{story}. Implementation complete; review only. BACKEND
 
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` exists (path may vary by project); Story is `backlog` or `ready-for-dev`
 - Have read `_bmad-output/project-context.md` and the project's coding standards documentation (if applicable)
+- For Epic 5-7 stories (`5-*`, `6-*`, `7-*`), the following flow documents are mandatory context before Story creation or implementation:
+  - `_bmad-output/planning-artifacts/flow-cross-document-trigger.md`
+  - `_bmad-output/planning-artifacts/flow-state-machine.md`
+  - `_bmad-output/planning-artifacts/flow-quantity-data-lineage.md`
+  If any of these are missing, stop before coding.
 
 ---
 
@@ -166,6 +171,8 @@ git branch -d story/{epic}-{story}-{slug}
 
 When Story is `backlog`, run `bmad-create-story` (working directory is the repository root where `_bmad-output/` resides); the branch is the current `BRANCH` in `$BACKEND_ROOT`.
 
+For Epic 5-7 stories, verify the created Story file contains a Dev Notes subsection named `Epic 5-7 Mandatory Flow Context` or equivalent explicit references to all three mandatory flow documents. If missing, update the Story context before continuing to implementation.
+
 ### 2.a. Field List Reference Check
 
 After the story file is created, ask the user whether there is a field list reference for the existing function:
@@ -186,6 +193,8 @@ If the story involves a list page, ask the user to confirm the following two ite
 ### 3. Implement Story
 
 In **`$BACKEND_ROOT`**, run `bmad-dev-story`; follow `project-context.md` conventions.
+
+For Epic 5-7 stories, the developer must load and apply the three mandatory flow documents before coding. These documents override conflicting older PRD, Architecture, UX, Epic, or previous Story text for cross-document triggers, state transitions, quantity authority, inventory allocation, idempotency, and upstream quantity cache backfill.
 
 ### 4. Build Verification (Optional)
 
