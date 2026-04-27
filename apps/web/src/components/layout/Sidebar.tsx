@@ -83,6 +83,7 @@ const menuItems = [
     section: SECTION_BUSINESS,
     key: 'inventory',
     label: '库存管理',
+    defaultPath: '/inventory',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <rect x="1.5" y="7" width="13" height="7.5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
@@ -210,7 +211,14 @@ export default function Sidebar() {
           item={item}
           isOpen={isOpen}
           hasActiveChild={hasActiveChild}
-          onToggle={() => item.children.length > 0 && toggleGroup(item.key)}
+          onToggle={() => {
+            if (item.defaultPath) {
+              navigate(item.defaultPath);
+              setOpenKeys((prev) => (prev.includes(item.key) ? prev : [...prev, item.key]));
+              return;
+            }
+            if (item.children.length > 0) toggleGroup(item.key);
+          }}
         />
         {/* 子菜单动画容器 */}
         <div style={{
