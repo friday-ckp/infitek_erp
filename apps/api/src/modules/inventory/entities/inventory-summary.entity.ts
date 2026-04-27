@@ -1,9 +1,11 @@
-import { Column, Entity, Index, Unique } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { Expose } from 'class-transformer';
 import { BaseEntity } from '../../../common/entities/base.entity';
 
 @Entity('inventory_summary')
-@Unique('uq_inventory_summary_sku_warehouse', ['skuId', 'warehouseId'])
+@Index('uq_inventory_summary_sku_warehouse', ['skuId', 'warehouseId'], {
+  unique: true,
+})
 @Index('idx_inventory_summary_sku_id', ['skuId'])
 @Index('idx_inventory_summary_warehouse_id', ['warehouseId'])
 export class InventorySummary extends BaseEntity {

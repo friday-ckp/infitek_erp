@@ -1,4 +1,10 @@
-import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex, TableUnique } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+  TableIndex,
+} from 'typeorm';
 
 export class CreateInventoryTables20260427000100 implements MigrationInterface {
   name = 'CreateInventoryTables20260427000100';
@@ -8,31 +14,61 @@ export class CreateInventoryTables20260427000100 implements MigrationInterface {
       new Table({
         name: 'inventory_summary',
         columns: [
-          { name: 'id', type: 'bigint', unsigned: true, isPrimary: true, isGenerated: true, generationStrategy: 'increment' },
+          {
+            name: 'id',
+            type: 'bigint',
+            unsigned: true,
+            isPrimary: true,
+            isGenerated: true,
+            generationStrategy: 'increment',
+          },
           { name: 'sku_id', type: 'bigint', unsigned: true },
           { name: 'warehouse_id', type: 'bigint', unsigned: true },
           { name: 'actual_quantity', type: 'int', default: 0 },
           { name: 'locked_quantity', type: 'int', default: 0 },
           { name: 'available_quantity', type: 'int', default: 0 },
-          { name: 'created_at', type: 'datetime', default: 'CURRENT_TIMESTAMP' },
-          { name: 'updated_at', type: 'datetime', default: 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' },
-          { name: 'created_by', type: 'varchar', length: '100', isNullable: true },
-          { name: 'updated_by', type: 'varchar', length: '100', isNullable: true },
+          {
+            name: 'created_at',
+            type: 'datetime',
+            default: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'updated_at',
+            type: 'datetime',
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'created_by',
+            type: 'varchar',
+            length: '100',
+            isNullable: true,
+          },
+          {
+            name: 'updated_by',
+            type: 'varchar',
+            length: '100',
+            isNullable: true,
+          },
         ],
       }),
       true,
     );
 
-    await queryRunner.createUniqueConstraint(
-      'inventory_summary',
-      new TableUnique({
+    await queryRunner.createIndices('inventory_summary', [
+      new TableIndex({
         name: 'uq_inventory_summary_sku_warehouse',
         columnNames: ['sku_id', 'warehouse_id'],
+        isUnique: true,
       }),
-    );
-    await queryRunner.createIndices('inventory_summary', [
-      new TableIndex({ name: 'idx_inventory_summary_sku_id', columnNames: ['sku_id'] }),
-      new TableIndex({ name: 'idx_inventory_summary_warehouse_id', columnNames: ['warehouse_id'] }),
+      new TableIndex({
+        name: 'idx_inventory_summary_sku_id',
+        columnNames: ['sku_id'],
+      }),
+      new TableIndex({
+        name: 'idx_inventory_summary_warehouse_id',
+        columnNames: ['warehouse_id'],
+      }),
     ]);
     await queryRunner.createForeignKeys('inventory_summary', [
       new TableForeignKey({
@@ -51,28 +87,71 @@ export class CreateInventoryTables20260427000100 implements MigrationInterface {
       new Table({
         name: 'inventory_batch',
         columns: [
-          { name: 'id', type: 'bigint', unsigned: true, isPrimary: true, isGenerated: true, generationStrategy: 'increment' },
+          {
+            name: 'id',
+            type: 'bigint',
+            unsigned: true,
+            isPrimary: true,
+            isGenerated: true,
+            generationStrategy: 'increment',
+          },
           { name: 'sku_id', type: 'bigint', unsigned: true },
           { name: 'warehouse_id', type: 'bigint', unsigned: true },
           { name: 'batch_quantity', type: 'int', default: 0 },
           { name: 'batch_locked_quantity', type: 'int', default: 0 },
           { name: 'source_type', type: 'varchar', length: '40' },
-          { name: 'source_document_id', type: 'bigint', unsigned: true, isNullable: true },
+          {
+            name: 'source_document_id',
+            type: 'bigint',
+            unsigned: true,
+            isNullable: true,
+          },
           { name: 'receipt_date', type: 'date' },
-          { name: 'created_at', type: 'datetime', default: 'CURRENT_TIMESTAMP' },
-          { name: 'updated_at', type: 'datetime', default: 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' },
-          { name: 'created_by', type: 'varchar', length: '100', isNullable: true },
-          { name: 'updated_by', type: 'varchar', length: '100', isNullable: true },
+          {
+            name: 'created_at',
+            type: 'datetime',
+            default: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'updated_at',
+            type: 'datetime',
+            default: 'CURRENT_TIMESTAMP',
+            onUpdate: 'CURRENT_TIMESTAMP',
+          },
+          {
+            name: 'created_by',
+            type: 'varchar',
+            length: '100',
+            isNullable: true,
+          },
+          {
+            name: 'updated_by',
+            type: 'varchar',
+            length: '100',
+            isNullable: true,
+          },
         ],
       }),
       true,
     );
 
     await queryRunner.createIndices('inventory_batch', [
-      new TableIndex({ name: 'idx_inventory_batch_sku_id', columnNames: ['sku_id'] }),
-      new TableIndex({ name: 'idx_inventory_batch_warehouse_id', columnNames: ['warehouse_id'] }),
-      new TableIndex({ name: 'idx_inventory_batch_source', columnNames: ['source_type', 'source_document_id'] }),
-      new TableIndex({ name: 'idx_inventory_batch_fifo', columnNames: ['sku_id', 'warehouse_id', 'receipt_date', 'id'] }),
+      new TableIndex({
+        name: 'idx_inventory_batch_sku_id',
+        columnNames: ['sku_id'],
+      }),
+      new TableIndex({
+        name: 'idx_inventory_batch_warehouse_id',
+        columnNames: ['warehouse_id'],
+      }),
+      new TableIndex({
+        name: 'idx_inventory_batch_source',
+        columnNames: ['source_type', 'source_document_id'],
+      }),
+      new TableIndex({
+        name: 'idx_inventory_batch_fifo',
+        columnNames: ['sku_id', 'warehouse_id', 'receipt_date', 'id'],
+      }),
     ]);
     await queryRunner.createForeignKeys('inventory_batch', [
       new TableForeignKey({
