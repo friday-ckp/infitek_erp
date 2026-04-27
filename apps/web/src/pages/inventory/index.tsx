@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Button, Empty, Result, Select, Skeleton, Statistic, Tag, Typography, message } from 'antd';
+import { Button, Empty, Result, Select, Skeleton, message } from 'antd';
 import { ProForm, ProFormDatePicker, ProFormDigit, ProFormSelect, ProTable, type ProFormInstance } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -9,6 +9,7 @@ import { getSkus, type Sku } from '../../api/skus.api';
 import { getWarehouses, type Warehouse } from '../../api/warehouses.api';
 import { SectionCard } from '../master-data/components/page-scaffold';
 import '../master-data/master-page.css';
+import './inventory.css';
 
 interface InventoryRow extends AvailableInventoryItem {
   key: string;
@@ -25,8 +26,25 @@ interface OpeningInventoryFormValues {
 }
 
 function inventoryTag(value: number) {
-  if (value > 0) return <Tag color="success">可用 {value}</Tag>;
-  return <Tag color="error">无可用库存</Tag>;
+  if (value > 0) return <span className="inventory-availability-tag positive">可用 {value}</span>;
+  return <span className="inventory-availability-tag empty">无可用库存</span>;
+}
+
+function InventoryMetric({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: number;
+  tone: 'actual' | 'locked' | 'available';
+}) {
+  return (
+    <div className={`inventory-metric inventory-metric-${tone}`}>
+      <div className="inventory-metric-label">{label}</div>
+      <div className="inventory-metric-value">{value}</div>
+    </div>
+  );
 }
 
 export default function InventoryPage() {
@@ -129,43 +147,43 @@ export default function InventoryPage() {
     {
       title: 'SKU',
       dataIndex: 'skuCode',
-      width: 220,
+      width: 200,
       render: (_, record) => (
-        <div>
-          <Typography.Text strong>{record.skuCode ?? `SKU #${record.skuId}`}</Typography.Text>
-          <div style={{ color: '#64748b', fontSize: 12 }}>{record.skuName ?? '-'}</div>
+        <div className="inventory-sku-cell">
+          <div className="inventory-sku-code">{record.skuCode ?? `SKU #${record.skuId}`}</div>
+          <div className="inventory-sku-name">{record.skuName ?? '-'}</div>
         </div>
       ),
     },
     {
       title: '仓库',
       dataIndex: 'warehouseName',
-      width: 180,
+      width: 150,
       render: (_, record) => record.warehouseName,
     },
     {
       title: '实际库存',
       dataIndex: 'actualQuantity',
-      width: 120,
+      width: 105,
       align: 'right',
     },
     {
       title: '锁定量',
       dataIndex: 'lockedQuantity',
-      width: 120,
+      width: 105,
       align: 'right',
     },
     {
       title: '可用库存',
       dataIndex: 'availableQuantity',
-      width: 140,
+      width: 125,
       align: 'right',
       render: (_, record) => inventoryTag(record.availableQuantity),
     },
     {
       title: '更新时间',
       dataIndex: 'updatedAt',
-      width: 160,
+      width: 145,
       render: (_, record) => (record.updatedAt ? dayjs(record.updatedAt).format('YYYY-MM-DD HH:mm') : '-'),
     },
   ];
@@ -183,11 +201,21 @@ export default function InventoryPage() {
   const loadingBase = skusQuery.isLoading || warehousesQuery.isLoading;
 
   return (
-    <div className="master-page master-form-page">
-      <div className="master-page-header">
+    <div className="master-page master-form-page inventory-page">
+      <div className="master-page-header inventory-page-header">
         <div className="master-page-heading">
           <div className="master-page-title">库存查询</div>
           <div className="master-page-description">维护 SKU + 仓库的期初库存，并查看实际库存、锁定量和可用库存。</div>
+        </div>
+        <div className="inventory-header-summary" aria-label="库存基础数据">
+          <div className="inventory-header-count">
+            <span>SKU</span>
+            <strong>{skuOptions.length}</strong>
+          </div>
+          <div className="inventory-header-count">
+            <span>仓库</span>
+            <strong>{warehouseOptions.length}</strong>
+          </div>
         </div>
       </div>
 
@@ -195,7 +223,12 @@ export default function InventoryPage() {
         <Skeleton active />
       ) : (
         <div className="master-form-main">
-          <SectionCard id="opening" title="期初库存录入" description="同一 SKU + 仓库再次提交会覆盖期初批次数量，并重算汇总库存。">
+          <SectionCard
+            id="opening"
+            title="期初库存录入"
+            description="同一 SKU + 仓库再次提交会覆盖期初批次数量，并重算汇总库存。"
+            extra={<span className="inventory-section-badge">期初批次</span>}
+          >
             <ProForm<OpeningInventoryFormValues>
               formRef={formRef}
               layout="vertical"
@@ -212,7 +245,7 @@ export default function InventoryPage() {
                 return true;
               }}
             >
-              <div className="master-form-grid">
+              <div className="master-form-grid inventory-opening-grid">
                 <ProFormSelect
                   name="skuId"
                   label="SKU"
@@ -238,7 +271,7 @@ export default function InventoryPage() {
                 />
                 <ProFormDatePicker name="receiptDate" label="入库日期" />
               </div>
-              <div className="master-form-footer" style={{ position: 'static', marginTop: 0 }}>
+              <div className="master-form-footer inventory-form-footer">
                 <div className="master-form-footer-tip">保存后库存汇总会立即按批次聚合结果刷新。</div>
                 <div className="master-form-footer-actions">
                   <Button onClick={() => formRef.current?.resetFields()}>重置</Button>
@@ -254,9 +287,15 @@ export default function InventoryPage() {
             </ProForm>
           </SectionCard>
 
-          <SectionCard id="query" title="可用库存查询" description="供后续发货需求生成和库存决策复用的正式查询口径。">
-            <div className="master-form-grid">
-              <div className="full">
+          <SectionCard
+            id="query"
+            title="可用库存查询"
+            description="供后续发货需求生成和库存决策复用的正式查询口径。"
+            extra={<span className={`inventory-query-status ${canQuery ? 'ready' : 'idle'}`}>{canQuery ? `已选 ${selectedSkuIds.length} 个 SKU` : '待选择 SKU'}</span>}
+          >
+            <div className="inventory-query-toolbar">
+              <label className="inventory-query-field inventory-query-field-sku">
+                <span className="inventory-query-label">SKU 范围</span>
                 <Select<number[]>
                   mode="multiple"
                   allowClear
@@ -268,19 +307,23 @@ export default function InventoryPage() {
                   onChange={setSelectedSkuIds}
                   style={{ width: '100%' }}
                 />
-              </div>
-              <Select<number>
-                allowClear
-                showSearch
-                optionFilterProp="label"
-                placeholder="限定仓库（可选）"
-                options={warehouseOptions}
-                value={selectedWarehouseId}
-                onChange={setSelectedWarehouseId}
-                style={{ width: '100%' }}
-              />
+              </label>
+              <label className="inventory-query-field">
+                <span className="inventory-query-label">仓库</span>
+                <Select<number>
+                  allowClear
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder="全部仓库"
+                  options={warehouseOptions}
+                  value={selectedWarehouseId}
+                  onChange={setSelectedWarehouseId}
+                  style={{ width: '100%' }}
+                />
+              </label>
               <Button
                 type="primary"
+                className="inventory-query-button"
                 disabled={!canQuery}
                 loading={availableQuery.isFetching}
                 onClick={() => availableQuery.refetch()}
@@ -289,10 +332,10 @@ export default function InventoryPage() {
               </Button>
             </div>
 
-            <div className="master-summary-meta" style={{ marginBottom: 16 }}>
-              <Statistic title="实际库存" value={totals.actualQuantity} />
-              <Statistic title="锁定量" value={totals.lockedQuantity} />
-              <Statistic title="可用库存" value={totals.availableQuantity} />
+            <div className="inventory-metric-strip">
+              <InventoryMetric label="实际库存" value={totals.actualQuantity} tone="actual" />
+              <InventoryMetric label="锁定量" value={totals.lockedQuantity} tone="locked" />
+              <InventoryMetric label="可用库存" value={totals.availableQuantity} tone="available" />
             </div>
 
             <div className="master-table-shell">
@@ -307,7 +350,7 @@ export default function InventoryPage() {
                 locale={{
                   emptyText: canQuery ? <Empty description="暂无库存记录" /> : <Empty description="请选择 SKU 后查询" />,
                 }}
-                scroll={{ x: 940 }}
+                scroll={{ x: 830 }}
               />
             </div>
           </SectionCard>
