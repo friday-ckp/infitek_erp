@@ -35,7 +35,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-15
-last_updated: 2026-04-26 (story-5-1-done)
+last_updated: 2026-04-27 (correct-course-inventory-foundation-precedes-5-2)
 project: infitek_erp
 
 project_key: NOKEY
@@ -104,6 +104,7 @@ development_status:
   # ─────────────────────────────────────────────────
   epic-5: in-progress
   5-1-销售订单创建与确认: done
+  5-0-库存双层结构查询接口与期初录入: backlog
   5-2-销售订单列表与详情: backlog
   5-3-发货需求列表页: backlog
   5-4-发货需求枢纽详情页: backlog
@@ -114,7 +115,6 @@ development_status:
   # Epic 6: 采购订单与收货入库
   # ─────────────────────────────────────────────────
   epic-6: backlog
-  6-1-库存双层结构查询接口与期初录入: backlog
   6-2-库存变动流水: backlog
   6-3-采购订单创建与确认: backlog
   6-4-采购订单列表与详情: backlog
