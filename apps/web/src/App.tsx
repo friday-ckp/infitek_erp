@@ -225,6 +225,7 @@ function App() {
                   <Route path="/sales-orders" element={<SalesOrdersListPage />} />
                   <Route path="/sales-orders/create" element={<SalesOrderFormPage />} />
                   <Route path="/sales-orders/:id" element={<SalesOrderDetailPage />} />
+                  <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/inventory/*" element={<InventoryPage />} />
                 </Route>
 

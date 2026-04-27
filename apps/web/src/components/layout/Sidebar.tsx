@@ -178,7 +178,7 @@ export default function Sidebar() {
   const systemItems = menuItems.filter(i => i.section === SECTION_SYSTEM);
 
   const renderMenuGroup = (item: typeof menuItems[0]) => {
-    const isOpen = openKeys.includes(item.key);
+    const isOpen = openKeys.includes(item.key) || Boolean(item.defaultPath);
     const hasActiveChild = item.children.some((c) => isChildRouteActive(location.pathname, c.key));
 
     if (item.disabled) {
@@ -221,11 +221,15 @@ export default function Sidebar() {
           }}
         />
         {/* 子菜单动画容器 */}
-        <div style={{
-          overflow: 'hidden',
-          maxHeight: isOpen ? 500 : 0,
-          transition: 'max-height 0.25s cubic-bezier(.4,0,.2,1)',
-        }}>
+        <div
+          aria-hidden={!isOpen}
+          style={{
+            display: isOpen ? 'block' : 'none',
+            overflow: 'hidden',
+            maxHeight: isOpen ? 500 : 0,
+            transition: 'max-height 0.25s cubic-bezier(.4,0,.2,1)',
+          }}
+        >
           <div style={{ padding: '3px 0 6px 0' }}>
             {item.children.map((child) => {
               const isActive = isChildRouteActive(location.pathname, child.key);
@@ -233,6 +237,7 @@ export default function Sidebar() {
                 <ChildItem
                   key={child.key}
                   label={child.label}
+                  path={child.key}
                   isActive={isActive}
                   onClick={() => navigate(child.key)}
                 />
@@ -387,12 +392,27 @@ function ParentItem({
   );
 }
 
-function ChildItem({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
+function ChildItem({
+  label,
+  path,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  path: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
-      onClick={onClick}
+      data-menu-path={path}
+      data-testid={`sidebar-menu-${path.replace(/^\//, '').replace(/\//g, '-') || 'home'}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
