@@ -1,17 +1,22 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   DomesticTradeType,
+  FulfillmentType,
+  InventoryChangeType,
   SalesOrderStatus,
   SalesOrderSource,
   SalesOrderType,
+  ShippingDemandAllocationStatus,
   ShippingDemandStatus,
   YesNo,
 } from '@infitek/shared';
+import { InventoryTransaction } from '../../inventory/entities/inventory-transaction.entity';
 import {
   OperationLog,
   OperationLogAction,
 } from '../../operation-logs/entities/operation-log.entity';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
+import { ShippingDemandInventoryAllocation } from '../entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from '../entities/shipping-demand-item.entity';
 import { ShippingDemand } from '../entities/shipping-demand.entity';
 import { ShippingDemandsService } from '../shipping-demands.service';
@@ -24,6 +29,7 @@ describe('ShippingDemandsService', () => {
   };
   const inventoryService = {
     findAvailable: jest.fn(),
+    lockStockInTransaction: jest.fn(),
   };
   const filesService = {
     getSignedUrl: jest.fn(),
@@ -153,6 +159,35 @@ describe('ShippingDemandsService', () => {
     ],
   });
 
+  const makeDemandForAllocation = (
+    overrides: Partial<ShippingDemand> = {},
+  ): Partial<ShippingDemand> => ({
+    id: 500,
+    demandCode: 'SD2026042800001',
+    salesOrderId: 10,
+    sourceDocumentCode: 'SO2026042800001',
+    status: ShippingDemandStatus.PENDING_ALLOCATION,
+    items: [
+      {
+        id: 700,
+        shippingDemandId: 500,
+        salesOrderItemId: 101,
+        skuId: 11,
+        skuCode: 'SKU001',
+        productNameCn: '离心机',
+        requiredQuantity: 2,
+        fulfillmentType: null,
+        stockRequiredQuantity: 0,
+        purchaseRequiredQuantity: 0,
+        lockedRemainingQuantity: 0,
+        shippedQuantity: 0,
+        purchaseOrderedQuantity: 0,
+        receivedQuantity: 0,
+      } as ShippingDemandItem,
+    ],
+    ...overrides,
+  });
+
   const makeQueryBuilder = (result: unknown) => {
     const qb = {
       leftJoinAndSelect: jest.fn(() => qb),
@@ -177,7 +212,9 @@ describe('ShippingDemandsService', () => {
     if (entity === ShippingDemand) {
       return {
         createQueryBuilder: jest.fn(() =>
-          makeQueryBuilder(state.existingDemand ?? state.latestDemand ?? null),
+          makeQueryBuilder(
+            state.demand ?? state.existingDemand ?? state.latestDemand ?? null,
+          ),
         ),
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
@@ -190,7 +227,32 @@ describe('ShippingDemandsService', () => {
       return {
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
-          state.savedItems = data;
+          if (Array.isArray(data)) {
+            state.savedItems = data;
+          } else {
+            state.savedAllocationItems = [
+              ...((state.savedAllocationItems as unknown[]) ?? []),
+              { ...data },
+            ];
+          }
+          return data;
+        }),
+      };
+    }
+    if (entity === ShippingDemandInventoryAllocation) {
+      return {
+        create: jest.fn((data) => data),
+        save: jest.fn().mockImplementation(async (data) => {
+          state.savedAllocations = data;
+          return data;
+        }),
+      };
+    }
+    if (entity === InventoryTransaction) {
+      return {
+        create: jest.fn((data) => data),
+        save: jest.fn().mockImplementation(async (data) => {
+          state.savedInventoryTransactions = data;
           return data;
         }),
       };
@@ -373,6 +435,214 @@ describe('ShippingDemandsService', () => {
         ],
       }),
     );
+  });
+
+  it('confirms allocation and prepares demand when all items use stock', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      items: [{ id: 700, lockedRemainingQuantity: 2 }],
+    });
+    inventoryService.lockStockInTransaction.mockResolvedValue({
+      summary: {
+        actualQuantity: 5,
+        lockedQuantity: 2,
+        availableQuantity: 3,
+      },
+      batches: [],
+      allocations: [{ batchId: 901, quantity: 2 }],
+    });
+
+    const result = await service.confirmAllocation(
+      500,
+      {
+        items: [
+          {
+            itemId: 700,
+            fulfillmentType: FulfillmentType.USE_STOCK,
+            stockQuantity: 2,
+            warehouseId: 22,
+          },
+        ],
+      },
+      'admin',
+    );
+
+    expect(result.status).toBe(ShippingDemandStatus.PREPARED);
+    expect(queryRunner.commitTransaction).toHaveBeenCalled();
+    expect(inventoryService.lockStockInTransaction).toHaveBeenCalledWith(
+      queryRunner,
+      {
+        skuId: 11,
+        warehouseId: 22,
+        quantity: 2,
+        operator: 'admin',
+      },
+    );
+    expect(state.savedAllocationItems).toEqual([
+      expect.objectContaining({
+        id: 700,
+        fulfillmentType: FulfillmentType.USE_STOCK,
+        stockRequiredQuantity: 2,
+        purchaseRequiredQuantity: 0,
+        lockedRemainingQuantity: 2,
+      }),
+    ]);
+    expect(state.savedDemand).toEqual(
+      expect.objectContaining({ status: ShippingDemandStatus.PREPARED }),
+    );
+    expect(state.salesOrderUpdate).toEqual({
+      status: SalesOrderStatus.PREPARED,
+      updatedBy: 'admin',
+    });
+    expect(state.savedAllocations).toEqual([
+      expect.objectContaining({
+        shippingDemandId: 500,
+        shippingDemandItemId: 700,
+        inventoryBatchId: 901,
+        lockedQuantity: 2,
+        status: ShippingDemandAllocationStatus.ACTIVE,
+      }),
+    ]);
+    expect(state.savedInventoryTransactions).toEqual([
+      expect.objectContaining({
+        changeType: InventoryChangeType.LOCK,
+        lockedQuantityDelta: 2,
+        availableQuantityDelta: -2,
+        sourceDocumentType: 'shipping_demand',
+        sourceDocumentId: 500,
+        sourceDocumentItemId: 700,
+      }),
+    ]);
+    expect(state.savedOperationLog).toEqual(
+      expect.objectContaining({
+        resourceType: 'shipping-demands',
+        resourceId: '500',
+      }),
+    );
+  });
+
+  it('confirms allocation and keeps demand purchasing when purchase quantity remains', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PURCHASING,
+      items: [{ id: 700, lockedRemainingQuantity: 1 }],
+    });
+    inventoryService.lockStockInTransaction.mockResolvedValue({
+      summary: {
+        actualQuantity: 5,
+        lockedQuantity: 1,
+        availableQuantity: 4,
+      },
+      batches: [],
+      allocations: [{ batchId: 901, quantity: 1 }],
+    });
+
+    await service.confirmAllocation(
+      500,
+      {
+        items: [
+          {
+            itemId: 700,
+            fulfillmentType: FulfillmentType.PARTIAL_PURCHASE,
+            stockQuantity: 1,
+            warehouseId: 22,
+          },
+        ],
+      },
+      'admin',
+    );
+
+    expect(state.savedAllocationItems).toEqual([
+      expect.objectContaining({
+        fulfillmentType: FulfillmentType.PARTIAL_PURCHASE,
+        stockRequiredQuantity: 1,
+        purchaseRequiredQuantity: 1,
+        lockedRemainingQuantity: 1,
+      }),
+    ]);
+    expect(state.savedDemand).toEqual(
+      expect.objectContaining({ status: ShippingDemandStatus.PURCHASING }),
+    );
+    expect(state.salesOrderUpdate).toBeUndefined();
+  });
+
+  it('rejects confirming allocation for non-pending demand', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.PURCHASING,
+      }),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.confirmAllocation(
+        500,
+        {
+          items: [
+            {
+              itemId: 700,
+              fulfillmentType: FulfillmentType.USE_STOCK,
+              stockQuantity: 2,
+              warehouseId: 22,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(inventoryService.lockStockInTransaction).not.toHaveBeenCalled();
+  });
+
+  it('rolls back when stock is insufficient during allocation confirmation', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    inventoryService.lockStockInTransaction.mockRejectedValue(
+      new BadRequestException({
+        code: 'STOCK_INSUFFICIENT',
+        message: '可用库存不足，当前可用 1',
+      }),
+    );
+
+    await expect(
+      service.confirmAllocation(
+        500,
+        {
+          items: [
+            {
+              itemId: 700,
+              fulfillmentType: FulfillmentType.USE_STOCK,
+              stockQuantity: 2,
+              warehouseId: 22,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(queryRunner.commitTransaction).not.toHaveBeenCalled();
+    expect(state.savedAllocations).toBeUndefined();
+    expect(state.savedInventoryTransactions).toBeUndefined();
+    expect(state.savedDemand).toBeUndefined();
   });
 
   it('retries demand code duplicate key conflicts', async () => {

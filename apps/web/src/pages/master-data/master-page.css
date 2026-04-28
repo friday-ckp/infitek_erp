@@ -912,6 +912,11 @@
   background: #fef2f2;
 }
 
+.shipping-demand-allocation-control {
+  width: 100%;
+  min-width: 110px;
+}
+
 @media (max-width: 1200px) {
   .master-summary-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));

@@ -185,6 +185,17 @@ export interface ShippingDemandListData {
   totalPages: number;
 }
 
+export interface ConfirmShippingDemandAllocationItemPayload {
+  itemId: number;
+  fulfillmentType: FulfillmentType;
+  stockQuantity: number;
+  warehouseId?: number;
+}
+
+export interface ConfirmShippingDemandAllocationPayload {
+  items: ConfirmShippingDemandAllocationItemPayload[];
+}
+
 function normalizeApiError(error: unknown): never {
   if (typeof error === 'object' && error !== null) throw error;
   throw { message: '请求失败，请稍后重试' };
@@ -210,4 +221,15 @@ export const generateShippingDemandFromSalesOrder = (
 export const getShippingDemandById = (id: number): Promise<ShippingDemand> =>
   request
     .get<unknown, ShippingDemand>(`/shipping-demands/${id}`)
+    .catch(normalizeApiError);
+
+export const confirmShippingDemandAllocation = (
+  id: number,
+  payload: ConfirmShippingDemandAllocationPayload,
+): Promise<ShippingDemand> =>
+  request
+    .post<unknown, ShippingDemand>(
+      `/shipping-demands/${id}/confirm-allocation`,
+      payload,
+    )
     .catch(normalizeApiError);
