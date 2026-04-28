@@ -1,5 +1,5 @@
-import { Button, Image, Popconfirm, Result, Skeleton, Space, Table, message } from 'antd';
-import { SalesOrderSource } from '@infitek/shared';
+import { App, Button, Image, Popconfirm, Result, Skeleton, Space, Table } from 'antd';
+import { SalesOrderSource, ShippingDemandStatus } from '@infitek/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
@@ -13,6 +13,7 @@ import {
   voidSalesOrder,
   type SalesOrder,
 } from '../../api/sales-orders.api';
+import { generateShippingDemandFromSalesOrder } from '../../api/shipping-demands.api';
 import {
   AnchorNav,
   MetaItem,
@@ -34,6 +35,15 @@ const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
   voided: { className: 'master-pill-red', text: '已作废' },
 };
 
+const SHIPPING_DEMAND_STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
+  [ShippingDemandStatus.PENDING_ALLOCATION]: { className: 'master-pill-blue', text: '待分配库存' },
+  [ShippingDemandStatus.PURCHASING]: { className: 'master-pill-orange', text: '采购中' },
+  [ShippingDemandStatus.PREPARED]: { className: 'master-pill-success', text: '备货完成' },
+  [ShippingDemandStatus.PARTIALLY_SHIPPED]: { className: 'master-pill-orange', text: '部分发货' },
+  [ShippingDemandStatus.SHIPPED]: { className: 'master-pill-success', text: '已发货' },
+  [ShippingDemandStatus.VOIDED]: { className: 'master-pill-red', text: '已作废' },
+};
+
 const ORDER_SOURCE_LABELS: Record<string, string> = {
   [SalesOrderSource.MANUAL]: '手工录单',
   [SalesOrderSource.THIRD_PARTY]: '第三方获取',
@@ -42,6 +52,7 @@ const ORDER_SOURCE_LABELS: Record<string, string> = {
 export default function SalesOrderDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { message, notification } = App.useApp();
   const { id = '' } = useParams();
   const salesOrderId = Number(id);
   const [activeAnchor, setActiveAnchor] = useState('basic');
@@ -69,6 +80,24 @@ export default function SalesOrderDetailPage() {
   const approveMutation = makeStatusMutation(approveSalesOrder, '订单已审核通过');
   const rejectMutation = makeStatusMutation(rejectSalesOrder, '订单已驳回');
   const voidMutation = makeStatusMutation(voidSalesOrder, '订单已作废');
+  const generateShippingDemandMutation = useMutation({
+    mutationFn: () => generateShippingDemandFromSalesOrder(salesOrderId),
+    onSuccess: (demand) => {
+      queryClient.invalidateQueries({ queryKey: ['sales-order-detail', salesOrderId] });
+      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['shipping-demands'] });
+      notification.success({
+        message: '发货需求已生成',
+        description: (
+          <span>
+          发货需求已生成：
+          <a onClick={() => navigate(`/shipping-demands/${demand.id}`)}>{demand.demandCode}</a>
+          </span>
+        ),
+        duration: 5,
+      });
+    },
+  });
 
   const anchors = [
     { key: 'basic', label: '基础信息' },
@@ -80,7 +109,7 @@ export default function SalesOrderDetailPage() {
       ? [{ key: 'domestic', label: '内销收货信息' }]
       : []),
     { key: 'shipping', label: '发货要求' },
-    { key: 'audit', label: '审计信息' },
+    { key: 'relations', label: '关联单据' },
     { key: 'operation', label: '操作记录' },
   ];
 
@@ -91,16 +120,31 @@ export default function SalesOrderDetailPage() {
 
   const itemColumns = useMemo(
     () => [
-      { title: 'SKU', dataIndex: 'skuCode', key: 'skuCode', width: 140 },
-      { title: '产品中文名', dataIndex: 'productNameCn', key: 'productNameCn', width: 180 },
-      { title: '产品英文名', dataIndex: 'productNameEn', key: 'productNameEn', width: 180 },
+      { title: 'SKU', dataIndex: 'skuCode', key: 'skuCode', width: 140, fixed: 'left' as const },
+      { title: '产品中文名', dataIndex: 'productNameCn', key: 'productNameCn', width: 180, render: displayOrDash },
+      { title: '产品英文名', dataIndex: 'productNameEn', key: 'productNameEn', width: 180, render: displayOrDash },
+      { title: '规格', dataIndex: 'skuSpecification', key: 'skuSpecification', width: 180, render: displayOrDash },
       { title: '类型', dataIndex: 'lineType', key: 'lineType', width: 100, render: displayOrDash },
-      { title: '数量', dataIndex: 'quantity', key: 'quantity', width: 100 },
-      { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 120 },
-      { title: '金额', dataIndex: 'amount', key: 'amount', width: 120 },
+      { title: 'SPU', dataIndex: 'spuName', key: 'spuName', width: 140, render: displayOrDash },
+      { title: '电参数', dataIndex: 'electricalParams', key: 'electricalParams', width: 160, render: displayOrDash },
+      { title: '有无插头', dataIndex: 'hasPlug', key: 'hasPlug', width: 100, render: displayOrDash },
+      { title: '插头类型', dataIndex: 'plugType', key: 'plugType', width: 100, render: displayOrDash },
+      { title: '签约数量', dataIndex: 'quantity', key: 'quantity', width: 100 },
+      { title: '销售单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 120 },
+      { title: '币种', dataIndex: 'currencyCode', key: 'currencyCode', width: 90, render: displayOrDash },
+      { title: '总金额', dataIndex: 'amount', key: 'amount', width: 120 },
       { title: '单位', dataIndex: 'unitName', key: 'unitName', width: 100, render: displayOrDash },
       { title: '采购人员', dataIndex: 'purchaserName', key: 'purchaserName', width: 120, render: displayOrDash },
-      { title: '是否采购', dataIndex: 'needsPurchase', key: 'needsPurchase', width: 100, render: displayOrDash },
+      { title: '是否需要采购', dataIndex: 'needsPurchase', key: 'needsPurchase', width: 120, render: displayOrDash },
+      { title: '需采购数量', dataIndex: 'purchaseQuantity', key: 'purchaseQuantity', width: 120 },
+      { title: '使用现有库存数量', dataIndex: 'useStockQuantity', key: 'useStockQuantity', width: 150 },
+      { title: '已备货数量', dataIndex: 'preparedQuantity', key: 'preparedQuantity', width: 120 },
+      { title: '已发货数量', dataIndex: 'shippedQuantity', key: 'shippedQuantity', width: 120 },
+      { title: '产品材质', dataIndex: 'material', key: 'material', width: 120, render: displayOrDash },
+      { title: '单品重量(kg)', dataIndex: 'unitWeightKg', key: 'unitWeightKg', width: 120 },
+      { title: '单品体积(m³)', dataIndex: 'unitVolumeCbm', key: 'unitVolumeCbm', width: 130 },
+      { title: '总重量(kg)', dataIndex: 'totalWeightKg', key: 'totalWeightKg', width: 120 },
+      { title: '总体积(m³)', dataIndex: 'totalVolumeCbm', key: 'totalVolumeCbm', width: 120 },
       { title: '图片', dataIndex: 'imageUrl', key: 'imageUrl', width: 100, render: (value: string | null) => value ? <Image width={40} src={value} /> : '—' },
     ],
     [],
@@ -138,11 +182,17 @@ export default function SalesOrderDetailPage() {
   }
 
   const data = query.data;
+  const relatedShippingDemands = (data?.shippingDemands ?? []).filter(
+    (item) => item.status !== 'voided',
+  );
+  const canGenerateShippingDemand =
+    data?.status === 'approved' && relatedShippingDemands.length === 0;
   const isActionLoading =
     submitMutation.isPending ||
     approveMutation.isPending ||
     rejectMutation.isPending ||
-    voidMutation.isPending;
+    voidMutation.isPending ||
+    generateShippingDemandMutation.isPending;
 
   return (
     <div className="master-page">
@@ -214,6 +264,23 @@ export default function SalesOrderDetailPage() {
                       </Button>
                     </Popconfirm>
                   ) : null}
+                  {canGenerateShippingDemand ? (
+                    <Popconfirm
+                      title="确认为此订单生成发货需求？"
+                      description="系统将复制订单产品明细和应发数量，并查询当前库存快照。"
+                      okText="确认生成"
+                      cancelText="取消"
+                      onConfirm={() => generateShippingDemandMutation.mutateAsync()}
+                    >
+                      <Button
+                        type="primary"
+                        loading={generateShippingDemandMutation.isPending}
+                        disabled={isActionLoading}
+                      >
+                        生成发货需求
+                      </Button>
+                    </Popconfirm>
+                  ) : null}
                   <Button type="primary" ghost onClick={() => navigate('/sales-orders/create')}>新建销售订单</Button>
                 </Space>
               </div>
@@ -244,6 +311,7 @@ export default function SalesOrderDetailPage() {
                 <MetaItem label="订单类型" value={displayOrDash(data?.orderType)} />
                 <MetaItem label="客户" value={displayOrDash(data?.customerName)} />
                 <MetaItem label="客户代码" value={displayOrDash(data?.customerCode)} />
+                <MetaItem label="联系人" value={displayOrDash(data?.customerContactPerson)} />
                 <MetaItem label="售后原订单号" value={displayOrDash(data?.afterSalesSourceOrderCode)} />
                 <MetaItem label="运抵国" value={displayOrDash(data?.destinationCountryName)} />
                 <MetaItem label="付款方式" value={displayOrDash(data?.paymentTerm)} />
@@ -279,6 +347,9 @@ export default function SalesOrderDetailPage() {
               <MetaItem label="是否阿里信保订单" value={displayOrDash(data?.isAliTradeAssurance)} />
               <MetaItem label="阿里信保订单号" value={displayOrDash(data?.aliTradeAssuranceOrderCode)} />
               <MetaItem label="收款状态" value={displayOrDash(data?.receiptStatus)} />
+              <MetaItem label="产品合计金额" value={displayOrDash(data?.productTotalAmount)} />
+              <MetaItem label="加项费用合计" value={displayOrDash(data?.expenseTotalAmount)} />
+              <MetaItem label="订单总金额" value={displayOrDash(data?.totalAmount)} />
               <MetaItem label="贸易术语" value={displayOrDash(data?.tradeTerm)} />
               <MetaItem label="运输方式" value={displayOrDash(data?.transportationMethod)} />
               <MetaItem label="一级行业" value={displayOrDash(data?.primaryIndustry)} />
@@ -301,7 +372,7 @@ export default function SalesOrderDetailPage() {
               pagination={false}
               columns={itemColumns as any}
               dataSource={data?.items ?? []}
-              scroll={{ x: 1600 }}
+              scroll={{ x: 3300 }}
             />
           </SectionCard>
 
@@ -365,12 +436,62 @@ export default function SalesOrderDetailPage() {
             </div>
           </SectionCard>
 
-          <SectionCard id="audit" title="审计信息" description="查看创建与更新时间。">
+          <SectionCard id="relations" title="关联单据" description="查看由此销售订单生成的下游单据。">
             <div className="master-meta-grid">
-              <MetaItem label="创建时间" value={data?.createdAt ? dayjs(data.createdAt).format('YYYY-MM-DD HH:mm') : '—'} />
-              <MetaItem label="更新时间" value={data?.updatedAt ? dayjs(data.updatedAt).format('YYYY-MM-DD HH:mm') : '—'} />
-              <MetaItem label="创建人" value={displayOrDash(data?.createdBy)} />
-              <MetaItem label="更新人" value={displayOrDash(data?.updatedBy)} />
+              <MetaItem
+                label="发货需求"
+                value={
+                  relatedShippingDemands.length ? (
+                    <Space direction="vertical" size={4}>
+                      {relatedShippingDemands.map((demand) => (
+                        <a key={demand.id} onClick={() => navigate(`/shipping-demands/${demand.id}`)}>
+                          {demand.demandCode}
+                        </a>
+                      ))}
+                    </Space>
+                  ) : (
+                    '—'
+                  )
+                }
+              />
+              <MetaItem
+                label="发货需求状态"
+                value={
+                  relatedShippingDemands.length ? (
+                    <Space direction="vertical" size={4}>
+                      {relatedShippingDemands.map((demand) => {
+                        const info = SHIPPING_DEMAND_STATUS_STYLE_MAP[demand.status] ?? {
+                          className: 'master-pill-default',
+                          text: demand.status,
+                        };
+                        return (
+                          <span key={demand.id} className={`master-pill ${info.className}`}>
+                            {info.text}
+                          </span>
+                        );
+                      })}
+                    </Space>
+                  ) : (
+                    '—'
+                  )
+                }
+              />
+              <MetaItem
+                label="生成时间"
+                value={
+                  relatedShippingDemands.length ? (
+                    <Space direction="vertical" size={4}>
+                      {relatedShippingDemands.map((demand) => (
+                        <span key={demand.id}>
+                          {dayjs(demand.createdAt).format('YYYY-MM-DD HH:mm')}
+                        </span>
+                      ))}
+                    </Space>
+                  ) : (
+                    '—'
+                  )
+                }
+              />
             </div>
           </SectionCard>
 

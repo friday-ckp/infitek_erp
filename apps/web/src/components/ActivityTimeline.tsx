@@ -28,6 +28,7 @@ import { OperationTimeline } from '../pages/master-data/components/page-scaffold
 
 const DISPLAY_COMPANION_FIELDS: Record<string, string> = {
   countryId: 'countryName',
+  salesOrderId: 'sourceDocumentCode',
   salespersonId: 'salespersonName',
   supplierId: 'supplierName',
   defaultCompanyId: 'defaultCompanyName',
@@ -82,6 +83,8 @@ const ENUM_VALUE_LABELS: Record<string, Record<string, string>> = {
     approved: '审核通过',
     rejected: '已拒绝',
     voided: '已作废',
+    pending_allocation: '待分配库存',
+    purchasing: '采购中',
     enabled: '启用',
     disabled: '停用',
     ACTIVE: '启用',
@@ -291,6 +294,9 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, s
       after_sales: '售后订单',
       sample: '样品订单',
     },
+    sourceDocumentType: {
+      sales_order: '销售订单',
+    },
     paymentTerm: {
       '100_tt_in_advance': '100% TT预付',
       '30_deposit_70_balance_before_delivery': '30%定金 + 70%发货前付清',
@@ -423,6 +429,108 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, s
       no: '否',
     },
     needsInvoice: {
+      yes: '是',
+      no: '否',
+    },
+  },
+  'shipping-demands': {
+    sourceDocumentType: {
+      sales_order: '销售订单',
+    },
+    orderType: {
+      sales: '销售订单',
+      after_sales: '售后订单',
+      sample: '样品订单',
+    },
+    domesticTradeType: {
+      domestic: '内销',
+      foreign: '外销',
+    },
+    status: {
+      pending_allocation: '待分配库存',
+      purchasing: '采购中',
+      prepared: '备货完成',
+      partially_shipped: '部分发货',
+      shipped: '已发货',
+      voided: '已作废',
+    },
+    paymentTerm: {
+      '100_tt_in_advance': '100% TT预付',
+      '30_deposit_70_balance_before_delivery': '30%定金 + 70%发货前付清',
+      '40_deposit_60_balance_before_delivery': '40%定金 + 60%发货前付清',
+      '50_deposit_50_balance_before_delivery': '50%定金 + 50%发货前付清',
+      '60_deposit_40_balance_before_delivery': '60%定金 + 40%发货前付清',
+      '70_deposit_30_balance_before_delivery': '70%定金 + 30%发货前付清',
+      '100_payment_before_delivery': '100%发货前付清',
+      '40_deposit_60_balance_against_bl_copy': '40%定金 + 60%见提单副本付清',
+      '50_deposit_50_balance_against_bl_copy': '50%定金 + 50%见提单副本付清',
+      '70_deposit_30_balance_against_bl_copy': '70%定金 + 30%见提单副本付清',
+      lc_at_sight: '即期信用证',
+      cad: '交单付款(CAD)',
+      dp_at_sight: '即期付款交单(D/P)',
+      da_30_days: '30天承兑交单(D/A)',
+      oa_30_days: '30天赊账(OA)',
+    },
+    tradeTerm: {
+      EXW: 'EXW 工厂交货',
+      FCA: 'FCA 货交承运人',
+      FOB: 'FOB 船上交货',
+      CFR: 'CFR 成本加运费',
+      CIF: 'CIF 成本保险加运费',
+      CIP: 'CIP 运费保险费付至',
+      CPT: 'CPT 运费付至',
+    },
+    transportationMethod: {
+      sea: '海运',
+      air: '空运',
+      road: '陆运',
+      rail: '铁路',
+      express: '快递',
+      other: '其它',
+    },
+    orderNature: {
+      bidding: '招投标',
+      retail: '零售',
+      stock_prepare: '备货',
+    },
+    receiptStatus: {
+      unpaid: '未收款',
+      partially_paid: '部分收款',
+      paid: '已收款',
+    },
+    isSharedOrder: {
+      yes: '是',
+      no: '否',
+    },
+    isSinosure: {
+      yes: '是',
+      no: '否',
+    },
+    isPalletized: {
+      yes: '是',
+      no: '否',
+    },
+    requiresCustomsCertificate: {
+      yes: '是',
+      no: '否',
+    },
+    usesMarketingFund: {
+      yes: '是',
+      no: '否',
+    },
+    requiresExportCustoms: {
+      yes: '是',
+      no: '否',
+    },
+    requiresWarrantyCard: {
+      yes: '是',
+      no: '否',
+    },
+    isInsured: {
+      yes: '是',
+      no: '否',
+    },
+    isAliTradeAssurance: {
       yes: '是',
       no: '否',
     },
@@ -684,6 +792,10 @@ function formatActionText(
     : '无字段差异';
 
   if (action === 'CREATE') {
+    const createSummary = changes.find((item) => item.field === OPERATION_LOG_CREATE_SUMMARY_FIELD);
+    if (createSummary) {
+      return `${OPERATION_LOG_CREATE_SUMMARY_LABEL}：${formatFieldValue(createSummary.field, createSummary.newValue)}`;
+    }
     return `创建记录，${fieldText}`;
   }
 
@@ -780,14 +892,7 @@ function normalizeChanges(
 
   return changes.flatMap((change, index) => {
     if (change.field === OPERATION_LOG_CREATE_SUMMARY_FIELD) {
-      return [
-        {
-          key: `${change.field}-${index}`,
-          fieldLabel: OPERATION_LOG_CREATE_SUMMARY_LABEL,
-          oldValue: '—',
-          newValue: formatFieldValue(change.field, change.newValue),
-        },
-      ];
+      return [];
     }
 
     if (consumedFields.has(change.field)) {
