@@ -25,10 +25,12 @@ export class SalesOrdersRepository {
       relations: {
         items: true,
         expenses: true,
+        shippingDemands: true,
       },
       order: {
         items: { id: 'ASC' },
         expenses: { id: 'ASC' },
+        shippingDemands: { id: 'ASC' },
       },
     });
   }
@@ -131,10 +133,12 @@ export class SalesOrdersRepository {
         relations: {
           items: true,
           expenses: true,
+          shippingDemands: true,
         },
         order: {
           items: { id: 'ASC' },
           expenses: { id: 'ASC' },
+          shippingDemands: { id: 'ASC' },
         },
       });
     });

@@ -168,8 +168,7 @@ export class AuditInterceptor implements NestInterceptor {
       action: auditContext.action,
       resourceType: auditContext.resourceType,
       resourceId:
-        auditContext.resourceId ??
-        this.extractResourceId(normalizedAfterSnapshot) ??
+        this.resolvePayloadResourceId(auditContext.action, normalizedAfterSnapshot, auditContext.resourceId) ??
         null,
       resourcePath: auditContext.resourcePath,
       requestSummary:
@@ -381,6 +380,18 @@ export class AuditInterceptor implements NestInterceptor {
       return String(id);
     }
     return null;
+  }
+
+  private resolvePayloadResourceId(
+    action: OperationLogAction,
+    snapshot: unknown,
+    pathResourceId: string | null,
+  ) {
+    const resultResourceId = this.extractResourceId(snapshot);
+    if (action === OperationLogAction.CREATE && resultResourceId) {
+      return resultResourceId;
+    }
+    return pathResourceId ?? resultResourceId ?? null;
   }
 
   private areValuesEqual(left: unknown, right: unknown) {

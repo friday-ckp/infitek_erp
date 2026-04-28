@@ -10,6 +10,7 @@ import {
   SalesOrderSource,
   SalesOrderStatus,
   SalesOrderType,
+  ShippingDemandStatus,
   SecondaryIndustry,
   TradeTerm,
   TransportationMethod,
@@ -58,6 +59,17 @@ export interface SalesOrderExpense {
   id: number;
   expenseName: string;
   amount: string;
+}
+
+export interface SalesOrderRelatedShippingDemand {
+  id: number;
+  demandCode: string;
+  salesOrderId: number;
+  sourceDocumentCode: string;
+  status: ShippingDemandStatus;
+  totalAmount: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SalesOrder {
@@ -158,6 +170,7 @@ export interface SalesOrder {
   updatedBy?: string;
   items: SalesOrderItem[];
   expenses: SalesOrderExpense[];
+  shippingDemands?: SalesOrderRelatedShippingDemand[];
 }
 
 export interface CreateSalesOrderItemPayload {

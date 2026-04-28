@@ -110,4 +110,11 @@ describe('AuditInterceptor', () => {
       },
     ]);
   });
+
+  it('uses created entity id for create action resource id before path id', () => {
+    const { interceptor } = createInterceptor();
+
+    expect((interceptor as any).resolvePayloadResourceId('CREATE', { id: 500 }, '10')).toBe('500');
+    expect((interceptor as any).resolvePayloadResourceId('UPDATE', { id: 500 }, '10')).toBe('10');
+  });
 });

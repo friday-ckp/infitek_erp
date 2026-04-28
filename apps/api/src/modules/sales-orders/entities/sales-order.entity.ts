@@ -18,6 +18,7 @@ import {
   BlType,
 } from '@infitek/shared';
 import { BaseEntity } from '../../../common/entities/base.entity';
+import { ShippingDemand } from '../../shipping-demands/entities/shipping-demand.entity';
 import { SalesOrderExpense } from './sales-order-expense.entity';
 import { SalesOrderItem } from './sales-order-item.entity';
 
@@ -383,4 +384,8 @@ export class SalesOrder extends BaseEntity {
   @OneToMany(() => SalesOrderExpense, (expense) => expense.salesOrder, { cascade: false })
   @Expose()
   expenses?: SalesOrderExpense[];
+
+  @OneToMany(() => ShippingDemand, (demand) => demand.salesOrder, { cascade: false })
+  @Expose()
+  shippingDemands?: ShippingDemand[];
 }
