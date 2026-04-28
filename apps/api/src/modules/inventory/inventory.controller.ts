@@ -13,6 +13,11 @@ export class InventoryController {
     return this.inventoryService.findAvailable(query);
   }
 
+  @Get('batches')
+  findBatches(@Query() query: QueryAvailableInventoryDto) {
+    return this.inventoryService.findBatches(query);
+  }
+
   @Post('opening-balances')
   recordOpeningBalance(
     @Body() dto: CreateOpeningInventoryDto,

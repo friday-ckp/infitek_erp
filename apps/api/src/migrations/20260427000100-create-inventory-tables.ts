@@ -95,6 +95,7 @@ export class CreateInventoryTables20260427000100 implements MigrationInterface {
             isGenerated: true,
             generationStrategy: 'increment',
           },
+          { name: 'batch_no', type: 'varchar', length: '60' },
           { name: 'sku_id', type: 'bigint', unsigned: true },
           { name: 'warehouse_id', type: 'bigint', unsigned: true },
           { name: 'batch_quantity', type: 'int', default: 0 },
@@ -136,6 +137,11 @@ export class CreateInventoryTables20260427000100 implements MigrationInterface {
     );
 
     await queryRunner.createIndices('inventory_batch', [
+      new TableIndex({
+        name: 'uq_inventory_batch_no',
+        columnNames: ['batch_no'],
+        isUnique: true,
+      }),
       new TableIndex({
         name: 'idx_inventory_batch_sku_id',
         columnNames: ['sku_id'],

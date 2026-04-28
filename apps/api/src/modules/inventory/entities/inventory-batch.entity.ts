@@ -4,11 +4,16 @@ import { InventoryBatchSourceType } from '@infitek/shared';
 import { BaseEntity } from '../../../common/entities/base.entity';
 
 @Entity('inventory_batch')
+@Index('uq_inventory_batch_no', ['batchNo'], { unique: true })
 @Index('idx_inventory_batch_sku_id', ['skuId'])
 @Index('idx_inventory_batch_warehouse_id', ['warehouseId'])
 @Index('idx_inventory_batch_source', ['sourceType', 'sourceDocumentId'])
 @Index('idx_inventory_batch_fifo', ['skuId', 'warehouseId', 'receiptDate', 'id'])
 export class InventoryBatch extends BaseEntity {
+  @Column({ name: 'batch_no', type: 'varchar', length: 60 })
+  @Expose()
+  batchNo: string;
+
   @Column({ name: 'sku_id', type: 'bigint', unsigned: true })
   @Expose()
   skuId: number;

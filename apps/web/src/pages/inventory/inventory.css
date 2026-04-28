@@ -189,6 +189,37 @@
   white-space: nowrap;
 }
 
+.inventory-batch-no {
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.inventory-batch-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 18px 0 12px;
+  padding-top: 16px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.inventory-batch-detail-title {
+  color: #0f172a;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.inventory-batch-detail-description {
+  margin-top: 2px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .inventory-availability-tag {
   display: inline-flex;
   align-items: center;
@@ -254,5 +285,10 @@
 
   .inventory-query-button {
     width: 100%;
+  }
+
+  .inventory-batch-detail-header {
+    align-items: stretch;
+    flex-direction: column;
   }
 }

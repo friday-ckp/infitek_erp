@@ -21,6 +21,14 @@ describe('QueryAvailableInventoryDto', () => {
     expect(dto.warehouseId).toBe(8);
   });
 
+  it('allows omitted skuIds for the default all-inventory query', async () => {
+    const { dto, errors } = await validateQuery({ warehouseId: '8' });
+
+    expect(errors).toHaveLength(0);
+    expect(dto.skuIds).toBeUndefined();
+    expect(dto.warehouseId).toBe(8);
+  });
+
   it('rejects invalid skuId tokens instead of dropping them', async () => {
     const { dto, errors } = await validateQuery({ skuIds: '1,abc' });
 

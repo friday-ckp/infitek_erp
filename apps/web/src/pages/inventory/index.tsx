@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
-import { Button, Empty, Result, Select, Skeleton, message } from 'antd';
+import { Button, Empty, Result, Select, Skeleton, Tag, message } from 'antd';
 import { ProForm, ProFormDatePicker, ProFormDigit, ProFormSelect, ProTable, type ProFormInstance } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import dayjs, { type Dayjs } from 'dayjs';
-import { createOpeningInventory, getAvailableInventory, type AvailableInventoryItem, type CreateOpeningInventoryPayload } from '../../api/inventory.api';
+import { createOpeningInventory, getAvailableInventory, getInventoryBatches, type AvailableInventoryItem, type CreateOpeningInventoryPayload, type InventoryBatchItem } from '../../api/inventory.api';
 import { getSkus, type Sku } from '../../api/skus.api';
 import { getWarehouses, type Warehouse } from '../../api/warehouses.api';
 import { SectionCard } from '../master-data/components/page-scaffold';
@@ -13,6 +13,19 @@ import './inventory.css';
 
 interface InventoryRow extends AvailableInventoryItem {
   key: string;
+  skuId: number;
+  warehouseId: number | null;
+  skuCode?: string;
+  skuName?: string | null;
+  warehouseName?: string | null;
+}
+
+interface InventoryBatchRow extends InventoryBatchItem {
+  key: string;
+  id: number;
+  skuId: number;
+  warehouseId: number;
+  sourceDocumentId: number | null;
   skuCode?: string;
   skuName?: string | null;
   warehouseName?: string | null;
@@ -28,6 +41,18 @@ interface OpeningInventoryFormValues {
 function inventoryTag(value: number) {
   if (value > 0) return <span className="inventory-availability-tag positive">可用 {value}</span>;
   return <span className="inventory-availability-tag empty">无可用库存</span>;
+}
+
+function sourceTypeLabel(value: string) {
+  if (value === 'initial') return '期初录入';
+  if (value === 'purchase_receipt') return '采购入库';
+  return value;
+}
+
+function toNumberId(value: number | string | null | undefined) {
+  if (value === null || value === undefined) return null;
+  const id = Number(value);
+  return Number.isFinite(id) ? id : null;
 }
 
 function InventoryMetric({
@@ -62,12 +87,23 @@ export default function InventoryPage() {
     queryFn: () => getWarehouses({ page: 1, pageSize: 200 }),
   });
 
-  const canQuery = selectedSkuIds.length > 0;
+  const querySkuIds = selectedSkuIds.length > 0 ? selectedSkuIds : undefined;
+  const canQuery = skusQuery.isSuccess || Boolean(skusQuery.data);
+  const hasSkuFilter = selectedSkuIds.length > 0;
   const availableQuery = useQuery({
-    queryKey: ['inventory-available', selectedSkuIds, selectedWarehouseId],
+    queryKey: ['inventory-available', querySkuIds, selectedWarehouseId],
     queryFn: () =>
       getAvailableInventory({
-        skuIds: selectedSkuIds,
+        skuIds: querySkuIds,
+        warehouseId: selectedWarehouseId,
+      }),
+    enabled: canQuery,
+  });
+  const batchesQuery = useQuery({
+    queryKey: ['inventory-batches', querySkuIds, selectedWarehouseId],
+    queryFn: () =>
+      getInventoryBatches({
+        skuIds: querySkuIds,
         warehouseId: selectedWarehouseId,
       }),
     enabled: canQuery,
@@ -75,48 +111,90 @@ export default function InventoryPage() {
 
   const skuMap = useMemo(() => {
     const map = new Map<number, Sku>();
-    skusQuery.data?.list.forEach((sku) => map.set(sku.id, sku));
+    skusQuery.data?.list.forEach((sku) => {
+      const skuId = toNumberId(sku.id);
+      if (skuId !== null) map.set(skuId, sku);
+    });
     return map;
   }, [skusQuery.data]);
 
   const warehouseMap = useMemo(() => {
     const map = new Map<number, Warehouse>();
-    warehousesQuery.data?.list.forEach((warehouse) => map.set(warehouse.id, warehouse));
+    warehousesQuery.data?.list.forEach((warehouse) => {
+      const warehouseId = toNumberId(warehouse.id);
+      if (warehouseId !== null) map.set(warehouseId, warehouse);
+    });
     return map;
   }, [warehousesQuery.data]);
 
   const skuOptions = useMemo(
     () =>
-      (skusQuery.data?.list ?? []).map((sku) => ({
-        label: `${sku.skuCode} ${sku.nameCn ?? sku.specification ?? ''}`,
-        value: sku.id,
-      })),
+      (skusQuery.data?.list ?? []).flatMap((sku) => {
+        const skuId = toNumberId(sku.id);
+        if (skuId === null) return [];
+        return [{
+          label: `${sku.skuCode} ${sku.nameCn ?? sku.specification ?? ''}`,
+          value: skuId,
+        }];
+      }),
     [skusQuery.data],
   );
 
   const warehouseOptions = useMemo(
     () =>
-      (warehousesQuery.data?.list ?? []).map((warehouse) => ({
-        label: warehouse.name,
-        value: warehouse.id,
-      })),
+      (warehousesQuery.data?.list ?? []).flatMap((warehouse) => {
+        const warehouseId = toNumberId(warehouse.id);
+        if (warehouseId === null) return [];
+        return [{
+          label: warehouse.name,
+          value: warehouseId,
+        }];
+      }),
     [warehousesQuery.data],
   );
 
   const rows: InventoryRow[] = useMemo(
     () =>
       (availableQuery.data ?? []).map((item) => {
-        const sku = skuMap.get(item.skuId);
-        const warehouse = item.warehouseId ? warehouseMap.get(item.warehouseId) : undefined;
+        const skuId = toNumberId(item.skuId) ?? 0;
+        const warehouseId = toNumberId(item.warehouseId);
+        const sku = skuMap.get(skuId);
+        const warehouse = warehouseId ? warehouseMap.get(warehouseId) : undefined;
         return {
           ...item,
-          key: `${item.skuId}-${item.warehouseId ?? 'all'}`,
+          key: `${skuId}-${warehouseId ?? 'all'}`,
+          skuId,
+          warehouseId,
           skuCode: sku?.skuCode,
           skuName: sku?.nameCn ?? sku?.nameEn ?? sku?.specification,
-          warehouseName: warehouse?.name ?? (item.warehouseId ? `仓库 #${item.warehouseId}` : '未指定仓库'),
+          warehouseName: warehouse?.name ?? (warehouseId ? `仓库 #${warehouseId}` : '未指定仓库'),
         };
       }),
     [availableQuery.data, skuMap, warehouseMap],
+  );
+
+  const batchRows: InventoryBatchRow[] = useMemo(
+    () =>
+      (batchesQuery.data ?? []).map((item) => {
+        const id = toNumberId(item.id) ?? 0;
+        const skuId = toNumberId(item.skuId) ?? 0;
+        const warehouseId = toNumberId(item.warehouseId) ?? 0;
+        const sourceDocumentId = toNumberId(item.sourceDocumentId);
+        const sku = skuMap.get(skuId);
+        const warehouse = warehouseMap.get(warehouseId);
+        return {
+          ...item,
+          key: `${item.batchNo}-${id}`,
+          id,
+          skuId,
+          warehouseId,
+          sourceDocumentId,
+          skuCode: sku?.skuCode,
+          skuName: sku?.nameCn ?? sku?.nameEn ?? sku?.specification,
+          warehouseName: warehouse?.name ?? `仓库 #${warehouseId}`,
+        };
+      }),
+    [batchesQuery.data, skuMap, warehouseMap],
   );
 
   const totals = useMemo(
@@ -139,6 +217,7 @@ export default function InventoryPage() {
       setSelectedSkuIds([payload.skuId]);
       setSelectedWarehouseId(payload.warehouseId);
       queryClient.invalidateQueries({ queryKey: ['inventory-available'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-batches'] });
       formRef.current?.resetFields();
     },
   });
@@ -188,6 +267,62 @@ export default function InventoryPage() {
     },
   ];
 
+  const batchColumns: ProColumns<InventoryBatchRow>[] = [
+    {
+      title: '批次号',
+      dataIndex: 'batchNo',
+      width: 230,
+      render: (_, record) => <span className="inventory-batch-no">{record.batchNo}</span>,
+    },
+    {
+      title: 'SKU',
+      dataIndex: 'skuCode',
+      width: 200,
+      render: (_, record) => (
+        <div className="inventory-sku-cell">
+          <div className="inventory-sku-code">{record.skuCode ?? `SKU #${record.skuId}`}</div>
+          <div className="inventory-sku-name">{record.skuName ?? '-'}</div>
+        </div>
+      ),
+    },
+    {
+      title: '仓库',
+      dataIndex: 'warehouseName',
+      width: 150,
+    },
+    {
+      title: '来源',
+      dataIndex: 'sourceType',
+      width: 105,
+      render: (_, record) => <Tag color={record.sourceType === 'initial' ? 'blue' : 'green'}>{sourceTypeLabel(record.sourceType)}</Tag>,
+    },
+    {
+      title: '入库日期',
+      dataIndex: 'receiptDate',
+      width: 120,
+      render: (_, record) => (record.receiptDate ? dayjs(record.receiptDate).format('YYYY-MM-DD') : '-'),
+    },
+    {
+      title: '批次数量',
+      dataIndex: 'batchQuantity',
+      width: 105,
+      align: 'right',
+    },
+    {
+      title: '锁定量',
+      dataIndex: 'batchLockedQuantity',
+      width: 95,
+      align: 'right',
+    },
+    {
+      title: '批次可用',
+      dataIndex: 'batchAvailableQuantity',
+      width: 115,
+      align: 'right',
+      render: (_, record) => inventoryTag(record.batchAvailableQuantity),
+    },
+  ];
+
   if ((skusQuery.isError && !skusQuery.data) || (warehousesQuery.isError && !warehousesQuery.data)) {
     return (
       <Result
@@ -226,7 +361,7 @@ export default function InventoryPage() {
           <SectionCard
             id="opening"
             title="期初库存录入"
-            description="同一 SKU + 仓库再次提交会覆盖期初批次数量，并重算汇总库存。"
+            description="每次提交都会新增一条期初批次，并按批次汇总重算库存。"
             extra={<span className="inventory-section-badge">期初批次</span>}
           >
             <ProForm<OpeningInventoryFormValues>
@@ -291,7 +426,7 @@ export default function InventoryPage() {
             id="query"
             title="可用库存查询"
             description="供后续发货需求生成和库存决策复用的正式查询口径。"
-            extra={<span className={`inventory-query-status ${canQuery ? 'ready' : 'idle'}`}>{canQuery ? `已选 ${selectedSkuIds.length} 个 SKU` : '待选择 SKU'}</span>}
+            extra={<span className={`inventory-query-status ${canQuery ? 'ready' : 'idle'}`}>{canQuery ? (hasSkuFilter ? `已选 ${selectedSkuIds.length} 个 SKU` : '默认全部库存') : 'SKU 加载中'}</span>}
           >
             <div className="inventory-query-toolbar">
               <label className="inventory-query-field inventory-query-field-sku">
@@ -301,7 +436,7 @@ export default function InventoryPage() {
                   allowClear
                   showSearch
                   optionFilterProp="label"
-                  placeholder="选择一个或多个 SKU"
+                  placeholder="不选则查询全部库存"
                   options={skuOptions}
                   value={selectedSkuIds}
                   onChange={setSelectedSkuIds}
@@ -328,7 +463,7 @@ export default function InventoryPage() {
                 loading={availableQuery.isFetching}
                 onClick={() => availableQuery.refetch()}
               >
-                查询
+                {hasSkuFilter ? '查询' : '查询全部'}
               </Button>
             </div>
 
@@ -348,9 +483,33 @@ export default function InventoryPage() {
                 options={false}
                 pagination={false}
                 locale={{
-                  emptyText: canQuery ? <Empty description="暂无库存记录" /> : <Empty description="请选择 SKU 后查询" />,
+                  emptyText: canQuery ? <Empty description="暂无库存记录" /> : <Empty description="SKU 加载中" />,
                 }}
                 scroll={{ x: 830 }}
+              />
+            </div>
+
+            <div className="inventory-batch-detail-header">
+              <div>
+                <div className="inventory-batch-detail-title">批次库存明细</div>
+                <div className="inventory-batch-detail-description">按入库日期和批次号展示 FIFO 可用库存来源。</div>
+              </div>
+              <span className="inventory-section-badge">{batchRows.length} 个批次</span>
+            </div>
+
+            <div className="master-table-shell">
+              <ProTable<InventoryBatchRow>
+                rowKey="key"
+                columns={batchColumns}
+                dataSource={batchRows}
+                loading={batchesQuery.isFetching}
+                search={false}
+                options={false}
+                pagination={false}
+                locale={{
+                  emptyText: canQuery ? <Empty description="暂无批次库存" /> : <Empty description="SKU 加载中" />,
+                }}
+                scroll={{ x: 1110 }}
               />
             </div>
           </SectionCard>

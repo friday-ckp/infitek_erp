@@ -1,15 +1,18 @@
 import { Transform, Type } from 'class-transformer';
 import {
-  ArrayNotEmpty,
   IsArray,
   IsInt,
   IsOptional,
   Min,
 } from 'class-validator';
 
-function parseSkuIds(value: unknown): number[] {
+function parseSkuIds(value: unknown): number[] | undefined {
+  if (value === undefined || value === null || value === '') {
+    return undefined;
+  }
   if (Array.isArray(value)) {
-    return value.flatMap((item) => parseSkuIds(item));
+    const skuIds = value.flatMap((item) => parseSkuIds(item) ?? []);
+    return skuIds.length > 0 ? skuIds : undefined;
   }
   if (typeof value === 'number') {
     return [value];
@@ -25,11 +28,11 @@ function parseSkuIds(value: unknown): number[] {
 
 export class QueryAvailableInventoryDto {
   @Transform(({ value }) => parseSkuIds(value))
+  @IsOptional()
   @IsArray()
-  @ArrayNotEmpty()
   @IsInt({ each: true })
   @Min(1, { each: true })
-  skuIds: number[];
+  skuIds?: number[];
 
   @Type(() => Number)
   @IsInt()

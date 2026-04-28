@@ -5,9 +5,9 @@ import { InventoryService } from '../inventory.service';
 describe('InventoryService', () => {
   const inventoryRepository = {
     findAvailableSummaries: jest.fn(),
+    findBatches: jest.fn(),
     createQueryRunner: jest.fn(),
     findSummaryForUpdate: jest.fn(),
-    findInitialBatchForUpdate: jest.fn(),
     findAvailableBatchesForUpdate: jest.fn(),
     findBatchesForUpdate: jest.fn(),
     sumBatchQuantities: jest.fn(),
@@ -21,7 +21,7 @@ describe('InventoryService', () => {
   };
   const batchRepo = {
     create: jest.fn((data) => ({ id: undefined, ...data })),
-    save: jest.fn(async (data) => ({ id: data.id ?? 2, ...data })),
+    save: jest.fn(async (data) => ({ ...data, id: data.id ?? 2 })),
   };
 
   const makeQueryRunner = () => ({
@@ -55,7 +55,6 @@ describe('InventoryService', () => {
     skusService.findById.mockResolvedValue({ id: 11 });
     warehousesService.findById.mockResolvedValue({ id: 22 });
     inventoryRepository.findSummaryForUpdate.mockResolvedValue(null);
-    inventoryRepository.findInitialBatchForUpdate.mockResolvedValue(null);
     inventoryRepository.sumBatchQuantities.mockResolvedValue({
       actualQuantity: 10,
       lockedQuantity: 0,
@@ -129,6 +128,135 @@ describe('InventoryService', () => {
     ]);
   });
 
+  it('findAvailable normalizes bigint IDs returned as strings', async () => {
+    inventoryRepository.findAvailableSummaries.mockResolvedValue([
+      {
+        skuId: '1',
+        warehouseId: '9',
+        actualQuantity: '12',
+        lockedQuantity: '2',
+        availableQuantity: '10',
+      },
+    ]);
+
+    const result = await service.findAvailable({ skuIds: [1] });
+
+    expect(result).toEqual([
+      {
+        skuId: 1,
+        warehouseId: 9,
+        actualQuantity: 12,
+        lockedQuantity: 2,
+        availableQuantity: 10,
+        updatedAt: undefined,
+      },
+    ]);
+  });
+
+  it('findAvailable does not add warehouse zero rows when string IDs match the query', async () => {
+    inventoryRepository.findAvailableSummaries.mockResolvedValue([
+      {
+        skuId: '1',
+        warehouseId: '9',
+        actualQuantity: '12',
+        lockedQuantity: '2',
+        availableQuantity: '10',
+      },
+    ]);
+
+    const result = await service.findAvailable({ skuIds: [1], warehouseId: 9 });
+
+    expect(result).toEqual([
+      {
+        skuId: 1,
+        warehouseId: 9,
+        actualQuantity: 12,
+        lockedQuantity: 2,
+        availableQuantity: 10,
+        updatedAt: undefined,
+      },
+    ]);
+  });
+
+  it('findAvailable returns existing summaries when skuIds are omitted', async () => {
+    inventoryRepository.findAvailableSummaries.mockResolvedValue([
+      {
+        skuId: 2,
+        warehouseId: 8,
+        actualQuantity: 4,
+        lockedQuantity: 1,
+        availableQuantity: 3,
+      },
+      {
+        skuId: 1,
+        warehouseId: 9,
+        actualQuantity: 12,
+        lockedQuantity: 2,
+        availableQuantity: 10,
+      },
+    ]);
+
+    const result = await service.findAvailable({});
+
+    expect(inventoryRepository.findAvailableSummaries).toHaveBeenCalledWith(
+      undefined,
+      undefined,
+    );
+    expect(result).toEqual([
+      {
+        skuId: 1,
+        warehouseId: 9,
+        actualQuantity: 12,
+        lockedQuantity: 2,
+        availableQuantity: 10,
+        updatedAt: undefined,
+      },
+      {
+        skuId: 2,
+        warehouseId: 8,
+        actualQuantity: 4,
+        lockedQuantity: 1,
+        availableQuantity: 3,
+        updatedAt: undefined,
+      },
+    ]);
+  });
+
+  it('findBatches returns batch numbers and available quantities', async () => {
+    inventoryRepository.findBatches.mockResolvedValue([
+      {
+        id: '100',
+        batchNo: 'INV-INIT-20260401-000100',
+        skuId: '11',
+        warehouseId: '22',
+        batchQuantity: '12',
+        batchLockedQuantity: '2',
+        sourceType: InventoryBatchSourceType.INITIAL,
+        sourceDocumentId: null,
+        receiptDate: '2026-04-01',
+      },
+    ]);
+
+    const result = await service.findBatches({ skuIds: [11], warehouseId: 22 });
+
+    expect(inventoryRepository.findBatches).toHaveBeenCalledWith([11], 22);
+    expect(result).toEqual([
+      {
+        id: 100,
+        batchNo: 'INV-INIT-20260401-000100',
+        skuId: 11,
+        warehouseId: 22,
+        batchQuantity: 12,
+        batchLockedQuantity: 2,
+        batchAvailableQuantity: 10,
+        sourceType: InventoryBatchSourceType.INITIAL,
+        sourceDocumentId: null,
+        receiptDate: '2026-04-01',
+        updatedAt: undefined,
+      },
+    ]);
+  });
+
   it('recordOpeningBalance creates initial batch and summary inside a transaction', async () => {
     const queryRunner = makeQueryRunner();
     inventoryRepository.createQueryRunner.mockReturnValue(queryRunner);
@@ -140,14 +268,22 @@ describe('InventoryService', () => {
 
     expect(queryRunner.connect).toHaveBeenCalled();
     expect(queryRunner.startTransaction).toHaveBeenCalled();
-    expect(batchRepo.save).toHaveBeenCalledWith(
+    expect(batchRepo.save).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
         skuId: 11,
         warehouseId: 22,
+        batchNo: expect.stringMatching(/^INV-PENDING-/),
         batchQuantity: 10,
         batchLockedQuantity: 0,
         sourceType: InventoryBatchSourceType.INITIAL,
         receiptDate: '2026-04-01',
+      }),
+    );
+    expect(batchRepo.save).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        batchNo: 'INV-INIT-20260401-000002',
       }),
     );
     expect(summaryRepo.save).toHaveBeenCalledWith(
@@ -161,10 +297,11 @@ describe('InventoryService', () => {
     );
     expect(queryRunner.commitTransaction).toHaveBeenCalled();
     expect(queryRunner.release).toHaveBeenCalled();
+    expect(result.batch.batchNo).toBe('INV-INIT-20260401-000002');
     expect(result.summary.availableQuantity).toBe(10);
   });
 
-  it('recordOpeningBalance overwrites the initial batch and recomputes summary', async () => {
+  it('recordOpeningBalance adds another initial batch and recomputes summary', async () => {
     const queryRunner = makeQueryRunner();
     inventoryRepository.createQueryRunner.mockReturnValue(queryRunner);
     inventoryRepository.findSummaryForUpdate.mockResolvedValue({
@@ -175,17 +312,8 @@ describe('InventoryService', () => {
       lockedQuantity: 1,
       availableQuantity: 6,
     });
-    inventoryRepository.findInitialBatchForUpdate.mockResolvedValue({
-      id: 5,
-      skuId: 11,
-      warehouseId: 22,
-      batchQuantity: 7,
-      batchLockedQuantity: 1,
-      sourceType: InventoryBatchSourceType.INITIAL,
-      receiptDate: '2026-03-01',
-    });
     inventoryRepository.sumBatchQuantities.mockResolvedValue({
-      actualQuantity: 12,
+      actualQuantity: 19,
       lockedQuantity: 1,
     });
 
@@ -194,39 +322,64 @@ describe('InventoryService', () => {
       'admin',
     );
 
-    expect(batchRepo.save).toHaveBeenCalledWith(
+    expect(batchRepo.save).toHaveBeenNthCalledWith(
+      1,
       expect.objectContaining({
-        id: 5,
+        id: undefined,
+        batchNo: expect.stringMatching(/^INV-PENDING-/),
         batchQuantity: 12,
+        batchLockedQuantity: 0,
+        sourceType: InventoryBatchSourceType.INITIAL,
         receiptDate: '2026-04-02',
       }),
     );
-    expect(result.summary.actualQuantity).toBe(12);
-    expect(result.summary.availableQuantity).toBe(11);
+    expect(batchRepo.save).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        id: 2,
+        batchNo: 'INV-INIT-20260402-000002',
+      }),
+    );
+    expect(result.batch.batchNo).toBe('INV-INIT-20260402-000002');
+    expect(result.summary.actualQuantity).toBe(19);
+    expect(result.summary.availableQuantity).toBe(18);
   });
 
-  it('recordOpeningBalance rejects quantity below locked initial batch quantity', async () => {
-    const queryRunner = makeQueryRunner();
-    inventoryRepository.createQueryRunner.mockReturnValue(queryRunner);
-    inventoryRepository.findInitialBatchForUpdate.mockResolvedValue({
-      id: 5,
-      skuId: 11,
-      warehouseId: 22,
-      batchQuantity: 7,
-      batchLockedQuantity: 3,
-      sourceType: InventoryBatchSourceType.INITIAL,
-      receiptDate: '2026-03-01',
-    });
+  it('recordOpeningBalance creates separate initial batches for the same SKU in different warehouses', async () => {
+    const firstRunner = makeQueryRunner();
+    const secondRunner = makeQueryRunner();
+    inventoryRepository.createQueryRunner
+      .mockReturnValueOnce(firstRunner)
+      .mockReturnValueOnce(secondRunner);
+    inventoryRepository.sumBatchQuantities
+      .mockResolvedValueOnce({ actualQuantity: 10, lockedQuantity: 0 })
+      .mockResolvedValueOnce({ actualQuantity: 4, lockedQuantity: 0 });
+    batchRepo.save
+      .mockImplementationOnce(async (data) => ({ ...data, id: 2 }))
+      .mockImplementationOnce(async (data) => ({ ...data, id: 2 }))
+      .mockImplementationOnce(async (data) => ({ ...data, id: 3 }))
+      .mockImplementationOnce(async (data) => ({ ...data, id: 3 }));
 
-    await expect(
-      service.recordOpeningBalance(
-        { skuId: 11, warehouseId: 22, quantity: 2, receiptDate: '2026-04-02' },
-        'admin',
-      ),
-    ).rejects.toThrow(BadRequestException);
+    const firstResult = await service.recordOpeningBalance(
+      { skuId: 11, warehouseId: 22, quantity: 10, receiptDate: '2026-04-02' },
+      'admin',
+    );
+    const secondResult = await service.recordOpeningBalance(
+      { skuId: 11, warehouseId: 23, quantity: 4, receiptDate: '2026-04-02' },
+      'admin',
+    );
 
-    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
-    expect(queryRunner.release).toHaveBeenCalled();
+    expect(batchRepo.save).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ skuId: 11, warehouseId: 22 }),
+    );
+    expect(batchRepo.save).toHaveBeenNthCalledWith(
+      3,
+      expect.objectContaining({ skuId: 11, warehouseId: 23 }),
+    );
+    expect(firstResult.batch.batchNo).toBe('INV-INIT-20260402-000002');
+    expect(secondResult.batch.batchNo).toBe('INV-INIT-20260402-000003');
+    expect(secondResult.summary.actualQuantity).toBe(4);
   });
 
   it('increaseStock creates a receipt batch and recalculates summary', async () => {
@@ -251,6 +404,7 @@ describe('InventoryService', () => {
       expect.objectContaining({
         skuId: 11,
         warehouseId: 22,
+        batchNo: expect.stringMatching(/^INV-PENDING-/),
         batchQuantity: 8,
         batchLockedQuantity: 0,
         sourceType: InventoryBatchSourceType.PURCHASE_RECEIPT,
@@ -258,6 +412,12 @@ describe('InventoryService', () => {
         receiptDate: '2026-04-03',
       }),
     );
+    expect(batchRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        batchNo: 'INV-REC-20260403-000002',
+      }),
+    );
+    expect(result.batches[0].batchNo).toBe('INV-REC-20260403-000002');
     expect(result.summary.actualQuantity).toBe(18);
     expect(result.summary.availableQuantity).toBe(16);
   });

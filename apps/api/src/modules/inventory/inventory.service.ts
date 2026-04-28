@@ -4,6 +4,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InventoryBatchSourceType } from '@infitek/shared';
+import { randomUUID } from 'node:crypto';
 import { QueryRunner } from 'typeorm';
 import { SkusService } from '../master-data/skus/skus.service';
 import { WarehousesService } from '../master-data/warehouses/warehouses.service';
@@ -22,6 +23,20 @@ export interface AvailableInventoryItem {
   actualQuantity: number;
   lockedQuantity: number;
   availableQuantity: number;
+  updatedAt?: Date;
+}
+
+export interface InventoryBatchItem {
+  id: number;
+  batchNo: string;
+  skuId: number;
+  warehouseId: number;
+  batchQuantity: number;
+  batchLockedQuantity: number;
+  batchAvailableQuantity: number;
+  sourceType: InventoryBatchSourceType;
+  sourceDocumentId: number | null;
+  receiptDate: string;
   updatedAt?: Date;
 }
 
@@ -71,15 +86,22 @@ export class InventoryService {
   async findAvailable(
     query: QueryAvailableInventoryDto,
   ): Promise<AvailableInventoryItem[]> {
-    const skuIds = [...new Set(query.skuIds)].sort((a, b) => a - b);
+    const skuIds = query.skuIds
+      ? [...new Set(query.skuIds)].sort((a, b) => a - b)
+      : undefined;
     const summaries = await this.inventoryRepository.findAvailableSummaries(
       skuIds,
       query.warehouseId,
     );
 
     const items = summaries.map((summary) => this.toAvailableItem(summary));
+
+    if (skuIds === undefined) {
+      return items.sort(this.sortAvailableItems);
+    }
+
     const existingKeys = new Set(
-      summaries.map((summary) => `${summary.skuId}:${summary.warehouseId}`),
+      items.map((item) => `${item.skuId}:${item.warehouseId}`),
     );
 
     if (query.warehouseId !== undefined) {
@@ -93,7 +115,7 @@ export class InventoryService {
     }
 
     const skuIdsWithSummary = new Set(
-      summaries.map((summary) => summary.skuId),
+      items.map((item) => item.skuId),
     );
     for (const skuId of skuIds) {
       if (!skuIdsWithSummary.has(skuId)) {
@@ -102,6 +124,19 @@ export class InventoryService {
     }
 
     return items.sort(this.sortAvailableItems);
+  }
+
+  async findBatches(
+    query: QueryAvailableInventoryDto,
+  ): Promise<InventoryBatchItem[]> {
+    const skuIds = query.skuIds
+      ? [...new Set(query.skuIds)].sort((a, b) => a - b)
+      : undefined;
+    const batches = await this.inventoryRepository.findBatches(
+      skuIds,
+      query.warehouseId,
+    );
+    return batches.map((batch) => this.toBatchItem(batch));
   }
 
   async recordOpeningBalance(
@@ -175,40 +210,24 @@ export class InventoryService {
       operator,
     );
 
-    const existingBatch =
-      await this.inventoryRepository.findInitialBatchForUpdate(
-        manager,
-        dto.skuId,
-        dto.warehouseId,
-      );
-    const batch =
-      existingBatch ??
-      batchRepo.create({
-        skuId: dto.skuId,
-        warehouseId: dto.warehouseId,
-        batchQuantity: 0,
-        batchLockedQuantity: 0,
-        sourceType: InventoryBatchSourceType.INITIAL,
-        sourceDocumentId: null,
-        receiptDate,
-        createdBy: operator,
-        updatedBy: operator,
-      });
-
-    if (dto.quantity < Number(batch.batchLockedQuantity ?? 0)) {
-      throw new BadRequestException({
-        code: 'STOCK_INSUFFICIENT',
-        message: `期初库存不能小于当前已锁定数量 ${batch.batchLockedQuantity}`,
-        available: Number(batch.batchLockedQuantity ?? 0),
-      });
-    }
-
-    batch.batchQuantity = dto.quantity;
-    batch.receiptDate = receiptDate;
-    if (operator !== undefined) {
-      batch.updatedBy = operator;
-    }
+    const batch = batchRepo.create({
+      batchNo: this.buildPendingBatchNo(),
+      skuId: dto.skuId,
+      warehouseId: dto.warehouseId,
+      batchQuantity: dto.quantity,
+      batchLockedQuantity: 0,
+      sourceType: InventoryBatchSourceType.INITIAL,
+      sourceDocumentId: null,
+      receiptDate,
+      createdBy: operator,
+      updatedBy: operator,
+    });
     const savedBatch = await batchRepo.save(batch);
+    savedBatch.batchNo = this.buildInitialBatchNo(
+      receiptDate,
+      Number(savedBatch.id),
+    );
+    const finalizedBatch = await batchRepo.save(savedBatch);
 
     const savedSummary = await this.refreshSummaryQuantities(
       queryRunner,
@@ -218,7 +237,7 @@ export class InventoryService {
       operator,
     );
 
-    return { summary: savedSummary, batch: savedBatch };
+    return { summary: savedSummary, batch: finalizedBatch };
   }
 
   async increaseStockInTransaction(
@@ -244,6 +263,7 @@ export class InventoryService {
     );
 
     const batch = batchRepo.create({
+      batchNo: this.buildPendingBatchNo(),
       skuId: command.skuId,
       warehouseId: command.warehouseId,
       batchQuantity: command.quantity,
@@ -255,6 +275,12 @@ export class InventoryService {
       updatedBy: command.operator,
     });
     const savedBatch = await batchRepo.save(batch);
+    savedBatch.batchNo = this.buildReceiptBatchNo(
+      command.sourceType,
+      receiptDate,
+      Number(savedBatch.id),
+    );
+    const finalizedBatch = await batchRepo.save(savedBatch);
     const savedSummary = await this.refreshSummaryQuantities(
       queryRunner,
       summary,
@@ -263,7 +289,7 @@ export class InventoryService {
       command.operator,
     );
 
-    return { summary: savedSummary, batches: [savedBatch] };
+    return { summary: savedSummary, batches: [finalizedBatch] };
   }
 
   async lockStockInTransaction(
@@ -576,13 +602,54 @@ export class InventoryService {
 
   private toAvailableItem(summary: InventorySummary): AvailableInventoryItem {
     return {
-      skuId: summary.skuId,
-      warehouseId: summary.warehouseId,
+      skuId: Number(summary.skuId),
+      warehouseId: Number(summary.warehouseId),
       actualQuantity: Number(summary.actualQuantity),
       lockedQuantity: Number(summary.lockedQuantity),
       availableQuantity: Number(summary.availableQuantity),
       updatedAt: summary.updatedAt,
     };
+  }
+
+  private toBatchItem(batch: InventoryBatch): InventoryBatchItem {
+    const batchQuantity = Number(batch.batchQuantity);
+    const batchLockedQuantity = Number(batch.batchLockedQuantity);
+    return {
+      id: Number(batch.id),
+      batchNo: batch.batchNo,
+      skuId: Number(batch.skuId),
+      warehouseId: Number(batch.warehouseId),
+      batchQuantity,
+      batchLockedQuantity,
+      batchAvailableQuantity: batchQuantity - batchLockedQuantity,
+      sourceType: batch.sourceType,
+      sourceDocumentId:
+        batch.sourceDocumentId === null ? null : Number(batch.sourceDocumentId),
+      receiptDate: batch.receiptDate,
+      updatedAt: batch.updatedAt,
+    };
+  }
+
+  private buildInitialBatchNo(receiptDate: string, batchId: number): string {
+    const datePart = receiptDate.replace(/-/g, '');
+    return `INV-INIT-${datePart}-${String(batchId).padStart(6, '0')}`;
+  }
+
+  private buildReceiptBatchNo(
+    sourceType: InventoryBatchSourceType,
+    receiptDate: string,
+    batchId: number,
+  ): string {
+    const sourcePrefix =
+      sourceType === InventoryBatchSourceType.PURCHASE_RECEIPT
+        ? 'REC'
+        : sourceType.toUpperCase().replace(/[^A-Z0-9]/g, '-');
+    const datePart = receiptDate.replace(/-/g, '');
+    return `INV-${sourcePrefix}-${datePart}-${String(batchId).padStart(6, '0')}`;
+  }
+
+  private buildPendingBatchNo(): string {
+    return `INV-PENDING-${randomUUID()}`;
   }
 
   private createEmptyAvailableItem(
