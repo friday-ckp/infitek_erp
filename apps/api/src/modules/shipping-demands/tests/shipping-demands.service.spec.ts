@@ -2,8 +2,10 @@ import { BadRequestException } from '@nestjs/common';
 import {
   DomesticTradeType,
   SalesOrderStatus,
+  SalesOrderSource,
   SalesOrderType,
   ShippingDemandStatus,
+  YesNo,
 } from '@infitek/shared';
 import {
   OperationLog,
@@ -23,23 +25,39 @@ describe('ShippingDemandsService', () => {
   const inventoryService = {
     findAvailable: jest.fn(),
   };
+  const filesService = {
+    getSignedUrl: jest.fn(),
+  };
 
   const makeOrder = (
     status = SalesOrderStatus.APPROVED,
   ): Partial<SalesOrder> => ({
     id: 10,
     erpSalesOrderCode: 'SO2026042800001',
+    externalOrderCode: 'EXT-001',
+    orderSource: SalesOrderSource.MANUAL,
     status,
     orderType: SalesOrderType.SALES,
     domesticTradeType: DomesticTradeType.FOREIGN,
     customerId: 1,
     customerName: '测试客户',
     customerCode: 'KH001',
+    customerContactPerson: '张三',
+    afterSalesSourceOrderId: null,
+    afterSalesSourceOrderCode: null,
+    afterSalesProductSummary: null,
     currencyId: 2,
     currencyCode: 'USD',
     currencyName: '美元',
     currencySymbol: '$',
     tradeTerm: null,
+    bankAccount: 'BOC-001',
+    extraViewerId: null,
+    extraViewerName: null,
+    primaryIndustry: null,
+    secondaryIndustry: null,
+    exchangeRate: '7.100000',
+    crmSignedAt: '2026-04-27',
     paymentTerm: null,
     shipmentOriginCountryId: null,
     shipmentOriginCountryName: null,
@@ -63,13 +81,43 @@ describe('ShippingDemandsService', () => {
     isAliTradeAssurance: null,
     isInsured: null,
     isPalletized: null,
+    isSplitInAdvance: YesNo.NO,
     requiresExportCustoms: null,
     requiresWarrantyCard: null,
     requiresCustomsCertificate: null,
+    requiresMaternityHandover: null,
+    customsDeclarationMethod: null,
     usesMarketingFund: null,
+    aliTradeAssuranceOrderCode: null,
+    forwarderQuoteNote: '询价货代备注',
+    contractFileKeys: ['contracts/a.pdf'],
+    contractFileNames: ['合同A.pdf'],
+    plugPhotoKeys: ['plugs/a.png'],
+    consigneeCompany: 'Consignee Co.',
+    consigneeOtherInfo: 'Consignee Info',
+    notifyCompany: 'Notify Co.',
+    notifyOtherInfo: 'Notify Info',
+    shipperCompany: 'Shipper Co.',
+    shipperOtherInfoCompanyId: null,
+    shipperOtherInfoCompanyName: null,
+    domesticCustomerCompany: null,
+    domesticCustomerDeliveryInfo: null,
+    usesDefaultShippingMark: YesNo.YES,
+    shippingMarkNote: '唛头备注',
+    shippingMarkTemplateKey: 'shipping-mark/a.docx',
+    needsInvoice: YesNo.YES,
+    invoiceType: null,
+    shippingDocumentsNote: '随货文件',
+    blType: null,
+    originalMailAddress: 'Mail address',
+    businessRectificationNote: '业务整改',
+    customsDocumentNote: '清关要求',
+    otherRequirementNote: '其他要求',
     contractAmount: '1000.00',
     receivedAmount: '0.00',
     outstandingAmount: '1000.00',
+    productTotalAmount: '600.00',
+    expenseTotalAmount: '0.00',
     totalAmount: '600.00',
     items: [
       {
@@ -89,6 +137,9 @@ describe('ShippingDemandsService', () => {
         currencyCode: 'USD',
         unitId: 6,
         unitName: '台',
+        purchaserId: 8,
+        purchaserName: '采购员A',
+        needsPurchase: YesNo.YES,
         quantity: 2,
         amount: '600.00',
         material: '金属',
@@ -174,6 +225,35 @@ describe('ShippingDemandsService', () => {
     service = new ShippingDemandsService(
       shippingDemandsRepository as any,
       inventoryService as any,
+      filesService as any,
+    );
+  });
+
+  it('finds shipping demand detail with signed urls', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PENDING_ALLOCATION,
+      contractFileKeys: ['contracts/a.pdf'],
+      contractFileNames: ['合同A.pdf'],
+      plugPhotoKeys: ['plugs/a.png'],
+      shippingMarkTemplateKey: 'shipping-mark/a.docx',
+      items: [],
+    });
+    filesService.getSignedUrl.mockImplementation(async (key: string) => {
+      return `https://signed.example.com/${key}`;
+    });
+
+    const result = await service.findById(500);
+
+    expect(result.contractFileUrls).toEqual([
+      'https://signed.example.com/contracts/a.pdf',
+    ]);
+    expect(result.plugPhotoUrls).toEqual([
+      'https://signed.example.com/plugs/a.png',
+    ]);
+    expect(result.shippingMarkTemplateUrl).toBe(
+      'https://signed.example.com/shipping-mark/a.docx',
     );
   });
 
@@ -239,12 +319,29 @@ describe('ShippingDemandsService', () => {
         status: ShippingDemandStatus.PENDING_ALLOCATION,
         salesOrderId: 10,
         sourceDocumentCode: 'SO2026042800001',
+        externalOrderCode: 'EXT-001',
+        customerContactPerson: '张三',
+        bankAccount: 'BOC-001',
+        exchangeRate: '7.100000',
+        crmSignedAt: '2026-04-27',
+        contractFileKeys: ['contracts/a.pdf'],
+        contractFileNames: ['合同A.pdf'],
+        plugPhotoKeys: ['plugs/a.png'],
+        consigneeCompany: 'Consignee Co.',
+        notifyCompany: 'Notify Co.',
+        shipperCompany: 'Shipper Co.',
+        shippingMarkTemplateKey: 'shipping-mark/a.docx',
+        productTotalAmount: '600.00',
+        expenseTotalAmount: '0.00',
       }),
     );
     expect(state.savedItems).toEqual([
       expect.objectContaining({
         salesOrderItemId: 101,
         requiredQuantity: 2,
+        purchaserId: 8,
+        purchaserName: '采购员A',
+        needsPurchase: YesNo.YES,
         fulfillmentType: null,
         availableStockSnapshot: [
           {

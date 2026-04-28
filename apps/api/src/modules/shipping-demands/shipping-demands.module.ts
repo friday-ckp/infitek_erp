@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { FilesModule } from '../../files/files.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
 import { ShippingDemand } from './entities/shipping-demand.entity';
@@ -10,6 +11,7 @@ import { ShippingDemandsService } from './shipping-demands.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([ShippingDemand, ShippingDemandItem]),
+    FilesModule,
     InventoryModule,
   ],
   controllers: [ShippingDemandsController],

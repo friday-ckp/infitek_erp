@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { SalesOrderStatus, ShippingDemandStatus } from '@infitek/shared';
 import { QueryRunner } from 'typeorm';
+import { FilesService } from '../../files/files.service';
 import { InventoryService, type AvailableInventoryItem } from '../inventory/inventory.service';
 import {
   OperationLog,
@@ -26,14 +27,15 @@ export class ShippingDemandsService {
   constructor(
     private readonly shippingDemandsRepository: ShippingDemandsRepository,
     private readonly inventoryService: InventoryService,
+    private readonly filesService: FilesService,
   ) {}
 
-  async findById(id: number): Promise<ShippingDemand> {
+  async findById(id: number): Promise<ShippingDemand & Record<string, unknown>> {
     const demand = await this.shippingDemandsRepository.findById(id);
     if (!demand) {
       throw new NotFoundException('发货需求不存在');
     }
-    return demand;
+    return this.withSignedUrls(demand);
   }
 
   findAll(query: QueryShippingDemandDto) {
@@ -86,15 +88,28 @@ export class ShippingDemandsService {
         sourceDocumentType: 'sales_order',
         status: ShippingDemandStatus.PENDING_ALLOCATION,
         orderType: order.orderType,
+        orderSource: order.orderSource,
         domesticTradeType: order.domesticTradeType,
+        externalOrderCode: order.externalOrderCode,
         customerId: order.customerId,
         customerName: order.customerName,
         customerCode: order.customerCode,
+        customerContactPerson: order.customerContactPerson,
+        afterSalesSourceOrderId: order.afterSalesSourceOrderId,
+        afterSalesSourceOrderCode: order.afterSalesSourceOrderCode,
+        afterSalesProductSummary: order.afterSalesProductSummary,
         currencyId: order.currencyId,
         currencyCode: order.currencyCode,
         currencyName: order.currencyName,
         currencySymbol: order.currencySymbol,
         tradeTerm: order.tradeTerm,
+        bankAccount: order.bankAccount,
+        extraViewerId: order.extraViewerId,
+        extraViewerName: order.extraViewerName,
+        primaryIndustry: order.primaryIndustry,
+        secondaryIndustry: order.secondaryIndustry,
+        exchangeRate: order.exchangeRate,
+        crmSignedAt: order.crmSignedAt,
         paymentTerm: order.paymentTerm,
         shipmentOriginCountryId: order.shipmentOriginCountryId,
         shipmentOriginCountryName: order.shipmentOriginCountryName,
@@ -118,13 +133,43 @@ export class ShippingDemandsService {
         isAliTradeAssurance: order.isAliTradeAssurance,
         isInsured: order.isInsured,
         isPalletized: order.isPalletized,
+        isSplitInAdvance: order.isSplitInAdvance,
         requiresExportCustoms: order.requiresExportCustoms,
         requiresWarrantyCard: order.requiresWarrantyCard,
         requiresCustomsCertificate: order.requiresCustomsCertificate,
+        requiresMaternityHandover: order.requiresMaternityHandover,
+        customsDeclarationMethod: order.customsDeclarationMethod,
         usesMarketingFund: order.usesMarketingFund,
+        aliTradeAssuranceOrderCode: order.aliTradeAssuranceOrderCode,
+        forwarderQuoteNote: order.forwarderQuoteNote,
+        contractFileKeys: order.contractFileKeys,
+        contractFileNames: order.contractFileNames,
+        plugPhotoKeys: order.plugPhotoKeys,
+        consigneeCompany: order.consigneeCompany,
+        consigneeOtherInfo: order.consigneeOtherInfo,
+        notifyCompany: order.notifyCompany,
+        notifyOtherInfo: order.notifyOtherInfo,
+        shipperCompany: order.shipperCompany,
+        shipperOtherInfoCompanyId: order.shipperOtherInfoCompanyId,
+        shipperOtherInfoCompanyName: order.shipperOtherInfoCompanyName,
+        domesticCustomerCompany: order.domesticCustomerCompany,
+        domesticCustomerDeliveryInfo: order.domesticCustomerDeliveryInfo,
+        usesDefaultShippingMark: order.usesDefaultShippingMark,
+        shippingMarkNote: order.shippingMarkNote,
+        shippingMarkTemplateKey: order.shippingMarkTemplateKey,
+        needsInvoice: order.needsInvoice,
+        invoiceType: order.invoiceType,
+        shippingDocumentsNote: order.shippingDocumentsNote,
+        blType: order.blType,
+        originalMailAddress: order.originalMailAddress,
+        businessRectificationNote: order.businessRectificationNote,
+        customsDocumentNote: order.customsDocumentNote,
+        otherRequirementNote: order.otherRequirementNote,
         contractAmount: order.contractAmount,
         receivedAmount: order.receivedAmount,
         outstandingAmount: order.outstandingAmount,
+        productTotalAmount: order.productTotalAmount,
+        expenseTotalAmount: order.expenseTotalAmount,
         totalAmount: order.totalAmount,
         createdBy: operator,
         updatedBy: operator,
@@ -150,6 +195,9 @@ export class ShippingDemandsService {
         currencyCode: item.currencyCode,
         unitId: item.unitId,
         unitName: item.unitName,
+        purchaserId: item.purchaserId,
+        purchaserName: item.purchaserName,
+        needsPurchase: item.needsPurchase,
         requiredQuantity: item.quantity,
         availableStockSnapshot: availableBySkuId.get(Number(item.skuId)) ?? [],
         fulfillmentType: null,
@@ -333,5 +381,41 @@ export class ShippingDemandsService {
       result.set(skuId, rows);
     }
     return result;
+  }
+
+  private async withSignedUrls(demand: ShippingDemand) {
+    const contractFileUrls = demand.contractFileKeys
+      ? await Promise.all(
+          demand.contractFileKeys.map(async (key) => {
+            try {
+              return await this.filesService.getSignedUrl(key);
+            } catch {
+              return key;
+            }
+          }),
+        )
+      : null;
+    const plugPhotoUrls = demand.plugPhotoKeys
+      ? await Promise.all(
+          demand.plugPhotoKeys.map(async (key) => {
+            try {
+              return await this.filesService.getSignedUrl(key);
+            } catch {
+              return key;
+            }
+          }),
+        )
+      : null;
+    const shippingMarkTemplateUrl = demand.shippingMarkTemplateKey
+      ? await this.filesService
+          .getSignedUrl(demand.shippingMarkTemplateKey)
+          .catch(() => demand.shippingMarkTemplateKey)
+      : null;
+    return {
+      ...demand,
+      contractFileUrls,
+      plugPhotoUrls,
+      shippingMarkTemplateUrl,
+    };
   }
 }

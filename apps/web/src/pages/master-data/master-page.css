@@ -697,6 +697,221 @@
   font-weight: 600;
 }
 
+.shipping-demand-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.shipping-demand-flow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(88px, 1fr));
+  gap: 0;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+}
+
+.shipping-demand-flow-step {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 88px;
+}
+
+.shipping-demand-flow-step:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 17px;
+  left: calc(50% + 22px);
+  right: calc(-50% + 22px);
+  height: 2px;
+  background: #e2e8f0;
+}
+
+.shipping-demand-flow-step.done:not(:last-child)::after {
+  background: #86efac;
+}
+
+.shipping-demand-flow-node {
+  z-index: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.shipping-demand-flow-step.done .shipping-demand-flow-node {
+  color: #166534;
+  background: #dcfce7;
+  border-color: #bbf7d0;
+}
+
+.shipping-demand-flow-step.active .shipping-demand-flow-node {
+  color: #1d4ed8;
+  background: #dbeafe;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+}
+
+.shipping-demand-flow-label {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 700;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.shipping-demand-flow-step.done .shipping-demand-flow-label {
+  color: #166534;
+}
+
+.shipping-demand-flow-step.active .shipping-demand-flow-label {
+  color: #1d4ed8;
+}
+
+.shipping-demand-smart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.shipping-demand-smart-tooltip {
+  display: inline-flex;
+}
+
+.shipping-demand-smart-button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #dbe3ef;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.shipping-demand-smart-button:hover:not(.disabled) {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.shipping-demand-smart-button.disabled {
+  cursor: not-allowed;
+  color: #94a3b8;
+  background: #f8fafc;
+}
+
+.shipping-demand-smart-icon {
+  display: inline-flex;
+  color: inherit;
+}
+
+.shipping-demand-smart-badge {
+  min-width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  background: #2563eb;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 0 6px;
+}
+
+.shipping-demand-smart-badge.zero {
+  background: #cbd5e1;
+}
+
+.shipping-demand-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.shipping-demand-stat {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px 16px;
+}
+
+.shipping-demand-stat-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.shipping-demand-stat-value {
+  margin-top: 6px;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.shipping-demand-stat-subtitle {
+  margin-top: 6px;
+  color: #94a3b8;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.shipping-demand-stat-blue .shipping-demand-stat-value {
+  color: #1d4ed8;
+}
+
+.shipping-demand-stat-green .shipping-demand-stat-value {
+  color: #047857;
+}
+
+.shipping-demand-stat-orange .shipping-demand-stat-value {
+  color: #b45309;
+}
+
+.shipping-demand-inventory {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.shipping-demand-inventory-success {
+  color: #065f46;
+  background: #ecfdf5;
+}
+
+.shipping-demand-inventory-warning {
+  color: #92400e;
+  background: #fffbeb;
+}
+
+.shipping-demand-inventory-danger {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
 @media (max-width: 1200px) {
   .master-summary-meta {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -719,6 +934,10 @@
     position: static;
     flex-direction: row;
     flex-wrap: wrap;
+  }
+
+  .shipping-demand-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -757,6 +976,10 @@
   }
 
   .master-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .shipping-demand-stat-grid {
     grid-template-columns: 1fr;
   }
 
