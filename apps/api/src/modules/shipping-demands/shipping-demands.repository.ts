@@ -6,6 +6,10 @@ import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
 import { ShippingDemand } from './entities/shipping-demand.entity';
 
+function escapeLike(value: string): string {
+  return value.replace(/[\\%_]/g, (match) => `\\${match}`);
+}
+
 @Injectable()
 export class ShippingDemandsRepository {
   constructor(
@@ -30,7 +34,15 @@ export class ShippingDemandsRepository {
   }
 
   async findAll(query: QueryShippingDemandDto) {
-    const { keyword, status, customerId, page = 1, pageSize = 20 } = query;
+    const {
+      keyword,
+      status,
+      customerId,
+      salesOrderId,
+      sourceDocumentCode,
+      page = 1,
+      pageSize = 20,
+    } = query;
     const qb = this.shippingDemandRepo.createQueryBuilder('demand');
 
     if (keyword) {
@@ -48,7 +60,19 @@ export class ShippingDemandsRepository {
       qb.andWhere('demand.customer_id = :customerId', { customerId });
     }
 
+    if (salesOrderId != null) {
+      qb.andWhere('demand.sales_order_id = :salesOrderId', { salesOrderId });
+    }
+
+    const normalizedSourceDocumentCode = sourceDocumentCode?.trim();
+    if (normalizedSourceDocumentCode) {
+      qb.andWhere('demand.source_document_code LIKE :sourceDocumentCode ESCAPE \'\\\\\'', {
+        sourceDocumentCode: `%${escapeLike(normalizedSourceDocumentCode)}%`,
+      });
+    }
+
     const [list, total] = await qb
+      .loadRelationCountAndMap('demand.skuCount', 'demand.items')
       .orderBy('demand.created_at', 'DESC')
       .skip((page - 1) * pageSize)
       .take(pageSize)

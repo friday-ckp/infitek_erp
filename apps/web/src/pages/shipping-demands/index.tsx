@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Button, Empty, Result, Select, Skeleton, Space, Typography, theme } from 'antd';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Button, Empty, Input, Result, Select, Skeleton, Space, Typography, theme } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -37,27 +37,62 @@ function formatMoney(value?: string | null) {
   return `${integerPart}.${decimalPart.padEnd(2, '0').slice(0, 2)}`;
 }
 
+function parsePositiveIntParam(value: string | null) {
+  const normalized = value?.trim();
+  if (!normalized || !/^\d+$/.test(normalized)) return undefined;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 export default function ShippingDemandsListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { token } = theme.useToken();
   const [keywordInput, setKeywordInput] = useState('');
+  const [sourceDocumentCodeInput, setSourceDocumentCodeInput] = useState('');
   const [status, setStatus] = useState<ShippingDemandStatus | undefined>(undefined);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
   const keyword = useDebouncedValue(keywordInput, 300).trim();
-  const hasFilters = Boolean(keyword) || status != null;
+  const sourceDocumentCode = useDebouncedValue(sourceDocumentCodeInput, 300).trim();
+  const salesOrderId = useMemo(
+    () => parsePositiveIntParam(searchParams.get('salesOrderId')),
+    [searchParams],
+  );
+  const hasFilters = Boolean(keyword) || Boolean(sourceDocumentCode) || status != null || salesOrderId != null;
+
+  const clearSalesOrderFilter = () => {
+    const nextSearchParams = new URLSearchParams(searchParams);
+    nextSearchParams.delete('salesOrderId');
+    setSearchParams(nextSearchParams, { replace: true });
+    setPage(1);
+  };
+
+  const clearAllFilters = () => {
+    setKeywordInput('');
+    setSourceDocumentCodeInput('');
+    setStatus(undefined);
+    if (searchParams.has('salesOrderId')) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete('salesOrderId');
+      setSearchParams(nextSearchParams, { replace: true });
+    }
+    setPage(1);
+  };
 
   useEffect(() => {
     setPage(1);
-  }, [keyword, status]);
+  }, [keyword, sourceDocumentCode, salesOrderId, status]);
 
   const query = useQuery({
-    queryKey: ['shipping-demands', keyword, status, page, pageSize],
+    queryKey: ['shipping-demands', keyword, sourceDocumentCode, salesOrderId, status, page, pageSize],
     placeholderData: (previousData) => previousData,
     queryFn: () =>
       getShippingDemands({
         keyword: keyword || undefined,
+        sourceDocumentCode: sourceDocumentCode || undefined,
+        salesOrderId,
         status,
         page,
         pageSize,
@@ -94,6 +129,13 @@ export default function ShippingDemandsListPage() {
         dataIndex: 'customerName',
         width: 220,
         ellipsis: true,
+      },
+      {
+        title: 'SKU 数量',
+        dataIndex: 'skuCount',
+        width: 100,
+        align: 'right',
+        render: (_, record) => record.skuCount ?? record.items?.length ?? '-',
       },
       {
         title: '客户代码',
@@ -194,11 +236,7 @@ export default function ShippingDemandsListPage() {
     <Empty description="未找到匹配记录">
       <Button
         type="link"
-        onClick={() => {
-          setKeywordInput('');
-          setStatus(undefined);
-          setPage(1);
-        }}
+        onClick={clearAllFilters}
       >
         清除筛选条件
       </Button>
@@ -218,6 +256,23 @@ export default function ShippingDemandsListPage() {
           label: `关键词: ${keyword}`,
           onClose: () => {
             setKeywordInput('');
+            setPage(1);
+          },
+        }
+      : null,
+    salesOrderId != null
+      ? {
+          key: 'salesOrderId',
+          label: `销售订单ID: ${salesOrderId}`,
+          onClose: clearSalesOrderFilter,
+        }
+      : null,
+    sourceDocumentCode
+      ? {
+          key: 'sourceDocumentCode',
+          label: `来源销售订单: ${sourceDocumentCode}`,
+          onClose: () => {
+            setSourceDocumentCodeInput('');
             setPage(1);
           },
         }
@@ -265,23 +320,25 @@ export default function ShippingDemandsListPage() {
                     setPage(1);
                   }}
                 />
+                <Input
+                  allowClear
+                  placeholder="来源销售订单编号"
+                  style={{ width: 220 }}
+                  value={sourceDocumentCodeInput}
+                  onChange={(event) => {
+                    setSourceDocumentCodeInput(event.target.value);
+                    setPage(1);
+                  }}
+                />
               </Space>
             }
             activeTags={activeTags}
-            onClearAll={() => {
-              setKeywordInput('');
-              setStatus(undefined);
-              setPage(1);
-            }}
+            onClearAll={clearAllFilters}
             onQuery={() => {
               setPage(1);
               query.refetch();
             }}
-            onReset={() => {
-              setKeywordInput('');
-              setStatus(undefined);
-              setPage(1);
-            }}
+            onReset={clearAllFilters}
           />
 
           <Skeleton active loading={query.isLoading && !query.data} style={{ marginTop: token.marginMD }}>
@@ -293,7 +350,7 @@ export default function ShippingDemandsListPage() {
               loading={query.isFetching}
               columns={columns}
               dataSource={query.data?.list ?? []}
-              scroll={{ x: 1700, y: 540 }}
+              scroll={{ x: 1800, y: 540 }}
               rowClassName={() => 'shipping-demand-row-height'}
               locale={{ emptyText }}
               pagination={{
