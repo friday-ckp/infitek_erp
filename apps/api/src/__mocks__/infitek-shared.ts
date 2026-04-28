@@ -72,13 +72,40 @@ export type SalesOrderSource =
   (typeof SalesOrderSource)[keyof typeof SalesOrderSource];
 
 export const ShippingDemandStatus = {
-  PENDING: 'pending',
-  IN_PROGRESS: 'in_progress',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
+  PENDING_ALLOCATION: 'pending_allocation',
+  PURCHASING: 'purchasing',
+  PREPARED: 'prepared',
+  PARTIALLY_SHIPPED: 'partially_shipped',
+  SHIPPED: 'shipped',
+  VOIDED: 'voided',
 } as const;
 export type ShippingDemandStatus =
   (typeof ShippingDemandStatus)[keyof typeof ShippingDemandStatus];
+
+export const FulfillmentType = {
+  FULL_PURCHASE: 'full_purchase',
+  PARTIAL_PURCHASE: 'partial_purchase',
+  USE_STOCK: 'use_stock',
+} as const;
+export type FulfillmentType =
+  (typeof FulfillmentType)[keyof typeof FulfillmentType];
+
+export const InventoryBatchSourceType = {
+  INITIAL: 'initial',
+  PURCHASE_RECEIPT: 'purchase_receipt',
+} as const;
+export type InventoryBatchSourceType =
+  (typeof InventoryBatchSourceType)[keyof typeof InventoryBatchSourceType];
+
+export const InventoryChangeType = {
+  INITIAL: 'initial',
+  PURCHASE_RECEIPT: 'purchase_receipt',
+  OUTBOUND: 'outbound',
+  LOCK: 'lock',
+  UNLOCK: 'unlock',
+} as const;
+export type InventoryChangeType =
+  (typeof InventoryChangeType)[keyof typeof InventoryChangeType];
 
 export const CurrencyStatus = {
   ACTIVE: 'active',

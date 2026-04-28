@@ -58,6 +58,7 @@ import ContractTemplateFormPage from './pages/master-data/contract-templates/for
 import SalesOrdersListPage from './pages/sales-orders/index';
 import SalesOrderFormPage from './pages/sales-orders/form';
 import SalesOrderDetailPage from './pages/sales-orders/detail';
+import InventoryPage from './pages/inventory/index';
 import HomePage from './pages/home/index';
 import './App.css';
 
@@ -224,6 +225,8 @@ function App() {
                   <Route path="/sales-orders" element={<SalesOrdersListPage />} />
                   <Route path="/sales-orders/create" element={<SalesOrderFormPage />} />
                   <Route path="/sales-orders/:id" element={<SalesOrderDetailPage />} />
+                  <Route path="/inventory" element={<InventoryPage />} />
+                  <Route path="/inventory/*" element={<InventoryPage />} />
                 </Route>
 
                 {/* 兜底重定向 */}

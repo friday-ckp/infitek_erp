@@ -39,7 +39,7 @@
 #   _bmad-output/planning-artifacts/flow-quantity-data-lineage.md
 
 generated: 2026-04-15
-last_updated: 2026-04-27 (correct-course-epic-5-7-mandatory-flow-context)
+last_updated: 2026-04-27 (story-5.0-done)
 project: infitek_erp
 
 project_key: NOKEY
@@ -108,7 +108,7 @@ development_status:
   # ─────────────────────────────────────────────────
   epic-5: in-progress
   5-1-销售订单创建与确认: done
-  5-0-库存双层结构查询接口与期初录入: backlog
+  5-0-库存双层结构查询接口与期初录入: done
   5-2-销售订单列表与详情: backlog
   5-3-发货需求列表页: backlog
   5-4-发货需求枢纽详情页: backlog

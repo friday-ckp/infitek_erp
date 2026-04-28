@@ -83,6 +83,7 @@ const menuItems = [
     section: SECTION_BUSINESS,
     key: 'inventory',
     label: '库存管理',
+    defaultPath: '/inventory',
     icon: (
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
         <rect x="1.5" y="7" width="13" height="7.5" rx="1" stroke="currentColor" strokeWidth="1.3"/>
@@ -177,7 +178,7 @@ export default function Sidebar() {
   const systemItems = menuItems.filter(i => i.section === SECTION_SYSTEM);
 
   const renderMenuGroup = (item: typeof menuItems[0]) => {
-    const isOpen = openKeys.includes(item.key);
+    const isOpen = openKeys.includes(item.key) || Boolean(item.defaultPath);
     const hasActiveChild = item.children.some((c) => isChildRouteActive(location.pathname, c.key));
 
     if (item.disabled) {
@@ -210,14 +211,25 @@ export default function Sidebar() {
           item={item}
           isOpen={isOpen}
           hasActiveChild={hasActiveChild}
-          onToggle={() => item.children.length > 0 && toggleGroup(item.key)}
+          onToggle={() => {
+            if (item.defaultPath) {
+              navigate(item.defaultPath);
+              setOpenKeys((prev) => (prev.includes(item.key) ? prev : [...prev, item.key]));
+              return;
+            }
+            if (item.children.length > 0) toggleGroup(item.key);
+          }}
         />
         {/* 子菜单动画容器 */}
-        <div style={{
-          overflow: 'hidden',
-          maxHeight: isOpen ? 500 : 0,
-          transition: 'max-height 0.25s cubic-bezier(.4,0,.2,1)',
-        }}>
+        <div
+          aria-hidden={!isOpen}
+          style={{
+            display: isOpen ? 'block' : 'none',
+            overflow: 'hidden',
+            maxHeight: isOpen ? 500 : 0,
+            transition: 'max-height 0.25s cubic-bezier(.4,0,.2,1)',
+          }}
+        >
           <div style={{ padding: '3px 0 6px 0' }}>
             {item.children.map((child) => {
               const isActive = isChildRouteActive(location.pathname, child.key);
@@ -225,6 +237,7 @@ export default function Sidebar() {
                 <ChildItem
                   key={child.key}
                   label={child.label}
+                  path={child.key}
                   isActive={isActive}
                   onClick={() => navigate(child.key)}
                 />
@@ -379,12 +392,27 @@ function ParentItem({
   );
 }
 
-function ChildItem({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
+function ChildItem({
+  label,
+  path,
+  isActive,
+  onClick,
+}: {
+  label: string;
+  path: string;
+  isActive: boolean;
+  onClick: () => void;
+}) {
   const [hovered, setHovered] = useState(false);
 
   return (
     <div
-      onClick={onClick}
+      data-menu-path={path}
+      data-testid={`sidebar-menu-${path.replace(/^\//, '').replace(/\//g, '-') || 'home'}`}
+      onClick={(event) => {
+        event.stopPropagation();
+        onClick();
+      }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{

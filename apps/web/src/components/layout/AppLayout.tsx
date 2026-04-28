@@ -13,6 +13,7 @@ type BreadcrumbRoute = { pattern: RegExp; items: BreadcrumbItem[] };
 const BASIC_DATA_SECTION_PATH = '/master-data/units';
 const PRODUCT_SECTION_PATH = '/master-data/product-categories';
 const SALES_SECTION_PATH = '/sales-orders';
+const INVENTORY_SECTION_PATH = '/inventory';
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -104,6 +105,12 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     listLabel: '销售订单',
     createLabel: '新建销售订单',
     detailLabel: '销售订单详情',
+  }),
+  ...createCrudBreadcrumbRoutes({
+    basePath: '/inventory',
+    sectionLabel: '库存管理',
+    sectionPath: INVENTORY_SECTION_PATH,
+    listLabel: '库存查询',
   }),
   ...createCrudBreadcrumbRoutes({
     basePath: '/master-data/units',

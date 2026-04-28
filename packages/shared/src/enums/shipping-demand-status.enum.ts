@@ -1,7 +1,11 @@
-export enum ShippingDemandStatus {
-  // 待实现（Story 后续补全）
-  PENDING = 'pending',
-  IN_PROGRESS = 'in_progress',
-  COMPLETED = 'completed',
-  CANCELLED = 'cancelled',
-}
+export const ShippingDemandStatus = {
+  PENDING_ALLOCATION: 'pending_allocation',
+  PURCHASING: 'purchasing',
+  PREPARED: 'prepared',
+  PARTIALLY_SHIPPED: 'partially_shipped',
+  SHIPPED: 'shipped',
+  VOIDED: 'voided',
+} as const;
+
+export type ShippingDemandStatus =
+  (typeof ShippingDemandStatus)[keyof typeof ShippingDemandStatus];
