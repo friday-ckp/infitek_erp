@@ -214,4 +214,7 @@ export class ShippingDemand extends BaseEntity {
   @OneToMany(() => ShippingDemandItem, (item) => item.shippingDemand, { cascade: false })
   @Expose()
   items?: ShippingDemandItem[];
+
+  @Expose()
+  skuCount?: number;
 }

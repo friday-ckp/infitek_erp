@@ -24,7 +24,9 @@ describe('ShippingDemandsService', () => {
     findAvailable: jest.fn(),
   };
 
-  const makeOrder = (status = SalesOrderStatus.APPROVED): Partial<SalesOrder> => ({
+  const makeOrder = (
+    status = SalesOrderStatus.APPROVED,
+  ): Partial<SalesOrder> => ({
     id: 10,
     erpSalesOrderCode: 'SO2026042800001',
     status,
@@ -123,7 +125,9 @@ describe('ShippingDemandsService', () => {
     }
     if (entity === ShippingDemand) {
       return {
-        createQueryBuilder: jest.fn(() => makeQueryBuilder(state.existingDemand ?? state.latestDemand ?? null)),
+        createQueryBuilder: jest.fn(() =>
+          makeQueryBuilder(state.existingDemand ?? state.latestDemand ?? null),
+        ),
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
           state.savedDemand = { id: 500, ...data };
@@ -186,6 +190,8 @@ describe('ShippingDemandsService', () => {
     const result = await service.findAll({
       keyword: 'SD20260428',
       status: ShippingDemandStatus.PENDING_ALLOCATION,
+      salesOrderId: 10,
+      sourceDocumentCode: 'SO20260428',
       page: 1,
       pageSize: 20,
     });
@@ -194,6 +200,8 @@ describe('ShippingDemandsService', () => {
     expect(shippingDemandsRepository.findAll).toHaveBeenCalledWith({
       keyword: 'SD20260428',
       status: ShippingDemandStatus.PENDING_ALLOCATION,
+      salesOrderId: 10,
+      sourceDocumentCode: 'SO20260428',
       page: 1,
       pageSize: 20,
     });
@@ -223,7 +231,9 @@ describe('ShippingDemandsService', () => {
 
     expect(result.demandCode).toBe('SD2026042800001');
     expect(queryRunner.commitTransaction).toHaveBeenCalled();
-    expect(inventoryService.findAvailable).toHaveBeenCalledWith({ skuIds: [11] });
+    expect(inventoryService.findAvailable).toHaveBeenCalledWith({
+      skuIds: [11],
+    });
     expect(state.savedDemand).toEqual(
       expect.objectContaining({
         status: ShippingDemandStatus.PENDING_ALLOCATION,
@@ -300,7 +310,9 @@ describe('ShippingDemandsService', () => {
     expect(result.demandCode).toBe('SD2026042800002');
     expect(firstQueryRunner.rollbackTransaction).toHaveBeenCalled();
     expect(secondQueryRunner.commitTransaction).toHaveBeenCalled();
-    expect(shippingDemandsRepository.createQueryRunner).toHaveBeenCalledTimes(2);
+    expect(shippingDemandsRepository.createQueryRunner).toHaveBeenCalledTimes(
+      2,
+    );
   });
 
   it('rejects non-approved sales order', async () => {
@@ -320,7 +332,10 @@ describe('ShippingDemandsService', () => {
   it('rejects duplicate active shipping demand', async () => {
     const state: Record<string, unknown> = {
       order: makeOrder(),
-      existingDemand: { id: 88, status: ShippingDemandStatus.PENDING_ALLOCATION },
+      existingDemand: {
+        id: 88,
+        status: ShippingDemandStatus.PENDING_ALLOCATION,
+      },
     };
     const queryRunner = makeQueryRunner(state);
     shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);

@@ -32,6 +32,7 @@ export interface ShippingDemand {
   status: ShippingDemandStatus;
   customerName: string;
   customerCode: string;
+  skuCount?: number;
   currencyCode?: string | null;
   destinationCountryName?: string | null;
   destinationPortName?: string | null;
@@ -47,6 +48,8 @@ export interface ShippingDemandListParams {
   keyword?: string;
   status?: ShippingDemandStatus;
   customerId?: number;
+  salesOrderId?: number;
+  sourceDocumentCode?: string;
   page?: number;
   pageSize?: number;
 }
