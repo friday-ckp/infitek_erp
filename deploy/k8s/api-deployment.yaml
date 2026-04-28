@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infitek-api
+  namespace: test
+  labels:
+    app: infitek-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infitek-api
+  template:
+    metadata:
+      labels:
+        app: infitek-api
+    spec:
+      imagePullSecrets:
+        - name: acr-registry-secret-hq
+      containers:
+        - name: api
+          image: crpi-dgkl9khr1943eg60.cn-hangzhou.personal.cr.aliyuncs.com/hq-service/infitek_erp:api-v1.0.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: infitek-erp-config
+            - secretRef:
+                name: infitek-erp-secret
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infitek-service
+  namespace: test
+spec:
+  selector:
+    app: infitek-api
+  ports:
+    - port: 3000
+      targetPort: 3000
+  type: ClusterIP

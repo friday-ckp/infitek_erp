@@ -1,5 +1,5 @@
 # Stage 1: Install dependencies
-FROM node:20-alpine AS deps
+FROM crpi-dgkl9khr1943eg60.cn-hangzhou.personal.cr.aliyuncs.com/hq-docker-mirror/node:20-alpine AS deps
 
 WORKDIR /app
 
@@ -18,9 +18,10 @@ COPY packages/shared ./packages/shared
 RUN pnpm --filter web build
 
 # Stage 3: Production (serve with nginx)
-FROM nginx:alpine AS production
+FROM crpi-dgkl9khr1943eg60.cn-hangzhou.personal.cr.aliyuncs.com/hq-docker-mirror/nginx:1.27-alpine AS production
 
 COPY --from=builder /app/apps/web/dist /usr/share/nginx/html
+COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

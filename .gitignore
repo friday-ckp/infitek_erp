@@ -35,3 +35,6 @@ Thumbs.db
 
 # Testing
 coverage/
+
+# K8s secrets (contains plaintext credentials, never commit)
+deploy/k8s/secret.yaml

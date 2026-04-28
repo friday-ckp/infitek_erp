@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: infitek-erp-config
+  namespace: test
+data:
+  DB_HOST: "rm-bp1h00xonwd32cq0avo.mysql.rds.aliyuncs.com"
+  DB_PORT: "3306"
+  DB_USER: "root"
+  DB_NAME: "infitek_erp"
+  NODE_ENV: "production"
+  PORT: "3000"
+  CORS_ORIGIN: "https://infitek.test.huaqing.run"
+  JWT_EXPIRES_IN: "8h"

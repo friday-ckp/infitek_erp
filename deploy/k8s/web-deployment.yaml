@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infitek-web
+  namespace: test
+  labels:
+    app: infitek-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: infitek-web
+  template:
+    metadata:
+      labels:
+        app: infitek-web
+    spec:
+      imagePullSecrets:
+        - name: acr-registry-secret-hq
+      containers:
+        - name: web
+          image: crpi-dgkl9khr1943eg60.cn-hangzhou.personal.cr.aliyuncs.com/hq-service/infitek_erp:web-v1.0.0
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "128Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: infitek-web
+  namespace: test
+spec:
+  selector:
+    app: infitek-web
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP
