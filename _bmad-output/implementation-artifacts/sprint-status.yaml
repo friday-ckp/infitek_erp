@@ -1,5 +1,5 @@
 # generated: 2026-04-15
-# last_updated: 2026-04-29 (epic-5-retrospective-done)
+# last_updated: 2026-04-29 (story-5.6-ready-for-dev)
 # project: infitek_erp
 # project_key: NOKEY
 # tracking_system: file-system
@@ -39,7 +39,7 @@
 #   _bmad-output/planning-artifacts/flow-quantity-data-lineage.md
 
 generated: 2026-04-15
-last_updated: 2026-04-29 (epic-5-retrospective-done)
+last_updated: 2026-04-29 (story-5.6-ready-for-dev)
 project: infitek_erp
 
 project_key: NOKEY
@@ -106,13 +106,14 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 5: 销售订单与发货需求管理
   # ─────────────────────────────────────────────────
-  epic-5: done
+  epic-5: in-progress
   5-1-销售订单创建与确认: done
   5-0-库存双层结构查询接口与期初录入: done
   5-2-销售订单列表与详情: done
   5-3-发货需求列表页: done
   5-4-发货需求枢纽详情页: done
   5-5-发货需求下游入口与完整作废逻辑: done
+  5-6-发货需求待生成采购单状态纠偏: ready-for-dev
   epic-5-retrospective: done
 
   # ─────────────────────────────────────────────────

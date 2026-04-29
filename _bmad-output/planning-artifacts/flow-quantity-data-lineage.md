@@ -17,6 +17,7 @@ baseDocuments:
 
 > 覆盖范围：Epic 5-7 销售订单、发货需求、采购订单、收货入库、物流单、发货出库、库存双层结构。
 > 本文以 2026-04-26 已确定的 `flow-cross-document-trigger.md` 和 `flow-state-machine.md` 为准。
+> 2026-04-29 修正：依据 `sprint-change-proposal-2026-04-29.md`，确认分配含采购数量时发货需求进入 `pending_purchase_order`；请购型采购订单创建成功后回填 `purchase_ordered_quantity` 并推进到 `purchasing`；收货后自动锁定完成后推进到 `prepared`。
 
 ---
 
@@ -196,7 +197,7 @@ shipping_demand_inventory_allocations
 |---|---|
 | `demand_code` | 发货需求编号。 |
 | `sales_order_id` | 来源销售订单。 |
-| `status` | `pending_allocation`、`purchasing`、`prepared`、`partially_shipped`、`shipped`、`voided`。 |
+| `status` | `pending_allocation`、`pending_purchase_order`、`purchasing`、`prepared`、`partially_shipped`、`shipped`、`voided`。 |
 | `voided_at` / `voided_by` | 作废审计字段。 |
 
 约束：
@@ -366,18 +367,18 @@ outbound_allocation_consumptions
 | 库存影响 | 批次 `batch_locked_quantity +N`，汇总 `locked_quantity +N`，`available_quantity -N`。 |
 | 分配记录 | 写入 `shipping_demand_inventory_allocations`。 |
 | 流水 | `change_type = lock`。 |
-| 状态影响 | 若无采购部分且全部锁定 -> 发货需求 `prepared`、销售订单 `prepared`；否则发货需求 `purchasing`。 |
+| 状态影响 | 若无采购部分且全部锁定 -> 发货需求 `prepared`、销售订单 `prepared`；否则发货需求 `pending_purchase_order`。 |
 | 幂等 | 发货需求已离开 `pending_allocation` 后，重复提交应返回业务错误或当前结果，不得再次锁定。 |
 
 ### 4.4 创建请购型采购订单
 
 | 项 | 规则 |
 |---|---|
-| 前置状态 | 发货需求 `purchasing`。 |
+| 前置状态 | 发货需求 `pending_purchase_order` 或 `purchasing`。 |
 | 行范围 | 只允许 `purchase_required_quantity > purchase_ordered_quantity` 的发货需求明细。 |
 | 数量上限 | `本次采购数量 <= purchase_required_quantity - purchase_ordered_quantity`。 |
-| 状态影响 | 采购订单按最新状态机创建为 `pending_confirm`，后续经内部确认/供应商确认推进至 `supplier_confirming` / `pending_receipt`。发货需求不回退。 |
-| 回填 | 聚合更新 `shipping_demand_items.purchase_ordered_quantity` 和销售订单展示缓存。 |
+| 状态影响 | 采购订单按最新状态机创建为 `pending_confirm`，后续经内部确认/供应商确认推进至 `supplier_confirming` / `pending_receipt`。若发货需求原状态为 `pending_purchase_order`，至少一张有效请购型采购订单创建成功后推进为 `purchasing`。 |
+| 回填 | 创建成功后按未取消请购型采购订单聚合更新 `shipping_demand_items.purchase_ordered_quantity` 和销售订单展示缓存。 |
 | 幂等 | 批量创建时使用请求批次号或动作键，避免重复点击生成重复 PO。 |
 
 ### 4.5 采购订单取消
@@ -401,7 +402,7 @@ outbound_allocation_consumptions
 | 超收 | MVP 默认不允许超过采购行剩余未收数量；如业务允许超收，需单独产品决策。 |
 | 部分收货 | 允许。采购订单状态按 `received_quantity` 与 `quantity` 聚合为 `partially_received` 或 `received`。 |
 | 回填 | 更新采购行 `received_quantity`、发货需求明细 `received_quantity`、`locked_remaining_quantity`。 |
-| 状态影响 | 若发货需求所有明细 `locked_remaining_quantity + shipped_quantity = required_quantity`，发货需求 -> `prepared`，销售订单 -> `prepared`。 |
+| 状态影响 | 若发货需求所有明细 `locked_remaining_quantity + shipped_quantity = required_quantity`，发货需求 -> `prepared`，销售订单 -> `prepared`；否则发货需求保持 `purchasing`。 |
 | 幂等 | 收货单确认只能执行一次；`source_action_key = receipt:{id}:confirm` 唯一。 |
 
 ### 4.7 创建物流单
@@ -447,7 +448,8 @@ outbound_allocation_consumptions
 | 目标状态 | 判定条件 |
 |---|---|
 | `pending_allocation` | 已生成但尚未确认库存分配。 |
-| `purchasing` | 已确认分配，但仍存在 `locked_remaining_quantity + shipped_quantity < required_quantity` 的明细。 |
+| `pending_purchase_order` | 已确认分配，存在 `purchase_required_quantity > 0` 的采购缺口，但尚未创建任何有效请购型采购订单。 |
+| `purchasing` | 已创建至少一张有效请购型采购订单，且仍存在 `locked_remaining_quantity + shipped_quantity < required_quantity` 的明细。 |
 | `prepared` | 所有明细 `locked_remaining_quantity + shipped_quantity = required_quantity`，且尚未出库完成。 |
 | `partially_shipped` | 任一明细 `shipped_quantity > 0`，且并非全部发完。 |
 | `shipped` | 所有明细 `shipped_quantity = required_quantity`。 |
@@ -492,7 +494,7 @@ outbound_allocation_consumptions
 | 枚举 | 目标值 |
 |---|---|
 | `SalesOrderStatus` | 已包含 `approved`、`preparing`、`prepared`、`partially_shipped`、`shipped`、`voided`，后续需继续沿用。 |
-| `ShippingDemandStatus` | `pending_allocation`、`purchasing`、`prepared`、`partially_shipped`、`shipped`、`voided`。 |
+| `ShippingDemandStatus` | `pending_allocation`、`pending_purchase_order`、`purchasing`、`prepared`、`partially_shipped`、`shipped`、`voided`。 |
 | `PurchaseOrderStatus` | `pending_confirm`、`supplier_confirming`、`pending_receipt`、`partially_received`、`received`、`cancelled`。 |
 | `LogisticsOrderStatus` | `confirmed`、`shipped`、`delivered`、`cancelled`。 |
 
@@ -611,8 +613,10 @@ QuantityProjectionService
 ### 9.4 Story 6.3 / 6.6
 
 - 请购型采购订单明细必须关联 `shipping_demand_item_id`。
+- Story 6.3 必须从 `pending_purchase_order` 或 `purchasing` 的发货需求创建采购订单；可下单数量为 `purchase_required_quantity - purchase_ordered_quantity`。
+- Story 6.3 创建请购型采购订单成功后，必须回填 `shipping_demand_items.purchase_ordered_quantity`，并将发货需求从 `pending_purchase_order` 推进到 `purchasing`。
 - 收货确认后，请购型只自动锁定到对应发货需求，不抢占其他需求。
-- 部分收货只锁定实收数量，发货需求保持 `purchasing`，直到全部需求数量已锁定。
+- Story 6.6 收货后必须按 FIFO 自动锁定到对应发货需求明细；部分收货只锁定实收数量，发货需求保持 `purchasing`，直到全部应发数量已锁定后推进到 `prepared`。
 
 ### 9.5 Story 7.1 / 7.3 / 7.4
 
@@ -629,7 +633,8 @@ QuantityProjectionService
 | 场景 | 期望 |
 |---|---|
 | 订单 20，全走现有库存，确认分配后锁定 20 | 发货需求 `prepared`，销售订单 `prepared`，库存 actual 不变、locked +20、available -20。 |
-| 订单 20，现有库存 5，采购 15 | 确认分配后 locked 5，发货需求 `purchasing`。 |
+| 订单 20，现有库存 5，采购 15 | 确认分配后 locked 5，发货需求 `pending_purchase_order`。 |
+| 上述需求创建请购型采购订单 15 | 回填 `purchase_ordered_quantity = 15`，发货需求 `purchasing`。 |
 | 上述采购先收 10 | actual +10，自动锁定 +10，发货需求仍 `purchasing`。 |
 | 再收 5 | actual +5，自动锁定 +5，发货需求 `prepared`，销售订单 `prepared`。 |
 | 先出库 12 | actual -12，locked -12，发货需求 `partially_shipped`，销售订单 `partially_shipped`。 |

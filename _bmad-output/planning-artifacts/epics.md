@@ -1267,20 +1267,30 @@ As a 采购员,
 I want 创建采购订单（支持从发货需求自动预填 SKU 和数量的请购型，以及手动创建的备货型），关联供应商并补充单价，提交后直接确认,
 So that 采购流程可以快速启动，请购型自动继承发货需求信息减少重复录入。
 
+> **新增约束（2026-04-29 correct-course）**：创建本 Story 时必须引用 `_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-29.md` 和 `_bmad-output/prototypes/shipping-demand-status-flow-prototype.html`。若当前 worktree 缺失原型文件，需先同步或在 Story Dev Notes 中记录替代引用。
+
 **Acceptance Criteria:**
 
-**Given** 商务跟单在发货需求详情页点击"创建采购订单"
+**Given** 发货需求状态为"待生成采购单"（`ShippingDemandStatus.PENDING_PURCHASE_ORDER`）或"采购中"（`ShippingDemandStatus.PURCHASING`）
+**And** 存在 `purchaseRequiredQuantity > purchaseOrderedQuantity` 的发货需求明细
+**When** 商务跟单在发货需求详情页点击"创建采购订单"
 **When** 系统打开 PurchaseGroupPreview 采购分组预览面板（Drawer 520px，UX-DR11）
 **Then** 面板按供应商分组展示卡片，每组含：供应商名称、SKU 列表（SKU 编码/名称/数量-可编辑）
-**And** 仅包含履行类型为"全部采购"或"部分采购"的 SKU（FR27）
+**And** 仅包含履行类型为"全部采购"或"部分采购"且可下单数量大于 0 的 SKU（FR27）
+**And** 每行默认可下单数量 = `purchaseRequiredQuantity - purchaseOrderedQuantity`
+**And** 用户本次下单数量不得超过该可下单数量
 **And** 底部操作栏展示"取消"和"确认创建 N 个采购订单"按钮
 
 **Given** 商务跟单确认采购分组预览
 **When** 点击"确认创建"
 **Then** 系统按供应商分组批量生成采购订单，类型标注"请购型"（FR35）
 **And** 每张采购订单自动关联供应商、预填 SKU 和数量、关联发货需求
+**And** 每条请购型采购订单行必须关联 `shippingDemandId` 与 `shippingDemandItemId`
 **And** 合同条款默认关联该供应商已审批的第一条范本（FR35）
 **And** 所有生成的采购订单状态为"已确认"（FR36）
+**And** 系统按未取消请购型采购订单聚合回填发货需求明细 `purchaseOrderedQuantity`
+**And** 若发货需求原状态为"待生成采购单"，采购订单创建成功后必须推进为"采购中"（`ShippingDemandStatus.PURCHASING`）
+**And** ActivityTimeline 记录采购订单创建和发货需求状态变更
 **And** 前端展示 Notification.success，包含生成的采购订单数量和链接
 
 **Given** 采购员手动进入采购订单创建表单（备货型）
@@ -1364,6 +1374,8 @@ As a 系统,
 I want 请购型采购订单收货后自动按 FIFO 锁定库存至对应发货需求，备货型仅增加实际库存不锁定，同时自动更新采购订单状态为"已收货",
 So that 请购型物资到货即锁定，发货需求的库存分配自动完成。
 
+> **新增约束（2026-04-29 correct-course）**：创建本 Story 时必须引用 `_bmad-output/planning-artifacts/sprint-change-proposal-2026-04-29.md` 和 `_bmad-output/prototypes/shipping-demand-status-flow-prototype.html`。本 Story 承接 Story 6.3 的 `purchasing` 状态，不负责从 `pending_purchase_order` 创建采购单。
+
 **Acceptance Criteria:**
 
 **Given** 请购型采购订单关联的收货入库单确认成功
@@ -1372,6 +1384,16 @@ So that 请购型物资到货即锁定，发货需求的库存分配自动完成
 **And** 批次层 batch_locked_quantity 增加
 **And** 汇总层 locked_quantity 增加、available_quantity 减少
 **And** 库存变动流水记录（change_type=锁定）
+**And** 系统回填发货需求明细 `receivedQuantity` 与 `lockedRemainingQuantity`
+
+**Given** 请购型采购订单收货后仍有发货需求明细未满足 `lockedRemainingQuantity + shippedQuantity = requiredQuantity`
+**When** 后端重新评估发货需求状态
+**Then** 发货需求保持"采购中"（`ShippingDemandStatus.PURCHASING`）
+
+**Given** 请购型采购订单收货并自动锁定后，发货需求所有明细均满足 `lockedRemainingQuantity + shippedQuantity = requiredQuantity`
+**When** 后端重新评估发货需求状态
+**Then** 发货需求必须推进为"备货完成"（`ShippingDemandStatus.PREPARED`）
+**And** 关联销售订单状态按聚合结果推进为"备货完成"（`SalesOrderStatus.PREPARED`）
 
 **Given** 备货型采购订单关联的收货入库单确认成功
 **When** 后端执行
@@ -1534,13 +1556,18 @@ So that 我无需手动维护状态，系统状态始终与业务进展保持一
 
 **Given** 商务跟单在发货需求详情页点击"确认分配"按钮（Story 5.4，集中提交所有 SKU 行的履行类型）
 **When** 所有 SKU 行均已设置履行类型，且系统成功执行库存锁定
-**Then** 发货需求状态从"待分配库存"按履行类型自动更新：若有需采购的 SKU 则进入"采购中"，若全部使用现有库存且锁定完成则进入"已备货完成"
-**And** FlowProgress 进度条推进至"采购备货"步骤（若有需采购的 SKU）或"库存锁定"步骤（若所有 SKU 均走库存）
+**Then** 发货需求状态从"待分配库存"按履行类型自动更新：若有需采购的 SKU 则进入"待生成采购单"，若全部使用现有库存且锁定完成则进入"已备货完成"
+**And** FlowProgress 进度条推进至"待生成采购单"步骤（若有需采购的 SKU）或"备货完成"步骤（若所有 SKU 均走库存）
+
+**Given** 发货需求处于"待生成采购单"
+**When** Epic 6 Story 6.3 成功创建请购型采购订单并回填 `purchaseOrderedQuantity`
+**Then** 发货需求状态自动更新为"采购中"
+**And** FlowProgress 进度条推进至"采购中"步骤
 
 **Given** 发货需求处于"采购中"，所有 SKU 行均完成库存锁定（"使用现有库存"已在确认分配时锁定 + "请购型"采购订单收货后自动锁定）
 **When** 后端检查所有行锁定状态（在任意锁定操作完成后触发检查）
 **Then** 发货需求状态自动更新为"已备货完成"
-**And** FlowProgress 进度条推进至"库存锁定"步骤
+**And** FlowProgress 进度条推进至"备货完成"步骤
 **And** 发货需求详情页"创建物流单"按钮变为可点击状态
 
 **Given** 发货需求关联的所有物流单均已确认出库
