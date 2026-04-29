@@ -34,6 +34,7 @@ import { CustomersModule } from './modules/master-data/customers/customers.modul
 import { SalesOrdersModule } from './modules/sales-orders/sales-orders.module';
 import { ShippingDemandsModule } from './modules/shipping-demands/shipping-demands.module';
 import { LogisticsOrdersModule } from './modules/logistics-orders/logistics-orders.module';
+import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OperationLogsModule } from './modules/operation-logs/operation-logs.module';
 import databaseConfig from './config/database.config';
@@ -68,6 +69,7 @@ import { createLoggerConfig } from './config/logger.config';
     SalesOrdersModule,
     ShippingDemandsModule,
     LogisticsOrdersModule,
+    PurchaseOrdersModule,
     InventoryModule,
     ProductCategoriesModule,
     SuppliersModule,

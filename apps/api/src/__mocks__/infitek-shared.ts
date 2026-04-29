@@ -37,12 +37,25 @@ export const LogisticsOrderStatus = {
 export type LogisticsOrderStatus =
   (typeof LogisticsOrderStatus)[keyof typeof LogisticsOrderStatus];
 
-export enum PurchaseOrderStatus {
-  DRAFT = 'draft',
-  CONFIRMED = 'confirmed',
-  RECEIVED = 'received',
-  CANCELLED = 'cancelled',
-}
+export const PurchaseOrderStatus = {
+  PENDING_CONFIRM: 'pending_confirm',
+  SUPPLIER_CONFIRMING: 'supplier_confirming',
+  PENDING_RECEIPT: 'pending_receipt',
+  PARTIALLY_RECEIVED: 'partially_received',
+  RECEIVED: 'received',
+  CANCELLED: 'cancelled',
+} as const;
+
+export type PurchaseOrderStatus =
+  (typeof PurchaseOrderStatus)[keyof typeof PurchaseOrderStatus];
+
+export const PurchaseOrderType = {
+  REQUISITION: 'requisition',
+  STOCK: 'stock',
+} as const;
+
+export type PurchaseOrderType =
+  (typeof PurchaseOrderType)[keyof typeof PurchaseOrderType];
 
 export const SalesOrderStatus = {
   PENDING_SUBMIT: 'pending_submit',
