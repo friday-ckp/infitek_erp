@@ -1,4 +1,4 @@
-import { App, Button, Image, InputNumber, Popconfirm, Result, Select, Skeleton, Space, Table, Tooltip } from 'antd';
+import { App, Button, Image, InputNumber, Modal, Result, Select, Skeleton, Space, Table, Tooltip } from 'antd';
 import {
   BlType,
   CustomsDeclarationMethod,
@@ -38,6 +38,7 @@ import {
   type ShippingDemandItem,
 } from '../../api/shipping-demands.api';
 import { getInventoryBatches, type InventoryBatchItem } from '../../api/inventory.api';
+import { getWarehouses, type Warehouse } from '../../api/warehouses.api';
 import {
   AnchorNav,
   MetaItem,
@@ -59,6 +60,11 @@ const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
 const ORDER_SOURCE_LABELS: Record<string, string> = {
   [SalesOrderSource.MANUAL]: '手工录单',
   [SalesOrderSource.THIRD_PARTY]: '第三方获取',
+};
+
+const INVENTORY_BATCH_SOURCE_LABELS: Record<string, string> = {
+  initial: '期初录入',
+  purchase_receipt: '采购入库',
 };
 
 const FULFILLMENT_OPTIONS = [
@@ -136,6 +142,11 @@ function formatLabel(value?: string | null) {
   return LABEL_MAP[value] ?? value;
 }
 
+function formatBatchSource(value?: string | null) {
+  if (!value) return '—';
+  return INVENTORY_BATCH_SOURCE_LABELS[value] ?? value;
+}
+
 function formatDate(value?: string | null) {
   return value ? dayjs(value).format('YYYY-MM-DD') : '—';
 }
@@ -152,33 +163,54 @@ function sumAvailableStock(item: ShippingDemandItem) {
   );
 }
 
-function uniqueWarehouses(item: ShippingDemandItem): WarehouseOption[] {
+function getWarehouseDisplayName(warehouseMap: Map<number, Warehouse>, warehouseId?: number | null) {
+  if (!warehouseId) return '未指定仓库';
+  const warehouse = warehouseMap.get(warehouseId);
+  if (!warehouse) return `仓库 #${warehouseId}`;
+  return warehouse.warehouseCode
+    ? `${warehouse.name} (${warehouse.warehouseCode})`
+    : warehouse.name;
+}
+
+function uniqueWarehouses(
+  item: ShippingDemandItem,
+  warehouseMap: Map<number, Warehouse> = new Map(),
+): WarehouseOption[] {
   const map = new Map<number, WarehouseOption>();
   for (const row of item.availableStockSnapshot ?? []) {
     const warehouseId = row.warehouseId;
     if (!warehouseId) continue;
     const current = map.get(warehouseId);
     const availableQuantity = numberValue(row.availableQuantity);
+    const totalAvailable = availableQuantity + (current?.availableQuantity ?? 0);
     map.set(warehouseId, {
-      label: `仓库 ${warehouseId} / 可用 ${availableQuantity + (current?.availableQuantity ?? 0)}`,
+      label: `${getWarehouseDisplayName(warehouseMap, warehouseId)} / 可用 ${totalAvailable}`,
       value: warehouseId,
-      availableQuantity: availableQuantity + (current?.availableQuantity ?? 0),
+      availableQuantity: totalAvailable,
     });
   }
   return [...map.values()];
 }
 
-function selectWarehouse(item: ShippingDemandItem, targetQuantity: number) {
-  const warehouses = uniqueWarehouses(item);
+function selectWarehouse(
+  item: ShippingDemandItem,
+  targetQuantity: number,
+  warehouseMap: Map<number, Warehouse> = new Map(),
+) {
+  const warehouses = uniqueWarehouses(item, warehouseMap);
   return (
     warehouses.find((warehouse) => warehouse.availableQuantity >= targetQuantity) ??
     [...warehouses].sort((a, b) => b.availableQuantity - a.availableQuantity)[0]
   );
 }
 
-function getWarehouseAvailable(item: ShippingDemandItem, warehouseId?: number) {
+function getWarehouseAvailable(
+  item: ShippingDemandItem,
+  warehouseId?: number,
+  warehouseMap: Map<number, Warehouse> = new Map(),
+) {
   if (!warehouseId) return 0;
-  return uniqueWarehouses(item).find((warehouse) => warehouse.value === warehouseId)?.availableQuantity ?? 0;
+  return uniqueWarehouses(item, warehouseMap).find((warehouse) => warehouse.value === warehouseId)?.availableQuantity ?? 0;
 }
 
 function getFifoPreviewBatches(
@@ -201,17 +233,20 @@ function getFifoPreviewBatches(
     });
 }
 
-function defaultAllocationDraft(item: ShippingDemandItem): AllocationDraft {
+function defaultAllocationDraft(
+  item: ShippingDemandItem,
+  warehouseMap: Map<number, Warehouse> = new Map(),
+): AllocationDraft {
   const required = numberValue(item.requiredQuantity);
   const stockQuantity = numberValue(item.stockRequiredQuantity);
   if (item.fulfillmentType) {
     return {
       fulfillmentType: item.fulfillmentType,
       stockQuantity,
-      warehouseId: stockQuantity > 0 ? selectWarehouse(item, stockQuantity)?.value : undefined,
+      warehouseId: stockQuantity > 0 ? selectWarehouse(item, stockQuantity, warehouseMap)?.value : undefined,
     };
   }
-  const warehouse = selectWarehouse(item, required);
+  const warehouse = selectWarehouse(item, required, warehouseMap);
   if (warehouse && warehouse.availableQuantity >= required && required > 0) {
     return {
       fulfillmentType: FulfillmentType.USE_STOCK,
@@ -344,6 +379,7 @@ export default function ShippingDemandDetailPage() {
   const demandId = Number(id);
   const [activeAnchor, setActiveAnchor] = useState('basic');
   const [allocationDrafts, setAllocationDrafts] = useState<Record<number, AllocationDraft>>({});
+  const [allocationModalOpen, setAllocationModalOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ['shipping-demand-detail', demandId],
@@ -371,6 +407,18 @@ export default function ShippingDemandDetailPage() {
     queryFn: () => getInventoryBatches({ skuIds: batchSkuIds }),
     enabled: canConfirmAllocation && batchSkuIds.length > 0,
   });
+  const warehousesQuery = useQuery({
+    queryKey: ['shipping-demand-warehouses'],
+    queryFn: () => getWarehouses({ page: 1, pageSize: 500 }),
+  });
+  const warehouseMap = useMemo(() => {
+    const map = new Map<number, Warehouse>();
+    for (const warehouse of warehousesQuery.data?.list ?? []) {
+      const warehouseId = numberValue(warehouse.id);
+      if (warehouseId > 0) map.set(warehouseId, warehouse);
+    }
+    return map;
+  }, [warehousesQuery.data]);
 
   useEffect(() => {
     if (!data?.items?.length) {
@@ -391,6 +439,7 @@ export default function ShippingDemandDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['shipping-demand-detail', demandId] });
       queryClient.invalidateQueries({ queryKey: ['shipping-demands'] });
       queryClient.invalidateQueries({ queryKey: ['operation-logs', 'shipping-demands', demandId] });
+      setAllocationModalOpen(false);
       notification.success({
         message: '库存分配已确认',
         description: '系统已按履行类型更新发货需求，并完成现有库存的 FIFO 锁定。',
@@ -415,7 +464,7 @@ export default function ShippingDemandDetailPage() {
 
   const handleFulfillmentChange = (item: ShippingDemandItem, fulfillmentType: FulfillmentType) => {
     const required = numberValue(item.requiredQuantity);
-    const warehouse = selectWarehouse(item, required);
+    const warehouse = selectWarehouse(item, required, warehouseMap);
     if (fulfillmentType === FulfillmentType.FULL_PURCHASE) {
       updateDraft(item.id, { fulfillmentType, stockQuantity: 0, warehouseId: undefined });
       return;
@@ -445,7 +494,7 @@ export default function ShippingDemandDetailPage() {
         return null;
       }
       const stockQuantity = numberValue(draft.stockQuantity);
-      const warehouseAvailable = getWarehouseAvailable(item, draft.warehouseId);
+      const warehouseAvailable = getWarehouseAvailable(item, draft.warehouseId, warehouseMap);
       if (!Number.isInteger(stockQuantity) || stockQuantity < 0 || stockQuantity > required) {
         message.error(`${item.skuCode} 使用库存数量必须在 0 到 ${required} 之间`);
         return null;
@@ -489,46 +538,51 @@ export default function ShippingDemandDetailPage() {
     confirmAllocationMutation.mutate(payload);
   };
 
-  const columns = useMemo<ColumnsType<ShippingDemandItem>>(
+  const allocationColumns = useMemo<ColumnsType<ShippingDemandItem>>(
     () => [
-      { title: 'SKU', dataIndex: 'skuCode', key: 'skuCode', width: 140, fixed: 'left' as const },
-      { title: '产品中文名', dataIndex: 'productNameCn', key: 'productNameCn', width: 180, render: displayOrDash },
-      { title: '产品英文名', dataIndex: 'productNameEn', key: 'productNameEn', width: 180, render: displayOrDash },
-      { title: '规格', dataIndex: 'skuSpecification', key: 'skuSpecification', width: 180, render: displayOrDash },
-      { title: '类型', dataIndex: 'lineType', key: 'lineType', width: 100, render: formatLabel },
-      { title: 'SPU', dataIndex: 'spuName', key: 'spuName', width: 140, render: displayOrDash },
-      { title: '电参数', dataIndex: 'electricalParams', key: 'electricalParams', width: 160, render: displayOrDash },
-      { title: '有无插头', dataIndex: 'hasPlug', key: 'hasPlug', width: 100, render: formatLabel },
-      { title: '插头类型', dataIndex: 'plugType', key: 'plugType', width: 100, render: formatLabel },
-      { title: '应发数量', dataIndex: 'requiredQuantity', key: 'requiredQuantity', width: 100 },
-      { title: '可用库存', key: 'availableStock', width: 150, render: (_: unknown, record: ShippingDemandItem) => <InventoryIndicator available={sumAvailableStock(record)} required={numberValue(record.requiredQuantity)} /> },
       {
-        title: '履行类型',
-        dataIndex: 'fulfillmentType',
-        key: 'fulfillmentType',
-        width: 160,
-        render: (value: FulfillmentType | null, record: ShippingDemandItem) =>
-          canConfirmAllocation ? (
-            <Select<FulfillmentType>
-              className="shipping-demand-allocation-control"
-              value={allocationDrafts[record.id]?.fulfillmentType}
-              options={FULFILLMENT_OPTIONS}
-              onChange={(nextValue) => handleFulfillmentChange(record, nextValue)}
-            />
-          ) : (
-            formatLabel(value)
-          ),
+        title: 'SKU',
+        dataIndex: 'skuCode',
+        key: 'skuCode',
+        width: 150,
+        fixed: 'left' as const,
+        render: (value: string, record) => (
+          <div className="shipping-demand-allocation-sku">
+            <strong>{displayOrDash(value)}</strong>
+            <span>{displayOrDash(record.productNameCn ?? record.productNameEn)}</span>
+          </div>
+        ),
+      },
+      { title: '规格', dataIndex: 'skuSpecification', key: 'skuSpecification', width: 150, render: displayOrDash },
+      { title: '应发', dataIndex: 'requiredQuantity', key: 'requiredQuantity', width: 80 },
+      {
+        title: '可用库存',
+        key: 'availableStock',
+        width: 130,
+        render: (_: unknown, record) => (
+          <InventoryIndicator available={sumAvailableStock(record)} required={numberValue(record.requiredQuantity)} />
+        ),
       },
       {
-        title: '库存仓库',
-        key: 'allocationWarehouse',
-        width: 170,
-        render: (_: unknown, record: ShippingDemandItem) => {
+        title: '履行类型',
+        key: 'fulfillmentType',
+        width: 150,
+        render: (_: unknown, record) => (
+          <Select<FulfillmentType>
+            className="shipping-demand-allocation-control"
+            value={allocationDrafts[record.id]?.fulfillmentType}
+            options={FULFILLMENT_OPTIONS}
+            onChange={(nextValue) => handleFulfillmentChange(record, nextValue)}
+          />
+        ),
+      },
+      {
+        title: '使用仓库',
+        key: 'warehouseId',
+        width: 190,
+        render: (_: unknown, record) => {
           const draft = allocationDrafts[record.id];
-          const options = uniqueWarehouses(record).map(({ label, value }) => ({ label, value }));
-          if (!canConfirmAllocation) {
-            return '—';
-          }
+          const options = uniqueWarehouses(record, warehouseMap).map(({ label, value }) => ({ label, value }));
           return (
             <Select<number>
               className="shipping-demand-allocation-control"
@@ -542,12 +596,11 @@ export default function ShippingDemandDetailPage() {
         },
       },
       {
-        title: '本次使用库存',
-        key: 'allocationStockQuantity',
-        width: 140,
-        render: (_: unknown, record: ShippingDemandItem) => {
+        title: '使用库存',
+        key: 'stockQuantity',
+        width: 110,
+        render: (_: unknown, record) => {
           const draft = allocationDrafts[record.id];
-          if (!canConfirmAllocation) return displayOrDash(record.stockRequiredQuantity);
           return (
             <InputNumber
               className="shipping-demand-allocation-control"
@@ -562,12 +615,19 @@ export default function ShippingDemandDetailPage() {
         },
       },
       {
+        title: '需采购',
+        key: 'purchaseQuantity',
+        width: 90,
+        render: (_: unknown, record) =>
+          Math.max(0, numberValue(record.requiredQuantity) - numberValue(allocationDrafts[record.id]?.stockQuantity)),
+      },
+      {
         title: 'FIFO 批次预览',
         key: 'fifoBatchPreview',
-        width: 280,
-        render: (_: unknown, record: ShippingDemandItem) => {
+        width: 310,
+        render: (_: unknown, record) => {
           const draft = allocationDrafts[record.id];
-          if (!canConfirmAllocation || !draft?.warehouseId || numberValue(draft.stockQuantity) <= 0) {
+          if (!draft?.warehouseId || numberValue(draft.stockQuantity) <= 0) {
             return '—';
           }
           if (batchesQuery.isLoading) {
@@ -581,13 +641,31 @@ export default function ShippingDemandDetailPage() {
             <Space direction="vertical" size={2}>
               {batches.map((batch) => (
                 <span key={String(batch.id)}>
-                  {formatDate(batch.receiptDate)} / {batch.sourceType} / 批次 {batch.batchQuantity} / 可用 {batch.batchAvailableQuantity}
+                  {formatDate(batch.receiptDate)} / {formatBatchSource(batch.sourceType)} / 批次 {batch.batchQuantity} / 可用 {batch.batchAvailableQuantity}
                 </span>
               ))}
             </Space>
           );
         },
       },
+    ],
+    [allocationDrafts, batchesQuery.data, batchesQuery.isLoading, warehouseMap],
+  );
+
+  const columns = useMemo<ColumnsType<ShippingDemandItem>>(
+    () => [
+      { title: 'SKU', dataIndex: 'skuCode', key: 'skuCode', width: 140, fixed: 'left' as const },
+      { title: '产品中文名', dataIndex: 'productNameCn', key: 'productNameCn', width: 180, render: displayOrDash },
+      { title: '产品英文名', dataIndex: 'productNameEn', key: 'productNameEn', width: 180, render: displayOrDash },
+      { title: '规格', dataIndex: 'skuSpecification', key: 'skuSpecification', width: 180, render: displayOrDash },
+      { title: '类型', dataIndex: 'lineType', key: 'lineType', width: 100, render: formatLabel },
+      { title: 'SPU', dataIndex: 'spuName', key: 'spuName', width: 140, render: displayOrDash },
+      { title: '电参数', dataIndex: 'electricalParams', key: 'electricalParams', width: 160, render: displayOrDash },
+      { title: '有无插头', dataIndex: 'hasPlug', key: 'hasPlug', width: 100, render: formatLabel },
+      { title: '插头类型', dataIndex: 'plugType', key: 'plugType', width: 100, render: formatLabel },
+      { title: '应发数量', dataIndex: 'requiredQuantity', key: 'requiredQuantity', width: 100 },
+      { title: '可用库存', key: 'availableStock', width: 150, render: (_: unknown, record: ShippingDemandItem) => <InventoryIndicator available={sumAvailableStock(record)} required={numberValue(record.requiredQuantity)} /> },
+      { title: '履行类型', dataIndex: 'fulfillmentType', key: 'fulfillmentType', width: 130, render: formatLabel },
       { title: '销售单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 120 },
       { title: '币种', dataIndex: 'currencyCode', key: 'currencyCode', width: 90, render: displayOrDash },
       { title: '总金额', dataIndex: 'amount', key: 'amount', width: 120 },
@@ -599,18 +677,14 @@ export default function ShippingDemandDetailPage() {
         dataIndex: 'purchaseRequiredQuantity',
         key: 'purchaseRequiredQuantity',
         width: 120,
-        render: (value: number, record: ShippingDemandItem) =>
-          canConfirmAllocation
-            ? Math.max(0, numberValue(record.requiredQuantity) - numberValue(allocationDrafts[record.id]?.stockQuantity))
-            : value,
+        render: displayOrDash,
       },
       {
         title: '使用现有库存数量',
         dataIndex: 'stockRequiredQuantity',
         key: 'stockRequiredQuantity',
         width: 150,
-        render: (value: number, record: ShippingDemandItem) =>
-          canConfirmAllocation ? numberValue(allocationDrafts[record.id]?.stockQuantity) : value,
+        render: displayOrDash,
       },
       { title: '已锁定待发', dataIndex: 'lockedRemainingQuantity', key: 'lockedRemainingQuantity', width: 120 },
       { title: '已发货数量', dataIndex: 'shippedQuantity', key: 'shippedQuantity', width: 120 },
@@ -632,7 +706,7 @@ export default function ShippingDemandDetailPage() {
             <Space direction="vertical" size={2}>
               {value.map((row) => (
                 <span key={`${row.warehouseId ?? 'none'}-${row.availableQuantity}`}>
-                  仓库 {row.warehouseId ?? '未指定'}：实存 {row.actualQuantity} / 锁定 {row.lockedQuantity} / 可用 {row.availableQuantity}
+                  {getWarehouseDisplayName(warehouseMap, row.warehouseId)}：实存 {row.actualQuantity} / 锁定 {row.lockedQuantity} / 可用 {row.availableQuantity}
                 </span>
               ))}
             </Space>
@@ -641,7 +715,7 @@ export default function ShippingDemandDetailPage() {
           ),
       },
     ],
-    [allocationDrafts, batchesQuery.data, batchesQuery.isLoading, canConfirmAllocation],
+    [warehouseMap],
   );
 
   if (!Number.isInteger(demandId) || demandId <= 0) {
@@ -703,20 +777,12 @@ export default function ShippingDemandDetailPage() {
                   <Button onClick={() => navigate('/shipping-demands')}>返回列表</Button>
                   <Button disabled={!sourceSalesOrderLink} onClick={sourceSalesOrderLink}>来源销售订单</Button>
                   {canConfirmAllocation ? (
-                    <Popconfirm
-                      title="确认分配库存？"
-                      description="系统将按当前履行类型执行库存锁定，并推进发货需求状态。"
-                      okText="确认分配"
-                      cancelText="取消"
-                      onConfirm={submitConfirmAllocation}
+                    <Button
+                      type="primary"
+                      onClick={() => setAllocationModalOpen(true)}
                     >
-                      <Button
-                        type="primary"
-                        loading={confirmAllocationMutation.isPending}
-                      >
-                        确认分配
-                      </Button>
-                    </Popconfirm>
+                      分配库存
+                    </Button>
                   ) : null}
                 </Space>
               </div>
@@ -837,7 +903,7 @@ export default function ShippingDemandDetailPage() {
               pagination={false}
               columns={columns as any}
               dataSource={items}
-              scroll={{ x: 4880 }}
+              scroll={{ x: 4200 }}
             />
           </SectionCard>
 
@@ -893,6 +959,34 @@ export default function ShippingDemandDetailPage() {
           </SectionCard>
         </div>
       </div>
+      <Modal
+        title="分配库存"
+        open={allocationModalOpen}
+        width={1180}
+        centered
+        destroyOnHidden
+        okText="确认分配"
+        cancelText="取消"
+        confirmLoading={confirmAllocationMutation.isPending}
+        onOk={submitConfirmAllocation}
+        onCancel={() => setAllocationModalOpen(false)}
+      >
+        <div className="shipping-demand-allocation-modal">
+          <div className="shipping-demand-allocation-summary">
+            <span>总 SKU {totalSkuCount}</span>
+            <span>总应发 {totalRequiredQuantity}</span>
+            <span>当前可用 {items.reduce((sum, item) => sum + sumAvailableStock(item), 0)}</span>
+          </div>
+          <Table
+            rowKey="id"
+            pagination={false}
+            columns={allocationColumns as any}
+            dataSource={items}
+            loading={batchesQuery.isLoading || warehousesQuery.isLoading}
+            scroll={{ x: 1280, y: 460 }}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }
