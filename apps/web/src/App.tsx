@@ -430,6 +430,10 @@ function App() {
                     element={<SalesOrderFormPage />}
                   />
                   <Route
+                    path="/sales-orders/:id/edit"
+                    element={<SalesOrderFormPage />}
+                  />
+                  <Route
                     path="/sales-orders/:id"
                     element={<SalesOrderDetailPage />}
                   />

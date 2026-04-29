@@ -9,6 +9,7 @@ describe('SalesOrdersService', () => {
     findByExternalOrderCode: jest.fn(),
     generateErpOrderCode: jest.fn(),
     createWithRelations: jest.fn(),
+    updateWithRelations: jest.fn(),
     update: jest.fn(),
   };
   const customersService = { findById: jest.fn() };
@@ -160,5 +161,117 @@ describe('SalesOrdersService', () => {
 
     const result = await service.approve(1, 'reviewer');
     expect(result.status).toBe(SalesOrderStatus.APPROVED);
+  });
+
+  it('update should save editable order with relations', async () => {
+    salesOrdersRepository.findById.mockResolvedValue({
+      id: 1,
+      status: SalesOrderStatus.PENDING_SUBMIT,
+      domesticTradeType: 'foreign',
+      externalOrderCode: 'EXT-001',
+      orderSource: SalesOrderSource.MANUAL,
+      orderType: SalesOrderType.SALES,
+      customerId: 1,
+      contractAmount: '100.00',
+      receivedAmount: '0.00',
+      shippingDemands: [],
+      items: [{ id: 10, skuId: 11, quantity: 1, unitPrice: '100.00' }],
+      expenses: [],
+      contractFileKeys: null,
+      contractFileNames: null,
+      plugPhotoKeys: null,
+    });
+    customersService.findById.mockResolvedValue({
+      id: 1,
+      customerName: '测试客户',
+      customerCode: 'KH001',
+      contactPerson: '张三',
+    });
+    skusService.findById.mockResolvedValue({
+      id: 11,
+      skuCode: 'SKU001',
+      nameCn: '离心机',
+      nameEn: 'Centrifuge',
+      specification: '220V',
+      spuId: 99,
+      electricalParams: '220V',
+      hasPlug: false,
+      unitId: 6,
+      material: '金属',
+      productImageUrl: 'https://example.com/a.png',
+      grossWeightKg: 2,
+      volumeCbm: 0.5,
+      packagingList: null,
+    });
+    salesOrdersRepository.updateWithRelations.mockImplementation(
+      async (_id, order, items, expenses) => ({
+        id: 1,
+        ...order,
+        items,
+        expenses,
+        contractFileKeys: null,
+        plugPhotoKeys: null,
+      }),
+    );
+
+    const result = await service.update(
+      1,
+      {
+        externalOrderCode: 'EXT-001',
+        domesticTradeType: 'foreign',
+        orderType: SalesOrderType.SALES,
+        customerId: 1,
+        contractAmount: 240,
+        receivedAmount: 40,
+        items: [{ id: 10, skuId: 11, quantity: 2, unitPrice: 100 }],
+        expenses: [{ expenseName: '运费', amount: 20 }],
+      } as any,
+      'admin',
+    );
+
+    expect(salesOrdersRepository.updateWithRelations).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        externalOrderCode: 'EXT-001',
+        productTotalAmount: '200.00',
+        expenseTotalAmount: '20.00',
+        totalAmount: '220.00',
+        outstandingAmount: '200.00',
+      }),
+      [expect.objectContaining({ id: 10, skuId: 11, quantity: 2 })],
+      [expect.objectContaining({ expenseName: '运费', amount: '20.00' })],
+    );
+    expect(result.totalAmount).toBe('220.00');
+  });
+
+  it('update should reject deleting original items after a shipping demand exists', async () => {
+    salesOrdersRepository.findById.mockResolvedValue({
+      id: 1,
+      status: SalesOrderStatus.APPROVED,
+      shippingDemands: [{ id: 99, status: 'voided' }],
+      items: [{ id: 10, skuId: 11 }, { id: 12, skuId: 13 }],
+    });
+
+    await expect(
+      service.update(
+        1,
+        { items: [{ id: 10, skuId: 11, quantity: 1, unitPrice: 100 }] } as any,
+        'admin',
+      ),
+    ).rejects.toThrow('已生成过发货需求的销售订单不允许删除原有产品明细');
+    expect(salesOrdersRepository.updateWithRelations).not.toHaveBeenCalled();
+  });
+
+  it('update should reject orders already in fulfillment', async () => {
+    salesOrdersRepository.findById.mockResolvedValue({
+      id: 1,
+      status: SalesOrderStatus.PREPARING,
+      shippingDemands: [{ id: 99, status: 'pending_allocation' }],
+      items: [{ id: 10, skuId: 11 }],
+    });
+
+    await expect(
+      service.update(1, { externalOrderCode: 'EXT-002' } as any, 'admin'),
+    ).rejects.toThrow('当前状态不允许编辑销售订单');
   });
 });

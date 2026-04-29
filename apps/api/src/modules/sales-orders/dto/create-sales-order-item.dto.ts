@@ -3,6 +3,11 @@ import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, MaxLength, Min } from
 import { PlugType, ProductLineType, YesNo } from '@infitek/shared';
 
 export class CreateSalesOrderItemDto {
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  id?: number;
+
   @Type(() => Number)
   @IsNumber()
   skuId: number;

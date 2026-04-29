@@ -446,7 +446,7 @@ function SmartButton({
 export default function ShippingDemandDetailPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { message, notification } = App.useApp();
+  const { message, modal, notification } = App.useApp();
   const { id = "" } = useParams();
   const demandId = Number(id);
   const [activeAnchor, setActiveAnchor] = useState("basic");
@@ -474,6 +474,10 @@ export default function ShippingDemandDetailPage() {
   const sourceSalesOrderLink = data?.salesOrderId
     ? () => navigate(`/sales-orders/${data.salesOrderId}`)
     : undefined;
+  const editSourceSalesOrderLink =
+    data?.salesOrderId && data.status === ShippingDemandStatus.VOIDED
+      ? () => navigate(`/sales-orders/${data.salesOrderId}/edit`)
+      : undefined;
   const totalSkuCount = data?.skuCount ?? items.length;
   const totalRequiredQuantity = items.reduce(
     (sum, item) => sum + numberValue(item.requiredQuantity),
@@ -596,7 +600,7 @@ export default function ShippingDemandDetailPage() {
   });
 
   const handleVoidDemand = () => {
-    Modal.confirm({
+    modal.confirm({
       title: "确认作废此发货需求？",
       content:
         "确认作废此发货需求？作废后将释放已锁定库存，销售订单状态回退为‘审核通过’，操作不可撤销",
@@ -1186,6 +1190,12 @@ export default function ShippingDemandDetailPage() {
                     onClick={sourceSalesOrderLink}
                   >
                     来源销售订单
+                  </Button>
+                  <Button
+                    disabled={!editSourceSalesOrderLink}
+                    onClick={editSourceSalesOrderLink}
+                  >
+                    编辑来源销售订单
                   </Button>
                   {canConfirmAllocation ? (
                     <Button
