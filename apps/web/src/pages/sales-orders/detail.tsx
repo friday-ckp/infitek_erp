@@ -185,6 +185,7 @@ export default function SalesOrderDetailPage() {
   const relatedShippingDemands = (data?.shippingDemands ?? []).filter(
     (item) => item.status !== 'voided',
   );
+  const canEdit = Boolean(data && data.status !== 'voided');
   const canGenerateShippingDemand =
     data?.status === 'approved' && relatedShippingDemands.length === 0;
   const isActionLoading =
@@ -212,6 +213,11 @@ export default function SalesOrderDetailPage() {
               <div className="master-summary-actions">
                 <Space wrap>
                   <Button onClick={() => navigate('/sales-orders')}>返回列表</Button>
+                  {canEdit ? (
+                    <Button onClick={() => navigate(`/sales-orders/${salesOrderId}/edit`)}>
+                      编辑
+                    </Button>
+                  ) : null}
                   {['pending_submit', 'rejected'].includes(data?.status ?? '') ? (
                     <Popconfirm
                       title="确认提交审核？"

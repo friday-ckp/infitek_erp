@@ -144,6 +144,81 @@ export class SalesOrdersRepository {
     });
   }
 
+  async updateWithRelations(
+    id: number,
+    salesOrderData: Partial<SalesOrder>,
+    items: Partial<SalesOrderItem>[],
+    expenses: Partial<SalesOrderExpense>[],
+  ): Promise<SalesOrder> {
+    return this.dataSource.transaction(async (manager) => {
+      const orderRepository = manager.getRepository(SalesOrder);
+      const itemRepository = manager.getRepository(SalesOrderItem);
+      const expenseRepository = manager.getRepository(SalesOrderExpense);
+
+      await orderRepository.update(id, salesOrderData);
+      const existingItems = await itemRepository.find({ where: { salesOrderId: id } });
+      const incomingItemIds = new Set(
+        items
+          .map((item) => Number(item.id))
+          .filter((itemId) => Number.isInteger(itemId) && itemId > 0),
+      );
+      const itemIdsToDelete = existingItems
+        .map((item) => Number(item.id))
+        .filter((itemId) => !incomingItemIds.has(itemId));
+      if (itemIdsToDelete.length > 0) {
+        await itemRepository.delete(itemIdsToDelete);
+      }
+      await expenseRepository.delete({ salesOrderId: id });
+
+      if (items.length > 0) {
+        for (const item of items) {
+          const itemId = Number(item.id);
+          if (Number.isInteger(itemId) && itemId > 0) {
+            const { id: _ignoredId, createdBy: _ignoredCreatedBy, ...updateData } = item;
+            await itemRepository.update(
+              { id: itemId, salesOrderId: id },
+              {
+                ...updateData,
+                salesOrderId: id,
+              },
+            );
+          } else {
+            await itemRepository.save(
+              itemRepository.create({
+                ...item,
+                salesOrderId: id,
+              }),
+            );
+          }
+        }
+      }
+
+      if (expenses.length > 0) {
+        const preparedExpenses = expenses.map((expense) =>
+          expenseRepository.create({
+            ...expense,
+            salesOrderId: id,
+          }),
+        );
+        await expenseRepository.save(preparedExpenses);
+      }
+
+      return orderRepository.findOneOrFail({
+        where: { id },
+        relations: {
+          items: true,
+          expenses: true,
+          shippingDemands: true,
+        },
+        order: {
+          items: { id: 'ASC' },
+          expenses: { id: 'ASC' },
+          shippingDemands: { id: 'ASC' },
+        },
+      });
+    });
+  }
+
   async update(id: number, data: Partial<SalesOrder>): Promise<SalesOrder> {
     await this.salesOrderRepo.update(id, data);
     return this.findById(id).then((item) => item as SalesOrder);

@@ -42,13 +42,16 @@ import {
   PlugType,
 } from '@infitek/shared';
 import dayjs from 'dayjs';
-import { useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   createSalesOrder,
+  getSalesOrderById,
   getSalesOrderOptions,
+  updateSalesOrder,
   uploadSalesOrderFile,
   type CreateSalesOrderPayload,
+  type SalesOrder,
 } from '../../api/sales-orders.api';
 import request from '../../api/request';
 import { AnchorNav, SectionCard } from '../master-data/components/page-scaffold';
@@ -200,11 +203,48 @@ function toNumber(value: unknown): number | undefined {
   return Number.isNaN(next) ? undefined : next;
 }
 
+function dateValue(value?: string | null) {
+  return value ? dayjs(value) : undefined;
+}
+
+function salesOrderToFormValues(order: SalesOrder) {
+  return {
+    ...order,
+    crmSignedAt: dateValue(order.crmSignedAt),
+    requiredDeliveryAt: dateValue(order.requiredDeliveryAt),
+    contractAmount: Number(order.contractAmount ?? 0),
+    receivedAmount: Number(order.receivedAmount ?? 0),
+    outstandingAmount: Number(order.outstandingAmount ?? 0),
+    exchangeRate: order.exchangeRate == null ? undefined : Number(order.exchangeRate),
+    items: (order.items ?? []).map((item) => ({
+      ...item,
+      unitPrice: Number(item.unitPrice ?? 0),
+      amount: Number(item.amount ?? 0),
+      totalVolumeCbm: Number(item.totalVolumeCbm ?? 0),
+      totalWeightKg: Number(item.totalWeightKg ?? 0),
+      unitWeightKg: Number(item.unitWeightKg ?? 0),
+      unitVolumeCbm: Number(item.unitVolumeCbm ?? 0),
+    })),
+    expenses: (order.expenses ?? []).map((expense) => ({
+      ...expense,
+      amount: Number(expense.amount ?? 0),
+    })),
+  };
+}
+
+function canEditSalesOrder(order?: SalesOrder | null) {
+  if (!order) return false;
+  return order.status !== SalesOrderStatus.VOIDED;
+}
+
 export default function SalesOrderFormPage() {
   const { modal, message: appMessage } = App.useApp();
   const navigate = useNavigate();
+  const { id = '' } = useParams();
   const queryClient = useQueryClient();
   const formRef = useRef<ProFormInstance>(undefined);
+  const salesOrderId = Number(id);
+  const isEdit = Number.isInteger(salesOrderId) && salesOrderId > 0;
   const [activeAnchor, setActiveAnchor] = useState('basic');
   const [contractFileList, setContractFileList] = useState<UploadFile[]>([]);
   const [contractFiles, setContractFiles] = useState<Array<{ key: string; name: string }>>([]);
@@ -229,12 +269,28 @@ export default function SalesOrderFormPage() {
     queryFn: getSalesOrderOptions,
   });
 
+  const detailQuery = useQuery({
+    queryKey: ['sales-order-detail', salesOrderId],
+    queryFn: () => getSalesOrderById(salesOrderId),
+    enabled: isEdit,
+  });
+  const hasHistoricalDemand = isEdit && (detailQuery.data?.shippingDemands?.length ?? 0) > 0;
+
   const createMutation = useMutation({
     mutationFn: (payload: CreateSalesOrderPayload) => createSalesOrder(payload),
     onSuccess: (created) => {
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
       appMessage.success('销售订单创建成功');
       navigate(`/sales-orders/${created.id}`);
+    },
+  });
+  const updateMutation = useMutation({
+    mutationFn: (payload: CreateSalesOrderPayload) => updateSalesOrder(salesOrderId, payload),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-order-detail', salesOrderId] });
+      appMessage.success('销售订单保存成功');
+      navigate(`/sales-orders/${updated.id}`);
     },
   });
 
@@ -270,6 +326,60 @@ export default function SalesOrderFormPage() {
     items: [{}],
     expenses: [],
   };
+
+  const formInitialValues = useMemo(
+    () => (isEdit && detailQuery.data ? salesOrderToFormValues(detailQuery.data) : initialValues),
+    [detailQuery.data, isEdit, optionsQuery.data?.initialStatus],
+  );
+
+  useEffect(() => {
+    if (!isEdit || !detailQuery.data) return;
+    const order = detailQuery.data;
+    setDomesticTradeType(order.domesticTradeType);
+    setContractFiles(
+      (order.contractFileKeys ?? []).map((key, index) => ({
+        key,
+        name: order.contractFileNames?.[index] ?? key.split('/').pop() ?? key,
+      })),
+    );
+    setContractFileList(
+      (order.contractFileKeys ?? []).map((key, index) => ({
+        uid: `existing-contract-${key}`,
+        name: order.contractFileNames?.[index] ?? key.split('/').pop() ?? key,
+        status: 'done',
+        url: order.contractFileUrls?.[index],
+      })),
+    );
+    setPlugPhotoKeys(order.plugPhotoKeys ?? []);
+    setPlugPhotoFileList(
+      (order.plugPhotoKeys ?? []).map((key, index) => ({
+        uid: `existing-plug-${key}`,
+        name: key.split('/').pop() ?? `插头照片${index + 1}`,
+        status: 'done',
+        url: order.plugPhotoUrls?.[index],
+      })),
+    );
+    setShippingMarkTemplate(
+      order.shippingMarkTemplateKey
+        ? {
+            key: order.shippingMarkTemplateKey,
+            name: order.shippingMarkTemplateKey.split('/').pop() ?? order.shippingMarkTemplateKey,
+          }
+        : null,
+    );
+    setShippingMarkTemplateFileList(
+      order.shippingMarkTemplateKey
+        ? [
+            {
+              uid: `existing-shipping-mark-${order.shippingMarkTemplateKey}`,
+              name: order.shippingMarkTemplateKey.split('/').pop() ?? order.shippingMarkTemplateKey,
+              status: 'done',
+              url: order.shippingMarkTemplateUrl ?? undefined,
+            },
+          ]
+        : [],
+    );
+  }, [detailQuery.data, isEdit]);
 
   const requestUsers = async (search?: string) => {
     const result = await request.get<any, { list: Array<{ id: string; name: string; username: string }> }>(
@@ -429,6 +539,7 @@ export default function SalesOrderFormPage() {
 
   const buildPayload = (values: Record<string, any>): CreateSalesOrderPayload => {
     const items = (values.items ?? []).map((item: Record<string, any>) => ({
+      id: toNumber(item.id),
       skuId: Number(item.skuId),
       productNameCn: item.productNameCn || undefined,
       productNameEn: item.productNameEn || undefined,
@@ -443,10 +554,6 @@ export default function SalesOrderFormPage() {
       quantity: Number(item.quantity ?? 0),
       purchaserId: toNumber(item.purchaserId),
       needsPurchase: item.needsPurchase || undefined,
-      purchaseQuantity: Number(item.purchaseQuantity ?? 0),
-      useStockQuantity: Number(item.useStockQuantity ?? 0),
-      preparedQuantity: Number(item.preparedQuantity ?? 0),
-      shippedQuantity: Number(item.shippedQuantity ?? 0),
       amount: Number(item.amount ?? 0),
       unitId: toNumber(item.unitId),
       unitName: item.unitName || undefined,
@@ -540,7 +647,12 @@ export default function SalesOrderFormPage() {
   };
 
   const handleSubmit = async (values: Record<string, any>) => {
-    await createMutation.mutateAsync(buildPayload(values));
+    const payload = buildPayload(values);
+    if (isEdit) {
+      await updateMutation.mutateAsync(payload);
+    } else {
+      await createMutation.mutateAsync(payload);
+    }
     return true;
   };
 
@@ -553,9 +665,9 @@ export default function SalesOrderFormPage() {
 
   const openSubmitConfirm = (values: Record<string, any>) => {
     modal.confirm({
-      title: '确认提交销售订单？',
-      content: '提交后将创建订单并进入待审核流转。',
-      okText: '确认提交',
+      title: isEdit ? '确认保存销售订单？' : '确认提交销售订单？',
+      content: isEdit ? '保存后将更新销售订单基础资料和明细。' : '提交后将创建订单并进入待审核流转。',
+      okText: isEdit ? '确认保存' : '确认提交',
       cancelText: '取消',
       onOk: async () => {
         await handleSubmit(values);
@@ -577,16 +689,35 @@ export default function SalesOrderFormPage() {
     }
   };
 
-  if (optionsQuery.isLoading && !optionsQuery.data) {
+  if ((optionsQuery.isLoading && !optionsQuery.data) || (isEdit && detailQuery.isLoading && !detailQuery.data)) {
     return <Skeleton active />;
   }
 
-  if (optionsQuery.isError) {
+  if (optionsQuery.isError || (isEdit && detailQuery.isError && !detailQuery.data)) {
     return (
       <Result
         status="error"
-        title="加载销售订单配置失败"
-        extra={<Button type="primary" onClick={() => optionsQuery.refetch()}>重试</Button>}
+        title={isEdit ? '加载销售订单失败' : '加载销售订单配置失败'}
+        extra={
+          <Button type="primary" onClick={() => (isEdit ? detailQuery.refetch() : optionsQuery.refetch())}>
+            重试
+          </Button>
+        }
+      />
+    );
+  }
+
+  if (isEdit && !canEditSalesOrder(detailQuery.data)) {
+    return (
+      <Result
+        status="warning"
+        title="当前销售订单不允许编辑"
+        subTitle="已作废销售订单不允许编辑。"
+        extra={
+          <Button type="primary" onClick={() => navigate(`/sales-orders/${salesOrderId}`)}>
+            返回详情
+          </Button>
+        }
       />
     );
   }
@@ -595,9 +726,11 @@ export default function SalesOrderFormPage() {
     <div className="master-page master-form-page">
       <div className="master-page-header">
         <div className="master-page-heading">
-          <div className="master-page-title">新建销售订单</div>
+          <div className="master-page-title">{isEdit ? '编辑销售订单' : '新建销售订单'}</div>
           <div className="master-page-description">
-            录入基础信息、订单信息、产品明细、加项费用和发货要求，提交后进入待审核流转。
+            {isEdit
+              ? '维护销售订单基础信息、产品明细、加项费用和发货要求。'
+              : '录入基础信息、订单信息、产品明细、加项费用和发货要求，提交后进入待审核流转。'}
           </div>
         </div>
       </div>
@@ -605,7 +738,7 @@ export default function SalesOrderFormPage() {
       <ProForm
         formRef={formRef}
         submitter={false}
-        initialValues={initialValues}
+        initialValues={formInitialValues}
         onValuesChange={(_, allValues) => {
           setDomesticTradeType(
             allValues.domesticTradeType === DomesticTradeType.DOMESTIC
@@ -755,7 +888,9 @@ export default function SalesOrderFormPage() {
                   name="status"
                   label="订单状态"
                   options={orderStatusOptions.filter(
-                    (option) => option.value === SalesOrderStatus.PENDING_SUBMIT,
+                    (option) =>
+                      option.value ===
+                      (isEdit ? detailQuery.data?.status ?? SalesOrderStatus.PENDING_SUBMIT : SalesOrderStatus.PENDING_SUBMIT),
                   )}
                   readonly
                   disabled
@@ -827,13 +962,15 @@ export default function SalesOrderFormPage() {
             <SectionCard id="items" title="产品明细" description="维护 SKU 行项、数量、单价与库存准备字段。">
               <ProFormList
                 name="items"
-                creatorButtonProps={{ creatorButtonText: '添加产品明细' }}
+                creatorButtonProps={
+                  hasHistoricalDemand ? false : { creatorButtonText: '添加产品明细' }
+                }
                 copyIconProps={false}
                 itemRender={({ listDom, action }, { index }) => (
                   <div className="master-section-card sales-order-item-card" style={{ marginBottom: 16 }}>
                     <div className="master-section-header">
                       <div className="master-section-title">产品明细 #{index + 1}</div>
-                      {action}
+                      {hasHistoricalDemand ? null : action}
                     </div>
                     <div className="master-section-body sales-order-item-card-body">{listDom}</div>
                   </div>
@@ -846,6 +983,7 @@ export default function SalesOrderFormPage() {
                         name="skuId"
                         label="SKU"
                         showSearch
+                        readonly={hasHistoricalDemand}
                         request={async (params) => requestSkus(params.keyWords)}
                         rules={[{ required: true, message: '请选择 SKU' }]}
                         fieldProps={{
@@ -908,6 +1046,7 @@ export default function SalesOrderFormPage() {
                         label="签约数量"
                         min={1}
                         precision={0}
+                        readonly={hasHistoricalDemand}
                         rules={[
                           { required: true, message: '请输入签约数量' },
                           {
@@ -927,10 +1066,10 @@ export default function SalesOrderFormPage() {
                         request={async (params) => requestUsers(params.keyWords)}
                       />
                       <ProFormSelect name="needsPurchase" label="是否需要采购" options={YES_NO_OPTIONS} />
-                      <ProFormDigit name="purchaseQuantity" label="需采购数量" min={0} precision={0} />
-                      <ProFormDigit name="useStockQuantity" label="使用现有库存数量" min={0} precision={0} />
-                      <ProFormDigit name="preparedQuantity" label="已备货数量" min={0} precision={0} />
-                      <ProFormDigit name="shippedQuantity" label="已发货数量" min={0} precision={0} />
+                      <ProFormDigit name="purchaseQuantity" label="需采购数量" readonly fieldProps={{ precision: 0 }} />
+                      <ProFormDigit name="useStockQuantity" label="使用现有库存数量" readonly fieldProps={{ precision: 0 }} />
+                      <ProFormDigit name="preparedQuantity" label="已备货数量" readonly fieldProps={{ precision: 0 }} />
+                      <ProFormDigit name="shippedQuantity" label="已发货数量" readonly fieldProps={{ precision: 0 }} />
                       <ProFormDigit name="amount" label="总金额" readonly fieldProps={{ precision: 2 }} />
                       <ProFormText name="unitName" label="单位" readonly />
                       <ProFormText name="material" label="产品材质" readonly />
@@ -1052,18 +1191,20 @@ export default function SalesOrderFormPage() {
 
         <div className="master-form-footer">
           <div className="master-form-footer-tip">
-            保存后订单会进入状态流转。当前实现只做状态动作，不做真实审批。
+            {isEdit
+              ? '保存仅更新销售订单资料；如需推进流程，请回到详情页执行状态动作。'
+              : '保存后订单会进入状态流转。当前实现只做状态动作，不做真实审批。'}
           </div>
           <div className="master-form-footer-actions">
-            <Button onClick={() => navigate('/')}>取消</Button>
+            <Button onClick={() => navigate(isEdit ? `/sales-orders/${salesOrderId}` : '/')}>取消</Button>
             <Button
               type="primary"
-              loading={createMutation.isPending}
+              loading={createMutation.isPending || updateMutation.isPending}
               onClick={() => {
                 void handleClickSubmit();
               }}
             >
-              提交
+              {isEdit ? '保存' : '提交'}
             </Button>
           </div>
         </div>

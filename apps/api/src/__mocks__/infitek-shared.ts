@@ -28,12 +28,14 @@ export enum UserStatus {
   INACTIVE = 'inactive',
 }
 
-export enum LogisticsOrderStatus {
-  CREATED = 'created',
-  SHIPPED = 'shipped',
-  DELIVERED = 'delivered',
-  CANCELLED = 'cancelled',
-}
+export const LogisticsOrderStatus = {
+  CONFIRMED: 'confirmed',
+  SHIPPED: 'shipped',
+  DELIVERED: 'delivered',
+  CANCELLED: 'cancelled',
+} as const;
+export type LogisticsOrderStatus =
+  (typeof LogisticsOrderStatus)[keyof typeof LogisticsOrderStatus];
 
 export enum PurchaseOrderStatus {
   DRAFT = 'draft',
@@ -134,8 +136,7 @@ export const WarehouseType = {
   PORT: '港口仓',
   FACTORY: '工厂仓',
 } as const;
-export type WarehouseType =
-  (typeof WarehouseType)[keyof typeof WarehouseType];
+export type WarehouseType = (typeof WarehouseType)[keyof typeof WarehouseType];
 
 export const WarehouseOwnership = {
   INTERNAL: '内部仓',
@@ -257,15 +258,23 @@ export type DomesticTradeType =
 
 export const PaymentTerm = {
   TT_IN_ADVANCE_100: '100_tt_in_advance',
-  DEPOSIT_30_BALANCE_70_BEFORE_DELIVERY: '30_deposit_70_balance_before_delivery',
-  DEPOSIT_40_BALANCE_60_BEFORE_DELIVERY: '40_deposit_60_balance_before_delivery',
-  DEPOSIT_50_BALANCE_50_BEFORE_DELIVERY: '50_deposit_50_balance_before_delivery',
-  DEPOSIT_60_BALANCE_40_BEFORE_DELIVERY: '60_deposit_40_balance_before_delivery',
-  DEPOSIT_70_BALANCE_30_BEFORE_DELIVERY: '70_deposit_30_balance_before_delivery',
+  DEPOSIT_30_BALANCE_70_BEFORE_DELIVERY:
+    '30_deposit_70_balance_before_delivery',
+  DEPOSIT_40_BALANCE_60_BEFORE_DELIVERY:
+    '40_deposit_60_balance_before_delivery',
+  DEPOSIT_50_BALANCE_50_BEFORE_DELIVERY:
+    '50_deposit_50_balance_before_delivery',
+  DEPOSIT_60_BALANCE_40_BEFORE_DELIVERY:
+    '60_deposit_40_balance_before_delivery',
+  DEPOSIT_70_BALANCE_30_BEFORE_DELIVERY:
+    '70_deposit_30_balance_before_delivery',
   PAYMENT_100_BEFORE_DELIVERY: '100_payment_before_delivery',
-  DEPOSIT_40_BALANCE_60_AGAINST_BL_COPY: '40_deposit_60_balance_against_bl_copy',
-  DEPOSIT_50_BALANCE_50_AGAINST_BL_COPY: '50_deposit_50_balance_against_bl_copy',
-  DEPOSIT_70_BALANCE_30_AGAINST_BL_COPY: '70_deposit_30_balance_against_bl_copy',
+  DEPOSIT_40_BALANCE_60_AGAINST_BL_COPY:
+    '40_deposit_60_balance_against_bl_copy',
+  DEPOSIT_50_BALANCE_50_AGAINST_BL_COPY:
+    '50_deposit_50_balance_against_bl_copy',
+  DEPOSIT_70_BALANCE_30_AGAINST_BL_COPY:
+    '70_deposit_30_balance_against_bl_copy',
   LC_AT_SIGHT: 'lc_at_sight',
   CAD: 'cad',
   DP_AT_SIGHT: 'dp_at_sight',
@@ -323,16 +332,14 @@ export const OrderNature = {
   RETAIL: 'retail',
   STOCK_PREPARE: 'stock_prepare',
 } as const;
-export type OrderNature =
-  (typeof OrderNature)[keyof typeof OrderNature];
+export type OrderNature = (typeof OrderNature)[keyof typeof OrderNature];
 
 export const ReceiptStatus = {
   UNPAID: 'unpaid',
   PARTIALLY_PAID: 'partially_paid',
   PAID: 'paid',
 } as const;
-export type ReceiptStatus =
-  (typeof ReceiptStatus)[keyof typeof ReceiptStatus];
+export type ReceiptStatus = (typeof ReceiptStatus)[keyof typeof ReceiptStatus];
 
 export const YesNo = {
   YES: 'yes',
@@ -408,7 +415,10 @@ export const COMMON_OPERATION_LOG_FIELD_LABELS: Record<string, string> = {
   fileUrl: '附件链接',
 };
 
-export const RESOURCE_OPERATION_LOG_FIELD_LABELS: Record<string, Record<string, string>> = {
+export const RESOURCE_OPERATION_LOG_FIELD_LABELS: Record<
+  string,
+  Record<string, string>
+> = {
   users: {
     username: '用户名',
     name: '姓名',
@@ -705,6 +715,10 @@ export const RESOURCE_OPERATION_LOG_FIELD_LABELS: Record<string, Record<string, 
     totalAmount: '总金额',
     items: '产品明细',
     expenses: '加项费用',
+  },
+  'shipping-demands': {
+    afterSalesProductSummary: '所有售后产品品名及对应总价',
+    items: '产品明细',
   },
 };
 

@@ -30,6 +30,10 @@ const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
   [ShippingDemandStatus.VOIDED]: { className: 'master-pill-red', text: '已作废' },
 };
 
+function canEditShippingDemandStatus(status: ShippingDemandStatus) {
+  return status !== ShippingDemandStatus.VOIDED;
+}
+
 function formatMoney(value?: string | null) {
   if (value == null || value === '') return '-';
   const [integerPart, decimalPart = ''] = value.split('.');
@@ -205,12 +209,19 @@ export default function ShippingDemandsListPage() {
       {
         title: '操作',
         key: 'actions',
-        width: 100,
+        width: 140,
         fixed: 'right',
         render: (_, record) => (
-          <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/shipping-demands/${record.id}`)}>
-            查看
-          </Button>
+          <Space size={8}>
+            <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/shipping-demands/${record.id}`)}>
+              查看
+            </Button>
+            {canEditShippingDemandStatus(record.status) ? (
+              <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/shipping-demands/${record.id}/edit`)}>
+                编辑
+              </Button>
+            ) : null}
+          </Space>
         ),
       },
     ],

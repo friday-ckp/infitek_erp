@@ -123,6 +123,7 @@ export class AuditInterceptor implements NestInterceptor {
 
     return {
       action,
+      method,
       resourcePath,
       resourceType,
       resourceId,
@@ -156,6 +157,7 @@ export class AuditInterceptor implements NestInterceptor {
       auditContext.beforeSnapshot,
       normalizedAfterSnapshot,
       auditContext.requestSummary,
+      auditContext.method,
     );
 
     if (!changeSummary.length && auditContext.action === OperationLogAction.UPDATE) {
@@ -316,6 +318,7 @@ export class AuditInterceptor implements NestInterceptor {
     beforeSnapshot: EntitySnapshot,
     afterSnapshot: unknown,
     requestSummary: unknown,
+    method?: string,
   ) {
     const source =
       afterSnapshot && typeof afterSnapshot === 'object'
@@ -353,7 +356,14 @@ export class AuditInterceptor implements NestInterceptor {
       afterSnapshot && typeof afterSnapshot === 'object'
         ? (afterSnapshot as Record<string, unknown>)
         : {};
-    const fields = new Set([...Object.keys(before), ...Object.keys(after)]);
+    const requestFields =
+      requestSummary && typeof requestSummary === 'object' && !Array.isArray(requestSummary)
+        ? Object.keys(requestSummary as Record<string, unknown>)
+        : [];
+    const fields =
+      method === 'PATCH' && requestFields.length > 0
+        ? new Set(requestFields)
+        : new Set([...Object.keys(before), ...Object.keys(after)]);
 
     return Array.from(fields)
       .filter((field) => !OMITTED_CHANGE_FIELDS.has(field))

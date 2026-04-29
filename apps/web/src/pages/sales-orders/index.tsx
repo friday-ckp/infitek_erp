@@ -58,6 +58,10 @@ function formatOrderType(value?: string | null) {
   return ORDER_TYPE_OPTIONS.find((item) => item.value === value)?.label ?? value ?? '—';
 }
 
+function canEditSalesOrderStatus(status: SalesOrderStatus) {
+  return status !== SalesOrderStatus.VOIDED;
+}
+
 export default function SalesOrdersListPage() {
   const navigate = useNavigate();
   const { token } = theme.useToken();
@@ -205,13 +209,23 @@ export default function SalesOrdersListPage() {
       {
         title: '操作',
         key: 'actions',
-        width: 100,
+        width: 140,
         fixed: 'right',
-        render: (_, record) => (
-          <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/sales-orders/${record.id}`)}>
-            查看
-          </Button>
-        ),
+        render: (_, record) => {
+          const canEdit = canEditSalesOrderStatus(record.status);
+          return (
+            <Space size={8}>
+              <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/sales-orders/${record.id}`)}>
+                查看
+              </Button>
+              {canEdit ? (
+                <Button type="link" style={{ padding: 0 }} onClick={() => navigate(`/sales-orders/${record.id}/edit`)}>
+                  编辑
+                </Button>
+              ) : null}
+            </Space>
+          );
+        },
       },
     ],
     [navigate, token.colorLink],

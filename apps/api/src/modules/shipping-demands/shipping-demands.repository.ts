@@ -98,6 +98,14 @@ export class ShippingDemandsRepository {
     });
   }
 
+  async update(
+    id: number,
+    data: Partial<ShippingDemand>,
+  ): Promise<ShippingDemand> {
+    await this.shippingDemandRepo.update(id, data);
+    return this.findById(id).then((item) => item as ShippingDemand);
+  }
+
   getItemRepository(): Repository<ShippingDemandItem> {
     return this.shippingDemandItemRepo;
   }

@@ -88,228 +88,23 @@ export class SalesOrdersService {
       throw new BadRequestException('第三方订单号已存在');
     }
 
-    const customer = await this.customersService.findById(dto.customerId);
-
-    const destinationCountry =
-      dto.destinationCountryId != null
-        ? await this.countriesService.findById(dto.destinationCountryId)
-        : null;
-    const shipmentOriginCountry =
-      dto.shipmentOriginCountryId != null
-        ? await this.countriesService.findById(dto.shipmentOriginCountryId)
-        : null;
-    const signingCompany =
-      dto.signingCompanyId != null
-        ? await this.companiesService.findById(dto.signingCompanyId)
-        : null;
-    const currency =
-      dto.currencyId != null ? await this.currenciesService.findById(dto.currencyId) : null;
-    const destinationPort =
-      dto.destinationPortId != null ? await this.portsService.findById(dto.destinationPortId) : null;
-    const salesperson =
-      dto.salespersonId != null ? await this.usersService.findById(dto.salespersonId) : null;
-    const extraViewer =
-      dto.extraViewerId != null ? await this.usersService.findById(dto.extraViewerId) : null;
-    const merchandiser =
-      dto.merchandiserId != null
-        ? await this.usersService.findById(dto.merchandiserId)
-        : null;
-    const shipperOtherInfoCompany =
-      dto.shipperOtherInfoCompanyId != null
-        ? await this.companiesService.findById(dto.shipperOtherInfoCompanyId)
-        : null;
-
-    let afterSalesSourceOrder: SalesOrder | null = null;
-    if (dto.afterSalesSourceOrderId != null) {
-      afterSalesSourceOrder = await this.salesOrdersRepository.findById(dto.afterSalesSourceOrderId);
-      if (!afterSalesSourceOrder) {
-        throw new NotFoundException('售后原订单不存在');
-      }
-      if (afterSalesSourceOrder.orderType !== SalesOrderType.SALES) {
-        throw new BadRequestException('售后原订单必须是销售订单类型');
-      }
-    }
-
-    if (dto.contractFileKeys?.length !== dto.contractFileNames?.length) {
-      throw new BadRequestException('合同文件 key 与名称数量不一致');
-    }
-
-    if (!dto.items?.length) {
-      throw new BadRequestException('至少需要一条产品明细');
-    }
-
     const erpSalesOrderCode = await this.salesOrdersRepository.generateErpOrderCode();
-
-    let productTotalAmount = 0;
-    const normalizedItems: Partial<SalesOrderItem>[] = [];
-    for (const item of dto.items) {
-      const sku = await this.skusService.findById(item.skuId);
-      const purchaser =
-        item.purchaserId != null
-          ? await this.usersService.findById(item.purchaserId)
-          : null;
-      const itemCurrency =
-        item.currencyId != null ? await this.currenciesService.findById(item.currencyId) : currency;
-
-      const packagingRows = this.parsePackagingRows(sku.packagingList);
-      const firstPackaging = packagingRows[0] ?? null;
-      const unitWeightKg = Number(firstPackaging?.grossWeightKg ?? sku.grossWeightKg ?? 0);
-      const unitVolumeCbm = Number(firstPackaging?.volumeCbm ?? sku.volumeCbm ?? 0);
-      const quantity = Number(item.quantity);
-      const unitPrice = Number(item.unitPrice);
-      const amount = Number((quantity * unitPrice).toFixed(2));
-      const totalVolumeCbm = Number((unitVolumeCbm * quantity).toFixed(4));
-      const totalWeightKg = Number((unitWeightKg * quantity).toFixed(4));
-      productTotalAmount += amount;
-
-      normalizedItems.push({
-        skuId: sku.id,
-        skuCode: sku.skuCode,
-        productNameCn: item.productNameCn ?? sku.nameCn ?? null,
-        productNameEn: item.productNameEn ?? sku.nameEn ?? null,
-        lineType: item.lineType ?? null,
-        spuId: item.spuId ?? sku.spuId ?? null,
-        spuName: item.spuName ?? null,
-        electricalParams: item.electricalParams ?? sku.electricalParams ?? null,
-        hasPlug: item.hasPlug ?? this.normalizeBooleanToYesNo(sku.hasPlug),
-        plugType: item.plugType ?? null,
-        unitPrice: amount === 0 ? String(unitPrice.toFixed(2)) : String(unitPrice.toFixed(2)),
-        currencyId: itemCurrency?.id ?? null,
-        currencyCode: itemCurrency?.code ?? null,
-        quantity,
-        purchaserId: purchaser ? Number(purchaser.id) : null,
-        purchaserName: purchaser?.name ?? null,
-        needsPurchase: item.needsPurchase ?? YesNo.NO,
-        purchaseQuantity: Number(item.purchaseQuantity ?? 0),
-        useStockQuantity: Number(item.useStockQuantity ?? 0),
-        preparedQuantity: Number(item.preparedQuantity ?? 0),
-        shippedQuantity: Number(item.shippedQuantity ?? 0),
-        amount: amount.toFixed(2),
-        unitId: item.unitId ?? sku.unitId ?? null,
-        unitName: item.unitName ?? null,
-        material: item.material ?? sku.material ?? null,
-        imageUrl: item.imageUrl ?? sku.productImageUrl ?? null,
-        totalVolumeCbm: totalVolumeCbm.toFixed(4),
-        totalWeightKg: totalWeightKg.toFixed(4),
-        unitWeightKg: unitWeightKg.toFixed(4),
-        unitVolumeCbm: unitVolumeCbm.toFixed(4),
-        skuSpecification: item.skuSpecification ?? sku.specification ?? null,
-        createdBy: operator,
-        updatedBy: operator,
-      });
-    }
-
-    const normalizedExpenses: Partial<SalesOrderExpense>[] = (dto.expenses ?? []).map((expense) => ({
-      expenseName: expense.expenseName,
-      amount: Number(expense.amount).toFixed(2),
-      createdBy: operator,
-      updatedBy: operator,
-    }));
-
-    const expenseTotalAmount = normalizedExpenses.reduce(
-      (sum, item) => sum + Number(item.amount),
-      0,
-    );
-    const totalAmount = Number((productTotalAmount + expenseTotalAmount).toFixed(2));
-    const outstandingAmount = Number(
-      (Number(dto.contractAmount) - Number(dto.receivedAmount)).toFixed(2),
+    const normalized = await this.normalizeSalesOrderPayload(
+      dto,
+      operator,
+      { lockItemQuantities: false },
     );
 
     const order = await this.salesOrdersRepository.createWithRelations(
       {
         erpSalesOrderCode,
-        domesticTradeType: dto.domesticTradeType,
-        externalOrderCode: dto.externalOrderCode,
-        orderSource: dto.orderSource ?? SalesOrderSource.MANUAL,
-        orderType: dto.orderType,
-        customerId: customer.id,
-        customerName: customer.customerName,
-        customerCode: customer.customerCode,
-        customerContactPerson: customer.contactPerson ?? null,
-        afterSalesSourceOrderId: afterSalesSourceOrder?.id ?? null,
-        afterSalesSourceOrderCode: afterSalesSourceOrder?.erpSalesOrderCode ?? null,
-        afterSalesProductSummary: dto.afterSalesProductSummary ?? null,
-        destinationCountryId: destinationCountry?.id ?? null,
-        destinationCountryName: destinationCountry?.name ?? null,
-        paymentTerm: dto.paymentTerm ?? null,
-        shipmentOriginCountryId: shipmentOriginCountry?.id ?? null,
-        shipmentOriginCountryName: shipmentOriginCountry?.name ?? null,
-        signingCompanyId: signingCompany?.id ?? null,
-        signingCompanyName: signingCompany?.nameCn ?? null,
-        salespersonId: salesperson ? Number(salesperson.id) : null,
-        salespersonName: salesperson?.name ?? null,
-        otherIndustryNote: dto.otherIndustryNote ?? null,
-        currencyId: currency?.id ?? null,
-        currencyCode: currency?.code ?? null,
-        currencyName: currency?.name ?? null,
-        currencySymbol: currency?.symbol ?? null,
-        tradeTerm: dto.tradeTerm ?? null,
-        destinationPortId: destinationPort?.id ?? null,
-        destinationPortName: destinationPort?.nameCn ?? null,
-        bankAccount: dto.bankAccount ?? null,
-        extraViewerId: extraViewer ? Number(extraViewer.id) : null,
-        extraViewerName: extraViewer?.name ?? null,
-        primaryIndustry: dto.primaryIndustry ?? null,
-        exchangeRate:
-          dto.exchangeRate != null ? Number(dto.exchangeRate).toFixed(6) : null,
-        transportationMethod: dto.transportationMethod ?? null,
-        crmSignedAt: dto.crmSignedAt ?? null,
-        contractAmount: Number(dto.contractAmount).toFixed(2),
-        orderNature: dto.orderNature ?? null,
-        secondaryIndustry: dto.secondaryIndustry ?? null,
-        receiptStatus: dto.receiptStatus ?? ReceiptStatus.UNPAID,
+        ...normalized.order,
         status: SalesOrderStatus.PENDING_SUBMIT,
-        contractFileKeys: dto.contractFileKeys ?? null,
-        contractFileNames: dto.contractFileNames ?? null,
-        receivedAmount: Number(dto.receivedAmount).toFixed(2),
-        merchandiserId: merchandiser ? Number(merchandiser.id) : null,
-        merchandiserName: merchandiser?.name ?? null,
-        merchandiserAbbr: dto.merchandiserAbbr?.toUpperCase() ?? null,
-        outstandingAmount: outstandingAmount.toFixed(2),
-        requiredDeliveryAt: dto.requiredDeliveryAt ?? null,
-        isSharedOrder: dto.isSharedOrder ?? null,
-        isSinosure: dto.isSinosure ?? null,
-        isPalletized: dto.isPalletized ?? null,
-        requiresCustomsCertificate: dto.requiresCustomsCertificate ?? null,
-        isSplitInAdvance: dto.isSplitInAdvance ?? null,
-        usesMarketingFund: dto.usesMarketingFund ?? null,
-        requiresExportCustoms: dto.requiresExportCustoms ?? null,
-        requiresWarrantyCard: dto.requiresWarrantyCard ?? null,
-        requiresMaternityHandover: dto.requiresMaternityHandover ?? null,
-        customsDeclarationMethod: dto.customsDeclarationMethod ?? null,
-        plugPhotoKeys: dto.plugPhotoKeys ?? null,
-        isInsured: dto.isInsured ?? null,
-        isAliTradeAssurance: dto.isAliTradeAssurance ?? null,
-        aliTradeAssuranceOrderCode: dto.aliTradeAssuranceOrderCode ?? null,
-        forwarderQuoteNote: dto.forwarderQuoteNote ?? null,
-        consigneeCompany: dto.consigneeCompany ?? null,
-        consigneeOtherInfo: dto.consigneeOtherInfo ?? null,
-        notifyCompany: dto.notifyCompany ?? null,
-        notifyOtherInfo: dto.notifyOtherInfo ?? null,
-        shipperCompany: dto.shipperCompany ?? null,
-        shipperOtherInfoCompanyId: shipperOtherInfoCompany?.id ?? null,
-        shipperOtherInfoCompanyName: shipperOtherInfoCompany?.nameCn ?? null,
-        domesticCustomerCompany: dto.domesticCustomerCompany ?? null,
-        domesticCustomerDeliveryInfo: dto.domesticCustomerDeliveryInfo ?? null,
-        usesDefaultShippingMark: dto.usesDefaultShippingMark ?? null,
-        shippingMarkNote: dto.shippingMarkNote ?? null,
-        shippingMarkTemplateKey: dto.shippingMarkTemplateKey ?? null,
-        needsInvoice: dto.needsInvoice ?? null,
-        invoiceType: dto.invoiceType ?? null,
-        shippingDocumentsNote: dto.shippingDocumentsNote ?? null,
-        blType: dto.blType ?? null,
-        originalMailAddress: dto.originalMailAddress ?? null,
-        businessRectificationNote: dto.businessRectificationNote ?? null,
-        customsDocumentNote: dto.customsDocumentNote ?? null,
-        otherRequirementNote: dto.otherRequirementNote ?? null,
-        productTotalAmount: productTotalAmount.toFixed(2),
-        expenseTotalAmount: expenseTotalAmount.toFixed(2),
-        totalAmount: totalAmount.toFixed(2),
         createdBy: operator,
         updatedBy: operator,
       },
-      normalizedItems,
-      normalizedExpenses,
+      normalized.items,
+      normalized.expenses,
     );
 
     return this.withSignedUrls(order);
@@ -368,8 +163,112 @@ export class SalesOrdersService {
     );
   }
 
-  async update(_id: number, _dto: UpdateSalesOrderDto, _operator?: string) {
-    throw new BadRequestException('销售订单暂不支持通用编辑，请使用状态动作端点');
+  async update(id: number, dto: UpdateSalesOrderDto, operator?: string) {
+    const order = await this.requireOrder(id);
+    this.ensureEditable(order);
+    const hasHistoricalDemand = (order.shippingDemands ?? []).length > 0;
+    this.ensureReferencedItemsPreserved(order, dto, hasHistoricalDemand);
+    const existingItemsById = new Map(
+      (order.items ?? []).map((item) => [Number(item.id), item]),
+    );
+
+    if (dto.externalOrderCode && dto.externalOrderCode !== order.externalOrderCode) {
+      const existing = await this.salesOrdersRepository.findByExternalOrderCode(dto.externalOrderCode);
+      if (existing && Number(existing.id) !== Number(id)) {
+        throw new BadRequestException('第三方订单号已存在');
+      }
+    }
+
+    const normalized = await this.normalizeSalesOrderPayload(
+      {
+        domesticTradeType: dto.domesticTradeType ?? order.domesticTradeType,
+        externalOrderCode: dto.externalOrderCode ?? order.externalOrderCode,
+        orderSource: dto.orderSource ?? order.orderSource,
+        orderType: dto.orderType ?? order.orderType,
+        customerId: dto.customerId ?? order.customerId,
+        afterSalesSourceOrderId: dto.afterSalesSourceOrderId ?? order.afterSalesSourceOrderId ?? undefined,
+        afterSalesProductSummary: dto.afterSalesProductSummary ?? order.afterSalesProductSummary ?? undefined,
+        destinationCountryId: dto.destinationCountryId ?? order.destinationCountryId ?? undefined,
+        paymentTerm: dto.paymentTerm ?? order.paymentTerm ?? undefined,
+        shipmentOriginCountryId: dto.shipmentOriginCountryId ?? order.shipmentOriginCountryId ?? undefined,
+        signingCompanyId: dto.signingCompanyId ?? order.signingCompanyId ?? undefined,
+        salespersonId: dto.salespersonId ?? order.salespersonId ?? undefined,
+        otherIndustryNote: dto.otherIndustryNote ?? order.otherIndustryNote ?? undefined,
+        currencyId: dto.currencyId ?? order.currencyId ?? undefined,
+        tradeTerm: dto.tradeTerm ?? order.tradeTerm ?? undefined,
+        destinationPortId: dto.destinationPortId ?? order.destinationPortId ?? undefined,
+        bankAccount: dto.bankAccount ?? order.bankAccount ?? undefined,
+        extraViewerId: dto.extraViewerId ?? order.extraViewerId ?? undefined,
+        primaryIndustry: dto.primaryIndustry ?? order.primaryIndustry ?? undefined,
+        exchangeRate: dto.exchangeRate ?? this.optionalNumber(order.exchangeRate),
+        transportationMethod: dto.transportationMethod ?? order.transportationMethod ?? undefined,
+        crmSignedAt: dto.crmSignedAt ?? order.crmSignedAt ?? undefined,
+        contractAmount: dto.contractAmount ?? Number(order.contractAmount ?? 0),
+        orderNature: dto.orderNature ?? order.orderNature ?? undefined,
+        secondaryIndustry: dto.secondaryIndustry ?? order.secondaryIndustry ?? undefined,
+        receiptStatus: dto.receiptStatus ?? order.receiptStatus ?? undefined,
+        contractFileKeys: dto.contractFileKeys ?? order.contractFileKeys ?? undefined,
+        contractFileNames: dto.contractFileNames ?? order.contractFileNames ?? undefined,
+        receivedAmount: dto.receivedAmount ?? Number(order.receivedAmount ?? 0),
+        merchandiserId: dto.merchandiserId ?? order.merchandiserId ?? undefined,
+        merchandiserAbbr: dto.merchandiserAbbr ?? order.merchandiserAbbr ?? undefined,
+        requiredDeliveryAt: dto.requiredDeliveryAt ?? order.requiredDeliveryAt ?? undefined,
+        isSharedOrder: dto.isSharedOrder ?? order.isSharedOrder ?? undefined,
+        isSinosure: dto.isSinosure ?? order.isSinosure ?? undefined,
+        isPalletized: dto.isPalletized ?? order.isPalletized ?? undefined,
+        requiresCustomsCertificate: dto.requiresCustomsCertificate ?? order.requiresCustomsCertificate ?? undefined,
+        isSplitInAdvance: dto.isSplitInAdvance ?? order.isSplitInAdvance ?? undefined,
+        usesMarketingFund: dto.usesMarketingFund ?? order.usesMarketingFund ?? undefined,
+        requiresExportCustoms: dto.requiresExportCustoms ?? order.requiresExportCustoms ?? undefined,
+        requiresWarrantyCard: dto.requiresWarrantyCard ?? order.requiresWarrantyCard ?? undefined,
+        requiresMaternityHandover: dto.requiresMaternityHandover ?? order.requiresMaternityHandover ?? undefined,
+        customsDeclarationMethod: dto.customsDeclarationMethod ?? order.customsDeclarationMethod ?? undefined,
+        plugPhotoKeys: dto.plugPhotoKeys ?? order.plugPhotoKeys ?? undefined,
+        isInsured: dto.isInsured ?? order.isInsured ?? undefined,
+        isAliTradeAssurance: dto.isAliTradeAssurance ?? order.isAliTradeAssurance ?? undefined,
+        aliTradeAssuranceOrderCode: dto.aliTradeAssuranceOrderCode ?? order.aliTradeAssuranceOrderCode ?? undefined,
+        forwarderQuoteNote: dto.forwarderQuoteNote ?? order.forwarderQuoteNote ?? undefined,
+        consigneeCompany: dto.consigneeCompany ?? order.consigneeCompany ?? undefined,
+        consigneeOtherInfo: dto.consigneeOtherInfo ?? order.consigneeOtherInfo ?? undefined,
+        notifyCompany: dto.notifyCompany ?? order.notifyCompany ?? undefined,
+        notifyOtherInfo: dto.notifyOtherInfo ?? order.notifyOtherInfo ?? undefined,
+        shipperCompany: dto.shipperCompany ?? order.shipperCompany ?? undefined,
+        shipperOtherInfoCompanyId: dto.shipperOtherInfoCompanyId ?? order.shipperOtherInfoCompanyId ?? undefined,
+        domesticCustomerCompany: dto.domesticCustomerCompany ?? order.domesticCustomerCompany ?? undefined,
+        domesticCustomerDeliveryInfo: dto.domesticCustomerDeliveryInfo ?? order.domesticCustomerDeliveryInfo ?? undefined,
+        usesDefaultShippingMark: dto.usesDefaultShippingMark ?? order.usesDefaultShippingMark ?? undefined,
+        shippingMarkNote: dto.shippingMarkNote ?? order.shippingMarkNote ?? undefined,
+        shippingMarkTemplateKey: dto.shippingMarkTemplateKey ?? order.shippingMarkTemplateKey ?? undefined,
+        needsInvoice: dto.needsInvoice ?? order.needsInvoice ?? undefined,
+        invoiceType: dto.invoiceType ?? order.invoiceType ?? undefined,
+        shippingDocumentsNote: dto.shippingDocumentsNote ?? order.shippingDocumentsNote ?? undefined,
+        blType: dto.blType ?? order.blType ?? undefined,
+        originalMailAddress: dto.originalMailAddress ?? order.originalMailAddress ?? undefined,
+        businessRectificationNote: dto.businessRectificationNote ?? order.businessRectificationNote ?? undefined,
+        customsDocumentNote: dto.customsDocumentNote ?? order.customsDocumentNote ?? undefined,
+        otherRequirementNote: dto.otherRequirementNote ?? order.otherRequirementNote ?? undefined,
+        items: dto.items ?? this.orderItemsToDto(order.items ?? []),
+        expenses: dto.expenses ?? this.orderExpensesToDto(order.expenses ?? []),
+      } as CreateSalesOrderDto,
+      operator,
+      {
+        existingItemsById,
+        lockItemQuantities: hasHistoricalDemand,
+      },
+    );
+
+    return this.withSignedUrls(
+      await this.salesOrdersRepository.updateWithRelations(
+        id,
+        {
+          ...normalized.order,
+          status: order.status,
+          updatedBy: operator,
+        },
+        normalized.items,
+        normalized.expenses,
+      ),
+    );
   }
 
   private async requireOrder(id: number) {
@@ -388,6 +287,316 @@ export class SalesOrdersService {
     if (!allowedFrom.includes(current)) {
       throw new BadRequestException(`当前状态不允许执行${actionLabel}`);
     }
+  }
+
+  private ensureEditable(order: SalesOrder) {
+    if (order.status === SalesOrderStatus.VOIDED) {
+      throw new BadRequestException('当前状态不允许编辑销售订单');
+    }
+  }
+
+  private ensureReferencedItemsPreserved(
+    order: SalesOrder,
+    dto: UpdateSalesOrderDto,
+    hasHistoricalDemand: boolean,
+  ) {
+    if (!hasHistoricalDemand || !dto.items) return;
+
+    const existingItemsById = new Map(
+      (order.items ?? []).map((item) => [Number(item.id), item]),
+    );
+    if (dto.items.length !== existingItemsById.size) {
+      throw new BadRequestException('已生成过发货需求的销售订单不允许新增或删除产品明细');
+    }
+
+    for (const item of dto.items) {
+      const itemId = Number(item.id);
+      const existingItem = existingItemsById.get(itemId);
+      if (!existingItem) {
+        throw new BadRequestException('已生成过发货需求的销售订单不允许新增或删除产品明细');
+      }
+      if (Number(item.skuId) !== Number(existingItem.skuId)) {
+        throw new BadRequestException('已生成过发货需求的销售订单不允许修改产品 SKU');
+      }
+      if (Number(item.quantity) !== Number(existingItem.quantity)) {
+        throw new BadRequestException('已生成过发货需求的销售订单不允许修改产品数量');
+      }
+    }
+  }
+
+  private async normalizeSalesOrderPayload(
+    dto: CreateSalesOrderDto,
+    operator: string | undefined,
+    options: {
+      existingItemsById?: Map<number, SalesOrderItem>;
+      lockItemQuantities: boolean;
+    },
+  ) {
+    const customer = await this.customersService.findById(dto.customerId);
+
+    const destinationCountry =
+      dto.destinationCountryId != null
+        ? await this.countriesService.findById(dto.destinationCountryId)
+        : null;
+    const shipmentOriginCountry =
+      dto.shipmentOriginCountryId != null
+        ? await this.countriesService.findById(dto.shipmentOriginCountryId)
+        : null;
+    const signingCompany =
+      dto.signingCompanyId != null
+        ? await this.companiesService.findById(dto.signingCompanyId)
+        : null;
+    const currency =
+      dto.currencyId != null ? await this.currenciesService.findById(dto.currencyId) : null;
+    const destinationPort =
+      dto.destinationPortId != null ? await this.portsService.findById(dto.destinationPortId) : null;
+    const salesperson =
+      dto.salespersonId != null ? await this.usersService.findById(dto.salespersonId) : null;
+    const extraViewer =
+      dto.extraViewerId != null ? await this.usersService.findById(dto.extraViewerId) : null;
+    const merchandiser =
+      dto.merchandiserId != null
+        ? await this.usersService.findById(dto.merchandiserId)
+        : null;
+    const shipperOtherInfoCompany =
+      dto.shipperOtherInfoCompanyId != null
+        ? await this.companiesService.findById(dto.shipperOtherInfoCompanyId)
+        : null;
+
+    let afterSalesSourceOrder: SalesOrder | null = null;
+    if (dto.afterSalesSourceOrderId != null) {
+      afterSalesSourceOrder = await this.salesOrdersRepository.findById(dto.afterSalesSourceOrderId);
+      if (!afterSalesSourceOrder) {
+        throw new NotFoundException('售后原订单不存在');
+      }
+      if (afterSalesSourceOrder.orderType !== SalesOrderType.SALES) {
+        throw new BadRequestException('售后原订单必须是销售订单类型');
+      }
+    }
+
+    if (dto.contractFileKeys?.length !== dto.contractFileNames?.length) {
+      throw new BadRequestException('合同文件 key 与名称数量不一致');
+    }
+
+    if (!dto.items?.length) {
+      throw new BadRequestException('至少需要一条产品明细');
+    }
+
+    let productTotalAmount = 0;
+    const normalizedItems: Partial<SalesOrderItem>[] = [];
+    for (const item of dto.items) {
+      const sku = await this.skusService.findById(item.skuId);
+      const purchaser =
+        item.purchaserId != null
+          ? await this.usersService.findById(item.purchaserId)
+          : null;
+      const itemCurrency =
+        item.currencyId != null ? await this.currenciesService.findById(item.currencyId) : currency;
+
+      const packagingRows = this.parsePackagingRows(sku.packagingList);
+      const firstPackaging = packagingRows[0] ?? null;
+      const unitWeightKg = Number(firstPackaging?.grossWeightKg ?? sku.grossWeightKg ?? 0);
+      const unitVolumeCbm = Number(firstPackaging?.volumeCbm ?? sku.volumeCbm ?? 0);
+      const existingItem = options.existingItemsById?.get(Number(item.id));
+      const quantity =
+        options.lockItemQuantities && existingItem
+          ? Number(existingItem.quantity)
+          : Number(item.quantity);
+      const unitPrice = Number(item.unitPrice);
+      const amount = Number((quantity * unitPrice).toFixed(2));
+      const totalVolumeCbm = Number((unitVolumeCbm * quantity).toFixed(4));
+      const totalWeightKg = Number((unitWeightKg * quantity).toFixed(4));
+      productTotalAmount += amount;
+
+      normalizedItems.push({
+        id: existingItem ? item.id : undefined,
+        skuId: sku.id,
+        skuCode: sku.skuCode,
+        productNameCn: item.productNameCn ?? sku.nameCn ?? null,
+        productNameEn: item.productNameEn ?? sku.nameEn ?? null,
+        lineType: item.lineType ?? null,
+        spuId: item.spuId ?? sku.spuId ?? null,
+        spuName: item.spuName ?? null,
+        electricalParams: item.electricalParams ?? sku.electricalParams ?? null,
+        hasPlug: item.hasPlug ?? this.normalizeBooleanToYesNo(sku.hasPlug),
+        plugType: item.plugType ?? null,
+        unitPrice: unitPrice.toFixed(2),
+        currencyId: itemCurrency?.id ?? null,
+        currencyCode: itemCurrency?.code ?? null,
+        quantity,
+        purchaserId: purchaser ? Number(purchaser.id) : null,
+        purchaserName: purchaser?.name ?? null,
+        needsPurchase: item.needsPurchase ?? YesNo.NO,
+        purchaseQuantity: Number(existingItem?.purchaseQuantity ?? 0),
+        useStockQuantity: Number(existingItem?.useStockQuantity ?? 0),
+        preparedQuantity: Number(existingItem?.preparedQuantity ?? 0),
+        shippedQuantity: Number(existingItem?.shippedQuantity ?? 0),
+        amount: amount.toFixed(2),
+        unitId: item.unitId ?? sku.unitId ?? null,
+        unitName: item.unitName ?? null,
+        material: item.material ?? sku.material ?? null,
+        imageUrl: item.imageUrl ?? sku.productImageUrl ?? null,
+        totalVolumeCbm: totalVolumeCbm.toFixed(4),
+        totalWeightKg: totalWeightKg.toFixed(4),
+        unitWeightKg: unitWeightKg.toFixed(4),
+        unitVolumeCbm: unitVolumeCbm.toFixed(4),
+        skuSpecification: item.skuSpecification ?? sku.specification ?? null,
+        createdBy: operator,
+        updatedBy: operator,
+      });
+    }
+
+    const normalizedExpenses: Partial<SalesOrderExpense>[] = (dto.expenses ?? []).map((expense) => ({
+      expenseName: expense.expenseName,
+      amount: Number(expense.amount).toFixed(2),
+      createdBy: operator,
+      updatedBy: operator,
+    }));
+
+    const expenseTotalAmount = normalizedExpenses.reduce(
+      (sum, item) => sum + Number(item.amount),
+      0,
+    );
+    const totalAmount = Number((productTotalAmount + expenseTotalAmount).toFixed(2));
+    const outstandingAmount = Number(
+      (Number(dto.contractAmount) - Number(dto.receivedAmount)).toFixed(2),
+    );
+
+    return {
+      order: {
+        domesticTradeType: dto.domesticTradeType,
+        externalOrderCode: dto.externalOrderCode,
+        orderSource: dto.orderSource ?? SalesOrderSource.MANUAL,
+        orderType: dto.orderType,
+        customerId: customer.id,
+        customerName: customer.customerName,
+        customerCode: customer.customerCode,
+        customerContactPerson: customer.contactPerson ?? null,
+        afterSalesSourceOrderId: afterSalesSourceOrder?.id ?? null,
+        afterSalesSourceOrderCode: afterSalesSourceOrder?.erpSalesOrderCode ?? null,
+        afterSalesProductSummary: dto.afterSalesProductSummary ?? null,
+        destinationCountryId: destinationCountry?.id ?? null,
+        destinationCountryName: destinationCountry?.name ?? null,
+        paymentTerm: dto.paymentTerm ?? null,
+        shipmentOriginCountryId: shipmentOriginCountry?.id ?? null,
+        shipmentOriginCountryName: shipmentOriginCountry?.name ?? null,
+        signingCompanyId: signingCompany?.id ?? null,
+        signingCompanyName: signingCompany?.nameCn ?? null,
+        salespersonId: salesperson ? Number(salesperson.id) : null,
+        salespersonName: salesperson?.name ?? null,
+        otherIndustryNote: dto.otherIndustryNote ?? null,
+        currencyId: currency?.id ?? null,
+        currencyCode: currency?.code ?? null,
+        currencyName: currency?.name ?? null,
+        currencySymbol: currency?.symbol ?? null,
+        tradeTerm: dto.tradeTerm ?? null,
+        destinationPortId: destinationPort?.id ?? null,
+        destinationPortName: destinationPort?.nameCn ?? null,
+        bankAccount: dto.bankAccount ?? null,
+        extraViewerId: extraViewer ? Number(extraViewer.id) : null,
+        extraViewerName: extraViewer?.name ?? null,
+        primaryIndustry: dto.primaryIndustry ?? null,
+        exchangeRate:
+          dto.exchangeRate != null ? Number(dto.exchangeRate).toFixed(6) : null,
+        transportationMethod: dto.transportationMethod ?? null,
+        crmSignedAt: dto.crmSignedAt ?? null,
+        contractAmount: Number(dto.contractAmount).toFixed(2),
+        orderNature: dto.orderNature ?? null,
+        secondaryIndustry: dto.secondaryIndustry ?? null,
+        receiptStatus: dto.receiptStatus ?? ReceiptStatus.UNPAID,
+        contractFileKeys: dto.contractFileKeys ?? null,
+        contractFileNames: dto.contractFileNames ?? null,
+        receivedAmount: Number(dto.receivedAmount).toFixed(2),
+        merchandiserId: merchandiser ? Number(merchandiser.id) : null,
+        merchandiserName: merchandiser?.name ?? null,
+        merchandiserAbbr: dto.merchandiserAbbr?.toUpperCase() ?? null,
+        outstandingAmount: outstandingAmount.toFixed(2),
+        requiredDeliveryAt: dto.requiredDeliveryAt ?? null,
+        isSharedOrder: dto.isSharedOrder ?? null,
+        isSinosure: dto.isSinosure ?? null,
+        isPalletized: dto.isPalletized ?? null,
+        requiresCustomsCertificate: dto.requiresCustomsCertificate ?? null,
+        isSplitInAdvance: dto.isSplitInAdvance ?? null,
+        usesMarketingFund: dto.usesMarketingFund ?? null,
+        requiresExportCustoms: dto.requiresExportCustoms ?? null,
+        requiresWarrantyCard: dto.requiresWarrantyCard ?? null,
+        requiresMaternityHandover: dto.requiresMaternityHandover ?? null,
+        customsDeclarationMethod: dto.customsDeclarationMethod ?? null,
+        plugPhotoKeys: dto.plugPhotoKeys ?? null,
+        isInsured: dto.isInsured ?? null,
+        isAliTradeAssurance: dto.isAliTradeAssurance ?? null,
+        aliTradeAssuranceOrderCode: dto.aliTradeAssuranceOrderCode ?? null,
+        forwarderQuoteNote: dto.forwarderQuoteNote ?? null,
+        consigneeCompany: dto.consigneeCompany ?? null,
+        consigneeOtherInfo: dto.consigneeOtherInfo ?? null,
+        notifyCompany: dto.notifyCompany ?? null,
+        notifyOtherInfo: dto.notifyOtherInfo ?? null,
+        shipperCompany: dto.shipperCompany ?? null,
+        shipperOtherInfoCompanyId: shipperOtherInfoCompany?.id ?? null,
+        shipperOtherInfoCompanyName: shipperOtherInfoCompany?.nameCn ?? null,
+        domesticCustomerCompany: dto.domesticCustomerCompany ?? null,
+        domesticCustomerDeliveryInfo: dto.domesticCustomerDeliveryInfo ?? null,
+        usesDefaultShippingMark: dto.usesDefaultShippingMark ?? null,
+        shippingMarkNote: dto.shippingMarkNote ?? null,
+        shippingMarkTemplateKey: dto.shippingMarkTemplateKey ?? null,
+        needsInvoice: dto.needsInvoice ?? null,
+        invoiceType: dto.invoiceType ?? null,
+        shippingDocumentsNote: dto.shippingDocumentsNote ?? null,
+        blType: dto.blType ?? null,
+        originalMailAddress: dto.originalMailAddress ?? null,
+        businessRectificationNote: dto.businessRectificationNote ?? null,
+        customsDocumentNote: dto.customsDocumentNote ?? null,
+        otherRequirementNote: dto.otherRequirementNote ?? null,
+        productTotalAmount: productTotalAmount.toFixed(2),
+        expenseTotalAmount: expenseTotalAmount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+      },
+      items: normalizedItems,
+      expenses: normalizedExpenses,
+    };
+  }
+
+  private optionalNumber(value?: string | number | null) {
+    if (value === null || value === undefined || value === '') return undefined;
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+
+  private orderItemsToDto(items: SalesOrderItem[]): CreateSalesOrderDto['items'] {
+    return items.map((item) => ({
+      id: Number(item.id),
+      skuId: Number(item.skuId),
+      productNameCn: item.productNameCn ?? undefined,
+      productNameEn: item.productNameEn ?? undefined,
+      lineType: item.lineType ?? undefined,
+      spuId: item.spuId ?? undefined,
+      spuName: item.spuName ?? undefined,
+      electricalParams: item.electricalParams ?? undefined,
+      hasPlug: item.hasPlug ?? undefined,
+      plugType: item.plugType ?? undefined,
+      unitPrice: Number(item.unitPrice ?? 0),
+      currencyId: item.currencyId ?? undefined,
+      quantity: Number(item.quantity ?? 0),
+      purchaserId: item.purchaserId ?? undefined,
+      needsPurchase: item.needsPurchase ?? undefined,
+      amount: Number(item.amount ?? 0),
+      unitId: item.unitId ?? undefined,
+      unitName: item.unitName ?? undefined,
+      material: item.material ?? undefined,
+      imageUrl: item.imageUrl ?? undefined,
+      totalVolumeCbm: Number(item.totalVolumeCbm ?? 0),
+      totalWeightKg: Number(item.totalWeightKg ?? 0),
+      unitWeightKg: Number(item.unitWeightKg ?? 0),
+      unitVolumeCbm: Number(item.unitVolumeCbm ?? 0),
+      skuSpecification: item.skuSpecification ?? undefined,
+    }));
+  }
+
+  private orderExpensesToDto(expenses: SalesOrderExpense[]): CreateSalesOrderDto['expenses'] {
+    return expenses.map((expense) => ({
+      expenseName: expense.expenseName,
+      amount: Number(expense.amount ?? 0),
+    }));
   }
 
   private normalizeBooleanToYesNo(value: boolean | null | undefined) {

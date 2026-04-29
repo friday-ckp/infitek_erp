@@ -174,6 +174,7 @@ export interface SalesOrder {
 }
 
 export interface CreateSalesOrderItemPayload {
+  id?: number;
   skuId: number;
   productNameCn?: string;
   productNameEn?: string;
@@ -325,6 +326,9 @@ export const getSalesOrderOptions = (): Promise<SalesOrderOptionsData> =>
 
 export const createSalesOrder = (payload: CreateSalesOrderPayload): Promise<SalesOrder> =>
   request.post<unknown, SalesOrder>('/sales-orders', payload).catch(normalizeApiError);
+
+export const updateSalesOrder = (id: number, payload: CreateSalesOrderPayload): Promise<SalesOrder> =>
+  request.patch<unknown, SalesOrder>(`/sales-orders/${id}`, payload).catch(normalizeApiError);
 
 export const submitSalesOrder = (id: number): Promise<SalesOrder> =>
   request.post<unknown, SalesOrder>(`/sales-orders/${id}/submit`, {}).catch(normalizeApiError);
