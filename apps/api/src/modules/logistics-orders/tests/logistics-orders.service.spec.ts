@@ -308,7 +308,36 @@ describe('LogisticsOrdersService', () => {
     expect(state.savedOrder).toBeUndefined();
   });
 
-  it('rejects logistics order creation from non-prepared demand', async () => {
+  it('rejects logistics prefill from pending purchase order demand', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemand({
+        status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+        items: [
+          {
+            id: 700,
+            salesOrderItemId: 101,
+            skuId: 11,
+            skuCode: 'SKU001',
+            productNameCn: '离心机',
+            productNameEn: 'Centrifuge',
+            skuSpecification: '220V',
+            unitId: 6,
+            unitName: '台',
+            lockedRemainingQuantity: 1,
+            purchaseRequiredQuantity: 4,
+          },
+        ] as any,
+      }),
+    };
+    const queryRunner = makeQueryRunner(state);
+    logisticsOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(service.getCreatePrefill(500)).rejects.toThrow(
+      BadRequestException,
+    );
+  });
+
+  it('rejects logistics prefill from purchasing demand', async () => {
     const state: Record<string, unknown> = {
       demand: makeDemand({ status: ShippingDemandStatus.PURCHASING }),
     };
@@ -318,5 +347,96 @@ describe('LogisticsOrdersService', () => {
     await expect(service.getCreatePrefill(500)).rejects.toThrow(
       BadRequestException,
     );
+  });
+
+  it('rejects logistics order creation from pending purchase order demand', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemand({
+        status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+        items: [
+          {
+            id: 700,
+            salesOrderItemId: 101,
+            skuId: 11,
+            skuCode: 'SKU001',
+            productNameCn: '离心机',
+            productNameEn: 'Centrifuge',
+            skuSpecification: '220V',
+            unitId: 6,
+            unitName: '台',
+            lockedRemainingQuantity: 1,
+            purchaseRequiredQuantity: 4,
+          },
+        ] as any,
+      }),
+    };
+    const queryRunner = makeQueryRunner(state);
+    logisticsOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.create(
+        {
+          shippingDemandId: 500,
+          logisticsProviderId: 30,
+          logisticsProviderName: '顺丰国际',
+          transportationMethod: TransportationMethod.SEA,
+          companyId: 40,
+          companyName: '星辰科技有限公司',
+          originPortName: '深圳',
+          destinationPortName: '上海港',
+          destinationCountryName: '中国',
+          items: [{ shippingDemandItemId: 700, plannedQuantity: 1 }],
+          packages: [
+            {
+              packageNo: 'PKG-001',
+              quantityPerBox: 1,
+              boxCount: 1,
+              totalQuantity: 1,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedOrder).toBeUndefined();
+  });
+
+  it('rejects logistics order creation from purchasing demand', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemand({ status: ShippingDemandStatus.PURCHASING }),
+    };
+    const queryRunner = makeQueryRunner(state);
+    logisticsOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.create(
+        {
+          shippingDemandId: 500,
+          logisticsProviderId: 30,
+          logisticsProviderName: '顺丰国际',
+          transportationMethod: TransportationMethod.SEA,
+          companyId: 40,
+          companyName: '星辰科技有限公司',
+          originPortName: '深圳',
+          destinationPortName: '上海港',
+          destinationCountryName: '中国',
+          items: [{ shippingDemandItemId: 700, plannedQuantity: 1 }],
+          packages: [
+            {
+              packageNo: 'PKG-001',
+              quantityPerBox: 1,
+              boxCount: 1,
+              totalQuantity: 1,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedOrder).toBeUndefined();
   });
 });

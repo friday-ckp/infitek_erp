@@ -37,7 +37,8 @@ const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
 
 const SHIPPING_DEMAND_STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
   [ShippingDemandStatus.PENDING_ALLOCATION]: { className: 'master-pill-blue', text: '待分配库存' },
-  [ShippingDemandStatus.PURCHASING]: { className: 'master-pill-orange', text: '采购中' },
+  [ShippingDemandStatus.PENDING_PURCHASE_ORDER]: { className: 'master-pill-orange', text: '待生成采购单' },
+  [ShippingDemandStatus.PURCHASING]: { className: 'master-pill-blue', text: '采购中' },
   [ShippingDemandStatus.PREPARED]: { className: 'master-pill-success', text: '备货完成' },
   [ShippingDemandStatus.PARTIALLY_SHIPPED]: { className: 'master-pill-orange', text: '部分发货' },
   [ShippingDemandStatus.SHIPPED]: { className: 'master-pill-success', text: '已发货' },

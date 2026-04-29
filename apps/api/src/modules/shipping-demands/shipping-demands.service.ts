@@ -406,7 +406,7 @@ export class ShippingDemandsService {
       (line) => line.purchaseQuantity > 0,
     );
     const nextStatus = hasPurchaseQuantity
-      ? ShippingDemandStatus.PURCHASING
+      ? ShippingDemandStatus.PENDING_PURCHASE_ORDER
       : ShippingDemandStatus.PREPARED;
 
     const itemRepo = queryRunner.manager.getRepository(ShippingDemandItem);
