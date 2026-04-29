@@ -63,6 +63,7 @@ import ShippingDemandDetailPage from "./pages/shipping-demands/detail";
 import ShippingDemandFormPage from "./pages/shipping-demands/form";
 import LogisticsOrderFormPage from "./pages/logistics-orders/form";
 import InventoryPage from "./pages/inventory/index";
+import InventoryTransactionsPage from "./pages/inventory/transactions";
 import HomePage from "./pages/home/index";
 import "./App.css";
 
@@ -453,6 +454,10 @@ function App() {
                   <Route
                     path="/logistics-orders/create"
                     element={<LogisticsOrderFormPage />}
+                  />
+                  <Route
+                    path="/inventory/transactions"
+                    element={<InventoryTransactionsPage />}
                   />
                   <Route path="/inventory" element={<InventoryPage />} />
                   <Route path="/inventory/*" element={<InventoryPage />} />

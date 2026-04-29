@@ -1,4 +1,5 @@
 import request from './request';
+import type { InventoryChangeType } from '@infitek/shared';
 
 export interface AvailableInventoryItem {
   skuId: number | string;
@@ -23,9 +24,51 @@ export interface InventoryBatchItem {
   updatedAt?: string;
 }
 
+export interface InventoryTransactionItem {
+  id: number | string;
+  skuId: number | string;
+  warehouseId: number | string;
+  inventoryBatchId: number | string | null;
+  changeType: InventoryChangeType;
+  quantityChange: number;
+  actualQuantityDelta: number;
+  lockedQuantityDelta: number;
+  availableQuantityDelta: number;
+  beforeActualQuantity: number;
+  afterActualQuantity: number;
+  beforeLockedQuantity: number;
+  afterLockedQuantity: number;
+  beforeAvailableQuantity: number;
+  afterAvailableQuantity: number;
+  sourceDocumentType: string;
+  sourceDocumentId: number | string;
+  sourceDocumentItemId: number | string | null;
+  sourceActionKey: string;
+  operatedBy: string | null;
+  operatedAt: string;
+}
+
+export interface InventoryTransactionsPage {
+  data: InventoryTransactionItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export interface QueryAvailableInventoryParams {
   skuIds?: number[];
   warehouseId?: number;
+}
+
+export interface QueryInventoryTransactionParams {
+  skuId?: number;
+  warehouseId?: number;
+  changeType?: InventoryChangeType;
+  startTime?: string;
+  endTime?: string;
+  page?: number;
+  pageSize?: number;
 }
 
 export interface CreateOpeningInventoryPayload {
@@ -75,6 +118,15 @@ export const getInventoryBatches = (
         skuIds: params.skuIds?.length ? params.skuIds.join(',') : undefined,
         warehouseId: params.warehouseId,
       },
+    })
+    .catch(normalizeApiError);
+
+export const getInventoryTransactions = (
+  params: QueryInventoryTransactionParams,
+): Promise<InventoryTransactionsPage> =>
+  request
+    .get<unknown, InventoryTransactionsPage>('/inventory/transactions', {
+      params,
     })
     .catch(normalizeApiError);
 

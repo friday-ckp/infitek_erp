@@ -91,7 +91,10 @@ const menuItems = [
         <rect x="5.5" y="10" width="5" height="4.5" rx=".5" stroke="currentColor" strokeWidth="1.1"/>
       </svg>
     ),
-    children: [{ key: '/inventory', label: '库存查询' }],
+    children: [
+      { key: '/inventory', label: '库存查询', exact: true },
+      { key: '/inventory/transactions', label: '库存变动流水' },
+    ],
   },
   {
     section: SECTION_SYSTEM,
@@ -151,8 +154,22 @@ function getInitials(name: string) {
   return name ? name.slice(0, 2).toUpperCase() : 'U';
 }
 
-function isChildRouteActive(currentPath: string, childPath: string): boolean {
+function isChildRouteActive(
+  currentPath: string,
+  childPath: string,
+  exact?: boolean,
+): boolean {
+  if (exact) return currentPath === childPath;
   return currentPath === childPath || currentPath.startsWith(`${childPath}/`);
+}
+
+function isExactChild(child: unknown): boolean {
+  return (
+    typeof child === 'object' &&
+    child !== null &&
+    'exact' in child &&
+    child.exact === true
+  );
 }
 
 export default function Sidebar() {
@@ -161,7 +178,7 @@ export default function Sidebar() {
   const { user, logout } = useAuthStore();
 
   const defaultOpen = menuItems
-    .filter((item) => item.children.some((c) => isChildRouteActive(location.pathname, c.key)))
+    .filter((item) => item.children.some((c) => isChildRouteActive(location.pathname, c.key, isExactChild(c))))
     .map((item) => item.key);
   const [openKeys, setOpenKeys] = useState<string[]>(defaultOpen);
   const [hoveredFooterBtn, setHoveredFooterBtn] = useState<string | null>(null);
@@ -232,7 +249,11 @@ export default function Sidebar() {
         >
           <div style={{ padding: '3px 0 6px 0' }}>
             {item.children.map((child) => {
-              const isActive = isChildRouteActive(location.pathname, child.key);
+              const isActive = isChildRouteActive(
+                location.pathname,
+                child.key,
+                isExactChild(child),
+              );
               return (
                 <ChildItem
                   key={child.key}

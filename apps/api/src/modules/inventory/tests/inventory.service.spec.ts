@@ -1,5 +1,6 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { InventoryBatchSourceType } from '@infitek/shared';
+import { InventoryBatchSourceType, InventoryChangeType } from '@infitek/shared';
+import { InventoryTransaction } from '../entities/inventory-transaction.entity';
 import { InventoryService } from '../inventory.service';
 
 describe('InventoryService', () => {
@@ -11,6 +12,7 @@ describe('InventoryService', () => {
     findAvailableBatchesForUpdate: jest.fn(),
     findBatchesForUpdate: jest.fn(),
     sumBatchQuantities: jest.fn(),
+    findTransactions: jest.fn(),
   };
   const skusService = { findById: jest.fn() };
   const warehousesService = { findById: jest.fn() };
@@ -23,6 +25,10 @@ describe('InventoryService', () => {
     create: jest.fn((data) => ({ id: undefined, ...data })),
     save: jest.fn(async (data) => ({ ...data, id: data.id ?? 2 })),
   };
+  const transactionRepo = {
+    create: jest.fn((data) => ({ id: undefined, ...data })),
+    save: jest.fn(async (data) => ({ ...data, id: data.id ?? 3 })),
+  };
 
   const makeQueryRunner = () => ({
     connect: jest.fn().mockResolvedValue(undefined),
@@ -34,6 +40,7 @@ describe('InventoryService', () => {
       getRepository: jest.fn((entity) => {
         if (entity.name === 'InventorySummary') return summaryRepo;
         if (entity.name === 'InventoryBatch') return batchRepo;
+        if (entity.name === 'InventoryTransaction') return transactionRepo;
         throw new Error(`Unexpected repository: ${entity.name}`);
       }),
     },
@@ -43,6 +50,24 @@ describe('InventoryService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    summaryRepo.create.mockImplementation((data) => ({ id: undefined, ...data }));
+    summaryRepo.save.mockImplementation(async (data) => ({
+      id: data.id ?? 1,
+      ...data,
+    }));
+    batchRepo.create.mockImplementation((data) => ({ id: undefined, ...data }));
+    batchRepo.save.mockImplementation(async (data) => ({
+      ...data,
+      id: data.id ?? 2,
+    }));
+    transactionRepo.create.mockImplementation((data) => ({
+      id: undefined,
+      ...data,
+    }));
+    transactionRepo.save.mockImplementation(async (data) => ({
+      ...data,
+      id: data.id ?? 3,
+    }));
     jest.spyOn(global, 'setTimeout').mockImplementation((callback: any) => {
       callback();
       return 0 as any;
@@ -257,6 +282,77 @@ describe('InventoryService', () => {
     ]);
   });
 
+  it('findTransactions maps delta fields and fallback quantityChange', async () => {
+    const operatedAt = new Date('2026-04-29T08:00:00Z');
+    inventoryRepository.findTransactions.mockResolvedValue({
+      data: [
+        {
+          id: '31',
+          skuId: '11',
+          warehouseId: '22',
+          inventoryBatchId: null,
+          changeType: InventoryChangeType.LOCK,
+          actualQuantityDelta: '0',
+          lockedQuantityDelta: '5',
+          availableQuantityDelta: '-5',
+          beforeActualQuantity: '10',
+          afterActualQuantity: '10',
+          beforeLockedQuantity: '0',
+          afterLockedQuantity: '5',
+          beforeAvailableQuantity: '10',
+          afterAvailableQuantity: '5',
+          sourceDocumentType: 'shipping_demand',
+          sourceDocumentId: '500',
+          sourceDocumentItemId: '700',
+          sourceActionKey: 'shipping-demand:500:item:700:lock',
+          operatedBy: 'admin',
+          operatedAt,
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
+
+    const result = await service.findTransactions({
+      skuId: 11,
+      warehouseId: 22,
+      changeType: InventoryChangeType.LOCK,
+    });
+
+    expect(inventoryRepository.findTransactions).toHaveBeenCalledWith({
+      skuId: 11,
+      warehouseId: 22,
+      changeType: InventoryChangeType.LOCK,
+    });
+    expect(result.data).toEqual([
+      {
+        id: 31,
+        skuId: 11,
+        warehouseId: 22,
+        inventoryBatchId: null,
+        changeType: InventoryChangeType.LOCK,
+        quantityChange: 5,
+        actualQuantityDelta: 0,
+        lockedQuantityDelta: 5,
+        availableQuantityDelta: -5,
+        beforeActualQuantity: 10,
+        afterActualQuantity: 10,
+        beforeLockedQuantity: 0,
+        afterLockedQuantity: 5,
+        beforeAvailableQuantity: 10,
+        afterAvailableQuantity: 5,
+        sourceDocumentType: 'shipping_demand',
+        sourceDocumentId: 500,
+        sourceDocumentItemId: 700,
+        sourceActionKey: 'shipping-demand:500:item:700:lock',
+        operatedBy: 'admin',
+        operatedAt,
+      },
+    ]);
+  });
+
   it('recordOpeningBalance creates initial batch and summary inside a transaction', async () => {
     const queryRunner = makeQueryRunner();
     inventoryRepository.createQueryRunner.mockReturnValue(queryRunner);
@@ -293,6 +389,28 @@ describe('InventoryService', () => {
         actualQuantity: 10,
         lockedQuantity: 0,
         availableQuantity: 10,
+      }),
+    );
+    expect(transactionRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skuId: 11,
+        warehouseId: 22,
+        inventoryBatchId: 2,
+        changeType: InventoryChangeType.INITIAL,
+        actualQuantityDelta: 10,
+        lockedQuantityDelta: 0,
+        availableQuantityDelta: 10,
+        beforeActualQuantity: 0,
+        afterActualQuantity: 10,
+        beforeLockedQuantity: 0,
+        afterLockedQuantity: 0,
+        beforeAvailableQuantity: 0,
+        afterAvailableQuantity: 10,
+        sourceDocumentType: 'opening_inventory',
+        sourceDocumentId: 2,
+        sourceDocumentItemId: null,
+        sourceActionKey: 'inventory:initial:sku:11:warehouse:22:record',
+        operatedBy: 'admin',
       }),
     );
     expect(queryRunner.commitTransaction).toHaveBeenCalled();
@@ -343,6 +461,20 @@ describe('InventoryService', () => {
     expect(result.batch.batchNo).toBe('INV-INIT-20260402-000002');
     expect(result.summary.actualQuantity).toBe(19);
     expect(result.summary.availableQuantity).toBe(18);
+    expect(transactionRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changeType: InventoryChangeType.INITIAL,
+        actualQuantityDelta: 12,
+        lockedQuantityDelta: 0,
+        availableQuantityDelta: 12,
+        beforeActualQuantity: 7,
+        afterActualQuantity: 19,
+        beforeLockedQuantity: 1,
+        afterLockedQuantity: 1,
+        beforeAvailableQuantity: 6,
+        afterAvailableQuantity: 18,
+      }),
+    );
   });
 
   it('recordOpeningBalance creates separate initial batches for the same SKU in different warehouses', async () => {
@@ -396,6 +528,7 @@ describe('InventoryService', () => {
       quantity: 8,
       sourceType: InventoryBatchSourceType.PURCHASE_RECEIPT,
       sourceDocumentId: 9001,
+      sourceDocumentItemId: 9101,
       receiptDate: '2026-04-03',
       operator: 'admin',
     });
@@ -420,6 +553,29 @@ describe('InventoryService', () => {
     expect(result.batches[0].batchNo).toBe('INV-REC-20260403-000002');
     expect(result.summary.actualQuantity).toBe(18);
     expect(result.summary.availableQuantity).toBe(16);
+    expect(transactionRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skuId: 11,
+        warehouseId: 22,
+        inventoryBatchId: 2,
+        changeType: InventoryChangeType.PURCHASE_RECEIPT,
+        actualQuantityDelta: 18,
+        lockedQuantityDelta: 2,
+        availableQuantityDelta: 16,
+        beforeActualQuantity: 0,
+        afterActualQuantity: 18,
+        beforeLockedQuantity: 0,
+        afterLockedQuantity: 2,
+        beforeAvailableQuantity: 0,
+        afterAvailableQuantity: 16,
+        sourceDocumentType: 'receipt_order',
+        sourceDocumentId: 9001,
+        sourceDocumentItemId: 9101,
+        sourceActionKey:
+          'inventory:purchase_receipt:doc:9001:item:9101:increase',
+        operatedBy: 'admin',
+      }),
+    );
   });
 
   it('lockStock locks FIFO batches and refreshes summary quantities', async () => {
@@ -581,6 +737,10 @@ describe('InventoryService', () => {
       skuId: 11,
       warehouseId: 22,
       allocations: [{ batchId: 100, quantity: 2 }],
+      sourceDocumentType: 'outbound_order',
+      sourceDocumentId: 7001,
+      sourceDocumentItemId: 8001,
+      sourceActionKey: 'outbound:7001:confirm:item:8001',
       operator: 'admin',
     });
 
@@ -591,7 +751,62 @@ describe('InventoryService', () => {
         batchLockedQuantity: 1,
       }),
     );
+    expect(transactionRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        skuId: 11,
+        warehouseId: 22,
+        inventoryBatchId: 100,
+        changeType: InventoryChangeType.OUTBOUND,
+        actualQuantityDelta: -2,
+        lockedQuantityDelta: -2,
+        availableQuantityDelta: 0,
+        beforeActualQuantity: 5,
+        afterActualQuantity: 3,
+        beforeLockedQuantity: 3,
+        afterLockedQuantity: 1,
+        beforeAvailableQuantity: 2,
+        afterAvailableQuantity: 2,
+        sourceDocumentType: 'outbound_order',
+        sourceDocumentId: 7001,
+        sourceDocumentItemId: 8001,
+        sourceActionKey: 'outbound:7001:confirm:item:8001',
+        operatedBy: 'admin',
+      }),
+    );
     expect(result.summary.availableQuantity).toBe(2);
+  });
+
+  it('increaseStock reports conflict when the source action key already exists', async () => {
+    inventoryRepository.createQueryRunner
+      .mockReturnValueOnce(makeQueryRunner())
+      .mockReturnValueOnce(makeQueryRunner())
+      .mockReturnValueOnce(makeQueryRunner())
+      .mockReturnValueOnce(makeQueryRunner());
+    transactionRepo.save.mockRejectedValue({
+      code: 'ER_DUP_ENTRY',
+      errno: 1062,
+    });
+
+    await expect(
+      service.increaseStock({
+        skuId: 11,
+        warehouseId: 22,
+        quantity: 8,
+        sourceType: InventoryBatchSourceType.PURCHASE_RECEIPT,
+        sourceDocumentId: 9001,
+        sourceDocumentItemId: 9101,
+        receiptDate: '2026-04-03',
+        operator: 'admin',
+      }),
+    ).rejects.toThrow(ConflictException);
+
+    expect(inventoryRepository.createQueryRunner).toHaveBeenCalledTimes(4);
+    expect(transactionRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sourceActionKey:
+          'inventory:purchase_receipt:doc:9001:item:9101:increase',
+      }),
+    );
   });
 
   it('recordOpeningBalance retries deadlocks and then succeeds', async () => {

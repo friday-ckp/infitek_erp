@@ -122,6 +122,12 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     listLabel: '库存查询',
   }),
   ...createCrudBreadcrumbRoutes({
+    basePath: '/inventory/transactions',
+    sectionLabel: '库存管理',
+    sectionPath: INVENTORY_SECTION_PATH,
+    listLabel: '库存变动流水',
+  }),
+  ...createCrudBreadcrumbRoutes({
     basePath: '/master-data/units',
     sectionLabel: '基础数据',
     sectionPath: BASIC_DATA_SECTION_PATH,
