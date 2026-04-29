@@ -526,6 +526,23 @@ describe('ShippingDemandsService', () => {
         resourceId: '500',
       }),
     );
+    expect(state.savedOperationLog).toEqual(
+      expect.objectContaining({
+        requestSummary: expect.objectContaining({
+          allocationSummary: '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
+        }),
+        changeSummary: expect.arrayContaining([
+          expect.objectContaining({
+            field: 'allocationSummary',
+            newValue: '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
+          }),
+          expect.objectContaining({
+            field: 'allocationDetails',
+            newValue: '1. SKU001 / 离心机：使用现有库存，应发 2，锁定库存 2，需采购 0，仓库 22',
+          }),
+        ]),
+      }),
+    );
   });
 
   it('confirms allocation and keeps demand purchasing when purchase quantity remains', async () => {

@@ -42,6 +42,12 @@ interface PreparedAllocationLine {
   warehouseId: number | null;
 }
 
+const FULFILLMENT_TYPE_LABELS: Record<FulfillmentType, string> = {
+  [FulfillmentType.FULL_PURCHASE]: '全部采购',
+  [FulfillmentType.PARTIAL_PURCHASE]: '部分采购',
+  [FulfillmentType.USE_STOCK]: '使用现有库存',
+};
+
 @Injectable()
 export class ShippingDemandsService {
   constructor(
@@ -620,6 +626,8 @@ export class ShippingDemandsService {
     operator?: string,
   ): Promise<void> {
     const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    const allocationSummary = this.buildAllocationOperationSummary(lines);
+    const allocationDetails = this.buildAllocationOperationDetails(lines);
     await operationLogRepo.save(
       operationLogRepo.create({
         operator: operator ?? 'system',
@@ -633,6 +641,7 @@ export class ShippingDemandsService {
           lockedQuantity: lines.reduce((sum, line) => sum + line.stockQuantity, 0),
           purchaseQuantity: lines.reduce((sum, line) => sum + line.purchaseQuantity, 0),
           itemCount: lines.length,
+          allocationSummary,
         },
         changeSummary: [
           {
@@ -642,21 +651,47 @@ export class ShippingDemandsService {
             newValue: newStatus,
           },
           {
-            field: 'allocation',
-            fieldLabel: '库存分配',
+            field: 'allocationSummary',
+            fieldLabel: '分配结果',
             oldValue: null,
-            newValue: lines.map((line) => ({
-              itemId: Number(line.item.id),
-              skuCode: line.item.skuCode,
-              fulfillmentType: line.fulfillmentType,
-              stockQuantity: line.stockQuantity,
-              purchaseQuantity: line.purchaseQuantity,
-              warehouseId: line.warehouseId,
-            })),
+            newValue: allocationSummary,
+          },
+          {
+            field: 'allocationDetails',
+            fieldLabel: '分配明细',
+            oldValue: null,
+            newValue: allocationDetails,
           },
         ],
       }),
     );
+  }
+
+  private buildAllocationOperationSummary(lines: PreparedAllocationLine[]): string {
+    const lockedQuantity = lines.reduce((sum, line) => sum + line.stockQuantity, 0);
+    const purchaseQuantity = lines.reduce((sum, line) => sum + line.purchaseQuantity, 0);
+    const stockLineCount = lines.filter((line) => line.stockQuantity > 0).length;
+    const purchaseLineCount = lines.filter((line) => line.purchaseQuantity > 0).length;
+
+    return [
+      `共 ${lines.length} 个 SKU`,
+      `锁定现有库存 ${lockedQuantity}`,
+      `需采购 ${purchaseQuantity}`,
+      `使用库存 ${stockLineCount} 行`,
+      `涉及采购 ${purchaseLineCount} 行`,
+    ].join('；');
+  }
+
+  private buildAllocationOperationDetails(lines: PreparedAllocationLine[]): string {
+    return lines
+      .map((line, index) => {
+        const productName = line.item.productNameCn || line.item.productNameEn;
+        const productText = productName ? ` / ${productName}` : '';
+        const warehouseText = line.warehouseId ? `，仓库 ${line.warehouseId}` : '';
+
+        return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}`;
+      })
+      .join('\n');
   }
 
   private buildAllocationActionKey(

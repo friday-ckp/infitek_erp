@@ -960,10 +960,16 @@ export default function ShippingDemandDetailPage() {
         </div>
       </div>
       <Modal
-        title="分配库存"
+        title={
+          <div className="shipping-demand-allocation-title">
+            <span>分配库存</span>
+            <small>{displayOrDash(data?.demandCode)} / {displayOrDash(data?.sourceDocumentCode)}</small>
+          </div>
+        }
         open={allocationModalOpen}
-        width={1180}
+        width="min(1440px, calc(100vw - 48px))"
         centered
+        rootClassName="shipping-demand-allocation-dialog"
         destroyOnHidden
         okText="确认分配"
         cancelText="取消"
@@ -976,6 +982,7 @@ export default function ShippingDemandDetailPage() {
             <span>总 SKU {totalSkuCount}</span>
             <span>总应发 {totalRequiredQuantity}</span>
             <span>当前可用 {items.reduce((sum, item) => sum + sumAvailableStock(item), 0)}</span>
+            <span>确认后按 FIFO 锁定库存并刷新明细</span>
           </div>
           <Table
             rowKey="id"
@@ -983,7 +990,7 @@ export default function ShippingDemandDetailPage() {
             columns={allocationColumns as any}
             dataSource={items}
             loading={batchesQuery.isLoading || warehousesQuery.isLoading}
-            scroll={{ x: 1280, y: 460 }}
+            scroll={{ x: 1280, y: 'calc(100vh - 360px)' }}
           />
         </div>
       </Modal>

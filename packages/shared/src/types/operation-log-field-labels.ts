@@ -375,6 +375,9 @@ export const RESOURCE_OPERATION_LOG_FIELD_LABELS: Record<string, Record<string, 
     outstandingAmount: '待收款金额',
     totalAmount: '总金额',
     items: '产品明细',
+    allocation: '库存分配',
+    allocationSummary: '分配结果',
+    allocationDetails: '分配明细',
   },
 };
 

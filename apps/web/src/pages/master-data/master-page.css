@@ -666,11 +666,25 @@
   max-width: 100%;
 }
 
+.master-tl-change-chip-block {
+  width: 100%;
+  align-items: flex-start;
+  border-radius: 10px;
+}
+
+.master-tl-change-chip-block .master-tl-change-field {
+  width: 100%;
+}
+
+.master-tl-change-chip-block .master-tl-change-old,
+.master-tl-change-chip-block .master-tl-change-new {
+  flex: 1 1 260px;
+}
+
 .master-tl-change-old,
 .master-tl-change-new {
   border-radius: 8px;
   padding: 1px 6px;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -917,10 +931,83 @@
   min-width: 110px;
 }
 
+.shipping-demand-allocation-dialog .ant-modal {
+  max-width: calc(100vw - 48px);
+  top: 24px;
+  padding-bottom: 24px;
+  transform-origin: center center !important;
+}
+
+.shipping-demand-allocation-dialog.ant-modal-wrap,
+.shipping-demand-allocation-dialog .ant-modal-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.shipping-demand-allocation-dialog .ant-modal-centered::before {
+  display: none;
+}
+
+.shipping-demand-allocation-dialog .ant-modal-content {
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+.shipping-demand-allocation-dialog .ant-modal-header {
+  margin: 0;
+  padding: 18px 24px 14px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.shipping-demand-allocation-dialog .ant-modal-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px 24px;
+  overflow: hidden;
+}
+
+.shipping-demand-allocation-dialog .ant-modal-footer {
+  margin: 0;
+  padding: 14px 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.shipping-demand-allocation-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shipping-demand-allocation-title span {
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.shipping-demand-allocation-title small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .shipping-demand-allocation-modal {
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.shipping-demand-allocation-modal .ant-table-wrapper {
+  min-height: 0;
 }
 
 .shipping-demand-allocation-summary {
