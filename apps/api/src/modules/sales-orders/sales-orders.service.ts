@@ -8,7 +8,6 @@ import {
   SalesOrderStatus,
   SalesOrderSource,
   SalesOrderType,
-  ShippingDemandStatus,
   YesNo,
 } from '@infitek/shared';
 import { FilesService } from '../../files/files.service';
@@ -93,7 +92,7 @@ export class SalesOrdersService {
     const normalized = await this.normalizeSalesOrderPayload(
       dto,
       operator,
-      { includeFulfillmentCache: true },
+      { lockItemQuantities: false },
     );
 
     const order = await this.salesOrdersRepository.createWithRelations(
@@ -167,7 +166,11 @@ export class SalesOrdersService {
   async update(id: number, dto: UpdateSalesOrderDto, operator?: string) {
     const order = await this.requireOrder(id);
     this.ensureEditable(order);
-    this.ensureReferencedItemsPreserved(order, dto);
+    const hasHistoricalDemand = (order.shippingDemands ?? []).length > 0;
+    this.ensureReferencedItemsPreserved(order, dto, hasHistoricalDemand);
+    const existingItemsById = new Map(
+      (order.items ?? []).map((item) => [Number(item.id), item]),
+    );
 
     if (dto.externalOrderCode && dto.externalOrderCode !== order.externalOrderCode) {
       const existing = await this.salesOrdersRepository.findByExternalOrderCode(dto.externalOrderCode);
@@ -248,7 +251,10 @@ export class SalesOrdersService {
         expenses: dto.expenses ?? this.orderExpensesToDto(order.expenses ?? []),
       } as CreateSalesOrderDto,
       operator,
-      { includeFulfillmentCache: false },
+      {
+        existingItemsById,
+        lockItemQuantities: hasHistoricalDemand,
+      },
     );
 
     return this.withSignedUrls(
@@ -284,43 +290,47 @@ export class SalesOrdersService {
   }
 
   private ensureEditable(order: SalesOrder) {
-    const hasActiveDemand = (order.shippingDemands ?? []).some(
-      (demand) => demand.status !== ShippingDemandStatus.VOIDED,
-    );
-    const editable =
-      order.status === SalesOrderStatus.PENDING_SUBMIT ||
-      order.status === SalesOrderStatus.REJECTED ||
-      (order.status === SalesOrderStatus.APPROVED && !hasActiveDemand);
-
-    if (!editable) {
+    if (order.status === SalesOrderStatus.VOIDED) {
       throw new BadRequestException('当前状态不允许编辑销售订单');
     }
   }
 
-  private ensureReferencedItemsPreserved(order: SalesOrder, dto: UpdateSalesOrderDto) {
-    const hasHistoricalDemand = (order.shippingDemands ?? []).length > 0;
+  private ensureReferencedItemsPreserved(
+    order: SalesOrder,
+    dto: UpdateSalesOrderDto,
+    hasHistoricalDemand: boolean,
+  ) {
     if (!hasHistoricalDemand || !dto.items) return;
 
-    const existingItemIds = new Set(
-      (order.items ?? [])
-        .map((item) => Number(item.id))
-        .filter((itemId) => Number.isInteger(itemId) && itemId > 0),
+    const existingItemsById = new Map(
+      (order.items ?? []).map((item) => [Number(item.id), item]),
     );
-    const incomingItemIds = new Set(
-      dto.items
-        .map((item) => Number(item.id))
-        .filter((itemId) => Number.isInteger(itemId) && itemId > 0),
-    );
-    const hasMissingExistingItem = [...existingItemIds].some((itemId) => !incomingItemIds.has(itemId));
-    if (hasMissingExistingItem) {
-      throw new BadRequestException('已生成过发货需求的销售订单不允许删除原有产品明细');
+    if (dto.items.length !== existingItemsById.size) {
+      throw new BadRequestException('已生成过发货需求的销售订单不允许新增或删除产品明细');
+    }
+
+    for (const item of dto.items) {
+      const itemId = Number(item.id);
+      const existingItem = existingItemsById.get(itemId);
+      if (!existingItem) {
+        throw new BadRequestException('已生成过发货需求的销售订单不允许新增或删除产品明细');
+      }
+      if (Number(item.skuId) !== Number(existingItem.skuId)) {
+        throw new BadRequestException('已生成过发货需求的销售订单不允许修改产品 SKU');
+      }
+      if (Number(item.quantity) !== Number(existingItem.quantity)) {
+        throw new BadRequestException('已生成过发货需求的销售订单不允许修改产品数量');
+      }
     }
   }
 
   private async normalizeSalesOrderPayload(
     dto: CreateSalesOrderDto,
     operator: string | undefined,
-    options: { includeFulfillmentCache: boolean },
+    options: {
+      existingItemsById?: Map<number, SalesOrderItem>;
+      lockItemQuantities: boolean;
+    },
   ) {
     const customer = await this.customersService.findById(dto.customerId);
 
@@ -387,7 +397,11 @@ export class SalesOrdersService {
       const firstPackaging = packagingRows[0] ?? null;
       const unitWeightKg = Number(firstPackaging?.grossWeightKg ?? sku.grossWeightKg ?? 0);
       const unitVolumeCbm = Number(firstPackaging?.volumeCbm ?? sku.volumeCbm ?? 0);
-      const quantity = Number(item.quantity);
+      const existingItem = options.existingItemsById?.get(Number(item.id));
+      const quantity =
+        options.lockItemQuantities && existingItem
+          ? Number(existingItem.quantity)
+          : Number(item.quantity);
       const unitPrice = Number(item.unitPrice);
       const amount = Number((quantity * unitPrice).toFixed(2));
       const totalVolumeCbm = Number((unitVolumeCbm * quantity).toFixed(4));
@@ -395,7 +409,7 @@ export class SalesOrdersService {
       productTotalAmount += amount;
 
       normalizedItems.push({
-        id: options.includeFulfillmentCache ? undefined : item.id,
+        id: existingItem ? item.id : undefined,
         skuId: sku.id,
         skuCode: sku.skuCode,
         productNameCn: item.productNameCn ?? sku.nameCn ?? null,
@@ -413,10 +427,10 @@ export class SalesOrdersService {
         purchaserId: purchaser ? Number(purchaser.id) : null,
         purchaserName: purchaser?.name ?? null,
         needsPurchase: item.needsPurchase ?? YesNo.NO,
-        purchaseQuantity: options.includeFulfillmentCache ? Number(item.purchaseQuantity ?? 0) : 0,
-        useStockQuantity: options.includeFulfillmentCache ? Number(item.useStockQuantity ?? 0) : 0,
-        preparedQuantity: options.includeFulfillmentCache ? Number(item.preparedQuantity ?? 0) : 0,
-        shippedQuantity: options.includeFulfillmentCache ? Number(item.shippedQuantity ?? 0) : 0,
+        purchaseQuantity: Number(existingItem?.purchaseQuantity ?? 0),
+        useStockQuantity: Number(existingItem?.useStockQuantity ?? 0),
+        preparedQuantity: Number(existingItem?.preparedQuantity ?? 0),
+        shippedQuantity: Number(existingItem?.shippedQuantity ?? 0),
         amount: amount.toFixed(2),
         unitId: item.unitId ?? sku.unitId ?? null,
         unitName: item.unitName ?? null,

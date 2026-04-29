@@ -59,7 +59,7 @@ function formatOrderType(value?: string | null) {
 }
 
 function canEditSalesOrderStatus(status: SalesOrderStatus) {
-  return status === SalesOrderStatus.PENDING_SUBMIT || status === SalesOrderStatus.REJECTED;
+  return status !== SalesOrderStatus.VOIDED;
 }
 
 export default function SalesOrdersListPage() {

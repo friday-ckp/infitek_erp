@@ -234,12 +234,7 @@ function salesOrderToFormValues(order: SalesOrder) {
 
 function canEditSalesOrder(order?: SalesOrder | null) {
   if (!order) return false;
-  const hasActiveDemand = (order.shippingDemands ?? []).some((demand) => demand.status !== 'voided');
-  return (
-    order.status === SalesOrderStatus.PENDING_SUBMIT ||
-    order.status === SalesOrderStatus.REJECTED ||
-    (order.status === SalesOrderStatus.APPROVED && !hasActiveDemand)
-  );
+  return order.status !== SalesOrderStatus.VOIDED;
 }
 
 export default function SalesOrderFormPage() {
@@ -559,10 +554,6 @@ export default function SalesOrderFormPage() {
       quantity: Number(item.quantity ?? 0),
       purchaserId: toNumber(item.purchaserId),
       needsPurchase: item.needsPurchase || undefined,
-      purchaseQuantity: Number(item.purchaseQuantity ?? 0),
-      useStockQuantity: Number(item.useStockQuantity ?? 0),
-      preparedQuantity: Number(item.preparedQuantity ?? 0),
-      shippedQuantity: Number(item.shippedQuantity ?? 0),
       amount: Number(item.amount ?? 0),
       unitId: toNumber(item.unitId),
       unitName: item.unitName || undefined,
@@ -721,7 +712,7 @@ export default function SalesOrderFormPage() {
       <Result
         status="warning"
         title="当前销售订单不允许编辑"
-        subTitle="只有待提交、已驳回，或审核通过且没有未作废发货需求的销售订单可以编辑。"
+        subTitle="已作废销售订单不允许编辑。"
         extra={
           <Button type="primary" onClick={() => navigate(`/sales-orders/${salesOrderId}`)}>
             返回详情
@@ -992,6 +983,7 @@ export default function SalesOrderFormPage() {
                         name="skuId"
                         label="SKU"
                         showSearch
+                        readonly={hasHistoricalDemand}
                         request={async (params) => requestSkus(params.keyWords)}
                         rules={[{ required: true, message: '请选择 SKU' }]}
                         fieldProps={{
@@ -1054,6 +1046,7 @@ export default function SalesOrderFormPage() {
                         label="签约数量"
                         min={1}
                         precision={0}
+                        readonly={hasHistoricalDemand}
                         rules={[
                           { required: true, message: '请输入签约数量' },
                           {
@@ -1073,10 +1066,10 @@ export default function SalesOrderFormPage() {
                         request={async (params) => requestUsers(params.keyWords)}
                       />
                       <ProFormSelect name="needsPurchase" label="是否需要采购" options={YES_NO_OPTIONS} />
-                      <ProFormDigit name="purchaseQuantity" label="需采购数量" min={0} precision={0} />
-                      <ProFormDigit name="useStockQuantity" label="使用现有库存数量" min={0} precision={0} />
-                      <ProFormDigit name="preparedQuantity" label="已备货数量" min={0} precision={0} />
-                      <ProFormDigit name="shippedQuantity" label="已发货数量" min={0} precision={0} />
+                      <ProFormDigit name="purchaseQuantity" label="需采购数量" readonly fieldProps={{ precision: 0 }} />
+                      <ProFormDigit name="useStockQuantity" label="使用现有库存数量" readonly fieldProps={{ precision: 0 }} />
+                      <ProFormDigit name="preparedQuantity" label="已备货数量" readonly fieldProps={{ precision: 0 }} />
+                      <ProFormDigit name="shippedQuantity" label="已发货数量" readonly fieldProps={{ precision: 0 }} />
                       <ProFormDigit name="amount" label="总金额" readonly fieldProps={{ precision: 2 }} />
                       <ProFormText name="unitName" label="单位" readonly />
                       <ProFormText name="material" label="产品材质" readonly />

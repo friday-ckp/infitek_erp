@@ -475,7 +475,7 @@ export default function ShippingDemandDetailPage() {
     ? () => navigate(`/sales-orders/${data.salesOrderId}`)
     : undefined;
   const editSourceSalesOrderLink =
-    data?.salesOrderId && data.status === ShippingDemandStatus.VOIDED
+    data?.salesOrderId
       ? () => navigate(`/sales-orders/${data.salesOrderId}/edit`)
       : undefined;
   const totalSkuCount = data?.skuCount ?? items.length;

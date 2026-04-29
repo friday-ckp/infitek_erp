@@ -185,10 +185,7 @@ export default function SalesOrderDetailPage() {
   const relatedShippingDemands = (data?.shippingDemands ?? []).filter(
     (item) => item.status !== 'voided',
   );
-  const canEdit =
-    data?.status === 'pending_submit' ||
-    data?.status === 'rejected' ||
-    (data?.status === 'approved' && relatedShippingDemands.length === 0);
+  const canEdit = Boolean(data && data.status !== 'voided');
   const canGenerateShippingDemand =
     data?.status === 'approved' && relatedShippingDemands.length === 0;
   const isActionLoading =
