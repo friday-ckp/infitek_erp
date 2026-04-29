@@ -524,16 +524,21 @@ export default function ShippingDemandDetailPage() {
   const canVoidDemand =
     data?.status === ShippingDemandStatus.PENDING_ALLOCATION;
   const canEditDemand = Boolean(data && data.status !== ShippingDemandStatus.VOIDED);
+  const isPurchaseOrderEntryStatus =
+    data?.status === ShippingDemandStatus.PENDING_PURCHASE_ORDER ||
+    data?.status === ShippingDemandStatus.PURCHASING;
+  const purchaseOrderGapItemCount = items.filter(
+    (item) =>
+      numberValue(item.purchaseRequiredQuantity) >
+      numberValue(item.purchaseOrderedQuantity),
+  ).length;
   const canGeneratePurchaseOrder =
-    (data?.status === ShippingDemandStatus.PENDING_PURCHASE_ORDER ||
-      data?.status === ShippingDemandStatus.PURCHASING) &&
-    items.some(
-      (item) =>
-        (item.fulfillmentType === FulfillmentType.FULL_PURCHASE ||
-          item.fulfillmentType === FulfillmentType.PARTIAL_PURCHASE) &&
-        numberValue(item.purchaseRequiredQuantity) >
-        numberValue(item.purchaseOrderedQuantity),
-    );
+    isPurchaseOrderEntryStatus && purchaseOrderGapItemCount > 0;
+  const purchaseOrderDisabledTooltip = canGeneratePurchaseOrder
+    ? undefined
+    : data?.status === ShippingDemandStatus.PURCHASING
+      ? "当前没有可补单的采购缺口"
+      : "确认分配产生采购缺口后可生成采购单";
   const isLogisticsEligibleStatus =
     data?.status === ShippingDemandStatus.PREPARED ||
     data?.status === ShippingDemandStatus.PARTIALLY_SHIPPED;
@@ -1545,6 +1550,19 @@ export default function ShippingDemandDetailPage() {
                       分配库存
                     </Button>
                   ) : null}
+                  {isPurchaseOrderEntryStatus ? (
+                    <Tooltip title={purchaseOrderDisabledTooltip}>
+                      <span>
+                        <Button
+                          type="primary"
+                          disabled={!canGeneratePurchaseOrder}
+                          onClick={openPurchaseDrawer}
+                        >
+                          生成采购单
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  ) : null}
                   {canVoidDemand ? (
                     <Button
                       danger
@@ -1593,16 +1611,10 @@ export default function ShippingDemandDetailPage() {
           <div className="shipping-demand-smart-row">
             <SmartButton
               icon={<FileProtectOutlined />}
-              label={canGeneratePurchaseOrder ? "生成采购单" : "采购订单"}
-              count={0}
+              label="生成采购单"
+              count={purchaseOrderGapItemCount}
               disabled={!canGeneratePurchaseOrder}
-              disabledTooltip={
-                canGeneratePurchaseOrder
-                  ? undefined
-                  : data?.status === ShippingDemandStatus.PURCHASING
-                    ? "当前没有可补单的采购缺口"
-                    : "确认分配产生采购缺口后可生成采购单"
-              }
+              disabledTooltip={purchaseOrderDisabledTooltip}
               onClick={canGeneratePurchaseOrder ? openPurchaseDrawer : undefined}
             />
             <SmartButton
