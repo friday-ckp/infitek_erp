@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CreateOpeningInventoryDto } from './dto/create-opening-inventory.dto';
 import { QueryAvailableInventoryDto } from './dto/query-available-inventory.dto';
+import { QueryInventoryTransactionDto } from './dto/query-inventory-transaction.dto';
 import { InventoryService } from './inventory.service';
 
 @Controller('inventory')
@@ -16,6 +17,11 @@ export class InventoryController {
   @Get('batches')
   findBatches(@Query() query: QueryAvailableInventoryDto) {
     return this.inventoryService.findBatches(query);
+  }
+
+  @Get('transactions')
+  findTransactions(@Query() query: QueryInventoryTransactionDto) {
+    return this.inventoryService.findTransactions(query);
   }
 
   @Post('opening-balances')

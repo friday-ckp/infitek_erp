@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import { Button, Empty, Result, Select, Skeleton, Tag, message } from 'antd';
+import { Button, DatePicker, Drawer, Empty, Result, Select, Skeleton, Tag, message } from 'antd';
 import { ProForm, ProFormDatePicker, ProFormDigit, ProFormSelect, ProTable, type ProFormInstance } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import dayjs, { type Dayjs } from 'dayjs';
-import { createOpeningInventory, getAvailableInventory, getInventoryBatches, type AvailableInventoryItem, type CreateOpeningInventoryPayload, type InventoryBatchItem } from '../../api/inventory.api';
+import { InventoryChangeType } from '@infitek/shared';
+import { createOpeningInventory, getAvailableInventory, getInventoryBatches, getInventoryTransactions, type AvailableInventoryItem, type CreateOpeningInventoryPayload, type InventoryBatchItem, type InventoryTransactionItem } from '../../api/inventory.api';
 import { getSkus, type Sku } from '../../api/skus.api';
 import { getWarehouses, type Warehouse } from '../../api/warehouses.api';
 import { SectionCard } from '../master-data/components/page-scaffold';
@@ -31,6 +33,27 @@ interface InventoryBatchRow extends InventoryBatchItem {
   warehouseName?: string | null;
 }
 
+interface InventoryTransactionRow extends InventoryTransactionItem {
+  key: string;
+  id: number;
+  skuId: number;
+  warehouseId: number;
+  inventoryBatchId: number | null;
+  sourceDocumentId: number;
+  sourceDocumentItemId: number | null;
+  skuCode?: string;
+  skuName?: string | null;
+  warehouseName?: string | null;
+}
+
+interface TransactionContext {
+  skuId: number;
+  warehouseId: number | null;
+  skuCode?: string;
+  skuName?: string | null;
+  warehouseName?: string | null;
+}
+
 interface OpeningInventoryFormValues {
   skuId: number;
   warehouseId: number;
@@ -47,6 +70,39 @@ function sourceTypeLabel(value: string) {
   if (value === 'initial') return '期初录入';
   if (value === 'purchase_receipt') return '采购入库';
   return value;
+}
+
+const inventoryChangeTypeOptions = [
+  { label: '期初录入', value: InventoryChangeType.INITIAL },
+  { label: '采购入库', value: InventoryChangeType.PURCHASE_RECEIPT },
+  { label: '发货出库', value: InventoryChangeType.OUTBOUND },
+  { label: '锁定', value: InventoryChangeType.LOCK },
+  { label: '解锁', value: InventoryChangeType.UNLOCK },
+];
+
+const inventoryChangeTypeColor: Record<string, string> = {
+  [InventoryChangeType.INITIAL]: 'blue',
+  [InventoryChangeType.PURCHASE_RECEIPT]: 'green',
+  [InventoryChangeType.OUTBOUND]: 'red',
+  [InventoryChangeType.LOCK]: 'gold',
+  [InventoryChangeType.UNLOCK]: 'purple',
+};
+
+function changeTypeLabel(value: string) {
+  return inventoryChangeTypeOptions.find((item) => item.value === value)?.label ?? value;
+}
+
+function signedNumber(value: number) {
+  if (value > 0) return `+${value}`;
+  return String(value);
+}
+
+function sourceDocumentNode(record: InventoryTransactionRow) {
+  const text = `${record.sourceDocumentType} #${record.sourceDocumentId}`;
+  if (record.sourceDocumentType === 'shipping_demand') {
+    return <Link to={`/shipping-demands/${record.sourceDocumentId}`}>{text}</Link>;
+  }
+  return <span className="inventory-source-text">{text}</span>;
 }
 
 function toNumberId(value: number | string | null | undefined) {
@@ -77,6 +133,11 @@ export default function InventoryPage() {
   const formRef = useRef<ProFormInstance<OpeningInventoryFormValues>>(undefined);
   const [selectedSkuIds, setSelectedSkuIds] = useState<number[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | undefined>();
+  const [transactionContext, setTransactionContext] = useState<TransactionContext | null>(null);
+  const [transactionChangeType, setTransactionChangeType] = useState<InventoryChangeType | undefined>();
+  const [transactionDateRange, setTransactionDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [transactionPage, setTransactionPage] = useState(1);
+  const [transactionPageSize, setTransactionPageSize] = useState(20);
 
   const skusQuery = useQuery({
     queryKey: ['inventory-skus'],
@@ -107,6 +168,31 @@ export default function InventoryPage() {
         warehouseId: selectedWarehouseId,
       }),
     enabled: canQuery,
+  });
+  const transactionStartTime = transactionDateRange?.[0]?.format('YYYY-MM-DD');
+  const transactionEndTime = transactionDateRange?.[1]?.format('YYYY-MM-DD');
+  const transactionsQuery = useQuery({
+    queryKey: [
+      'inventory-transactions',
+      transactionContext?.skuId,
+      transactionContext?.warehouseId,
+      transactionChangeType,
+      transactionStartTime,
+      transactionEndTime,
+      transactionPage,
+      transactionPageSize,
+    ],
+    queryFn: () =>
+      getInventoryTransactions({
+        skuId: transactionContext?.skuId,
+        warehouseId: transactionContext?.warehouseId ?? undefined,
+        changeType: transactionChangeType,
+        startTime: transactionStartTime,
+        endTime: transactionEndTime,
+        page: transactionPage,
+        pageSize: transactionPageSize,
+      }),
+    enabled: transactionContext !== null,
   });
 
   const skuMap = useMemo(() => {
@@ -210,6 +296,34 @@ export default function InventoryPage() {
     [rows],
   );
 
+  const transactionRows: InventoryTransactionRow[] = useMemo(
+    () =>
+      (transactionsQuery.data?.data ?? []).map((item) => {
+        const id = toNumberId(item.id) ?? 0;
+        const skuId = toNumberId(item.skuId) ?? 0;
+        const warehouseId = toNumberId(item.warehouseId) ?? 0;
+        const inventoryBatchId = toNumberId(item.inventoryBatchId);
+        const sourceDocumentId = toNumberId(item.sourceDocumentId) ?? 0;
+        const sourceDocumentItemId = toNumberId(item.sourceDocumentItemId);
+        const sku = skuMap.get(skuId);
+        const warehouse = warehouseMap.get(warehouseId);
+        return {
+          ...item,
+          key: `${id}`,
+          id,
+          skuId,
+          warehouseId,
+          inventoryBatchId,
+          sourceDocumentId,
+          sourceDocumentItemId,
+          skuCode: sku?.skuCode,
+          skuName: sku?.nameCn ?? sku?.nameEn ?? sku?.specification,
+          warehouseName: warehouse?.name ?? `仓库 #${warehouseId}`,
+        };
+      }),
+    [transactionsQuery.data, skuMap, warehouseMap],
+  );
+
   const createMutation = useMutation({
     mutationFn: (payload: CreateOpeningInventoryPayload) => createOpeningInventory(payload),
     onSuccess: (_, payload) => {
@@ -218,9 +332,24 @@ export default function InventoryPage() {
       setSelectedWarehouseId(payload.warehouseId);
       queryClient.invalidateQueries({ queryKey: ['inventory-available'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-batches'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] });
       formRef.current?.resetFields();
     },
   });
+
+  const openTransactions = (record: InventoryRow) => {
+    setTransactionContext({
+      skuId: record.skuId,
+      warehouseId: record.warehouseId,
+      skuCode: record.skuCode,
+      skuName: record.skuName,
+      warehouseName: record.warehouseName,
+    });
+    setTransactionChangeType(undefined);
+    setTransactionDateRange(null);
+    setTransactionPage(1);
+    setTransactionPageSize(20);
+  };
 
   const columns: ProColumns<InventoryRow>[] = [
     {
@@ -264,6 +393,22 @@ export default function InventoryPage() {
       dataIndex: 'updatedAt',
       width: 145,
       render: (_, record) => (record.updatedAt ? dayjs(record.updatedAt).format('YYYY-MM-DD HH:mm') : '-'),
+    },
+    {
+      title: '操作',
+      valueType: 'option',
+      width: 120,
+      fixed: 'right',
+      render: (_, record) => [
+        <Button
+          key="transactions"
+          type="link"
+          size="small"
+          onClick={() => openTransactions(record)}
+        >
+          查看变动流水
+        </Button>,
+      ],
     },
   ];
 
@@ -320,6 +465,97 @@ export default function InventoryPage() {
       width: 115,
       align: 'right',
       render: (_, record) => inventoryTag(record.batchAvailableQuantity),
+    },
+  ];
+
+  const transactionColumns: ProColumns<InventoryTransactionRow>[] = [
+    {
+      title: '变动类型',
+      dataIndex: 'changeType',
+      width: 105,
+      render: (_, record) => (
+        <Tag color={inventoryChangeTypeColor[record.changeType]}>
+          {changeTypeLabel(record.changeType)}
+        </Tag>
+      ),
+    },
+    {
+      title: 'SKU',
+      dataIndex: 'skuCode',
+      width: 170,
+      render: (_, record) => (
+        <div className="inventory-sku-cell">
+          <div className="inventory-sku-code">{record.skuCode ?? `SKU #${record.skuId}`}</div>
+          <div className="inventory-sku-name">{record.skuName ?? '-'}</div>
+        </div>
+      ),
+    },
+    {
+      title: '仓库',
+      dataIndex: 'warehouseName',
+      width: 130,
+    },
+    {
+      title: '数量变化',
+      dataIndex: 'quantityChange',
+      width: 100,
+      align: 'right',
+      render: (_, record) => (
+        <span className={record.quantityChange >= 0 ? 'inventory-delta positive' : 'inventory-delta negative'}>
+          {signedNumber(record.quantityChange)}
+        </span>
+      ),
+    },
+    {
+      title: '实际库存',
+      dataIndex: 'actualQuantityDelta',
+      width: 105,
+      align: 'right',
+      render: (_, record) => signedNumber(record.actualQuantityDelta),
+    },
+    {
+      title: '锁定量',
+      dataIndex: 'lockedQuantityDelta',
+      width: 95,
+      align: 'right',
+      render: (_, record) => signedNumber(record.lockedQuantityDelta),
+    },
+    {
+      title: '可用库存',
+      dataIndex: 'availableQuantityDelta',
+      width: 105,
+      align: 'right',
+      render: (_, record) => signedNumber(record.availableQuantityDelta),
+    },
+    {
+      title: '变动前/后',
+      dataIndex: 'beforeAfter',
+      width: 150,
+      render: (_, record) => (
+        <div className="inventory-before-after">
+          <span>实 {record.beforeActualQuantity} / {record.afterActualQuantity}</span>
+          <span>锁 {record.beforeLockedQuantity} / {record.afterLockedQuantity}</span>
+          <span>可 {record.beforeAvailableQuantity} / {record.afterAvailableQuantity}</span>
+        </div>
+      ),
+    },
+    {
+      title: '来源单据',
+      dataIndex: 'sourceDocumentType',
+      width: 180,
+      render: (_, record) => sourceDocumentNode(record),
+    },
+    {
+      title: '操作人',
+      dataIndex: 'operatedBy',
+      width: 105,
+      render: (_, record) => record.operatedBy ?? 'system',
+    },
+    {
+      title: '操作时间',
+      dataIndex: 'operatedAt',
+      width: 150,
+      render: (_, record) => (record.operatedAt ? dayjs(record.operatedAt).format('YYYY-MM-DD HH:mm') : '-'),
     },
   ];
 
@@ -485,7 +721,7 @@ export default function InventoryPage() {
                 locale={{
                   emptyText: canQuery ? <Empty description="暂无库存记录" /> : <Empty description="SKU 加载中" />,
                 }}
-                scroll={{ x: 830 }}
+                scroll={{ x: 950 }}
               />
             </div>
 
@@ -515,6 +751,94 @@ export default function InventoryPage() {
           </SectionCard>
         </div>
       )}
+      <Drawer
+        title="库存变动流水"
+        width={1100}
+        open={transactionContext !== null}
+        onClose={() => setTransactionContext(null)}
+        destroyOnHidden
+      >
+        {transactionContext ? (
+          <div className="inventory-ledger-drawer">
+            <div className="inventory-ledger-summary">
+              <div>
+                <div className="inventory-ledger-title">
+                  {transactionContext.skuCode ?? `SKU #${transactionContext.skuId}`}
+                </div>
+                <div className="inventory-ledger-subtitle">
+                  {transactionContext.skuName ?? '-'} · {transactionContext.warehouseName ?? '全部仓库'}
+                </div>
+              </div>
+              <span className="inventory-section-badge">
+                共 {transactionsQuery.data?.total ?? 0} 条
+              </span>
+            </div>
+
+            <div className="inventory-ledger-toolbar">
+              <label className="inventory-query-field">
+                <span className="inventory-query-label">变动类型</span>
+                <Select<InventoryChangeType>
+                  allowClear
+                  placeholder="全部类型"
+                  options={inventoryChangeTypeOptions}
+                  value={transactionChangeType}
+                  onChange={(value) => {
+                    setTransactionChangeType(value);
+                    setTransactionPage(1);
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </label>
+              <label className="inventory-query-field">
+                <span className="inventory-query-label">操作时间</span>
+                <DatePicker.RangePicker
+                  value={transactionDateRange}
+                  onChange={(values) => {
+                    setTransactionDateRange(values ? [values[0], values[1]] : null);
+                    setTransactionPage(1);
+                  }}
+                  style={{ width: '100%' }}
+                />
+              </label>
+              <Button
+                className="inventory-query-button"
+                onClick={() => {
+                  setTransactionChangeType(undefined);
+                  setTransactionDateRange(null);
+                  setTransactionPage(1);
+                }}
+              >
+                清除筛选
+              </Button>
+            </div>
+
+            <ProTable<InventoryTransactionRow>
+              rowKey="key"
+              columns={transactionColumns}
+              dataSource={transactionRows}
+              loading={transactionsQuery.isFetching}
+              search={false}
+              options={false}
+              pagination={{
+                current: transactionPage,
+                pageSize: transactionPageSize,
+                total: transactionsQuery.data?.total ?? 0,
+                showSizeChanger: true,
+                pageSizeOptions: [10, 20, 50],
+                showTotal: (total) => `共 ${total} 条记录`,
+                onChange: (page, pageSize) => {
+                  setTransactionPage(page);
+                  setTransactionPageSize(pageSize);
+                },
+              }}
+              locale={{
+                emptyText: <Empty description="暂无变动流水" />,
+              }}
+              scroll={{ x: 1395 }}
+            />
+          </div>
+        ) : null}
+      </Drawer>
     </div>
   );
 }
