@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>发货需求状态流转优化原型</title>
+  <style>
+    :root {
+      --primary: #2563EB;
+      --primary-hover: #1D4ED8;
+      --primary-light: #EFF6FF;
+      --success: #10B981;
+      --success-light: #ECFDF5;
+      --warning: #F59E0B;
+      --warning-light: #FFFBEB;
+      --danger: #EF4444;
+      --danger-light: #FEF2F2;
+      --gray-50: #F8FAFC;
+      --gray-100: #F1F5F9;
+      --gray-200: #E2E8F0;
+      --gray-300: #CBD5E1;
+      --gray-400: #94A3B8;
+      --gray-500: #64748B;
+      --gray-600: #475569;
+      --gray-700: #334155;
+      --gray-800: #1E293B;
+      --gray-900: #0F172A;
+      --white: #FFFFFF;
+      --sidebar-w: 220px;
+      --topbar-h: 56px;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -1px rgba(0,0,0,0.04);
+      --erp-border: var(--gray-200);
+      --erp-primary: var(--primary);
+      --erp-text: var(--gray-800);
+      --erp-text-light: var(--gray-400);
+      --erp-shadow-soft: var(--shadow-sm);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-width: 1180px;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    button { font: inherit; }
+
+    .app {
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: var(--white);
+      border-right: 1px solid var(--gray-200);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .sidebar-logo-name {
+      color: var(--gray-900);
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-logo-sub {
+      margin-top: 1px;
+      color: var(--gray-400);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-group { padding: 4px 0; }
+
+    .nav-parent {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px;
+      color: var(--gray-500);
+      cursor: default;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .nav-parent.open {
+      color: var(--gray-800);
+    }
+
+    .nav-icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+
+    .nav-arrow {
+      margin-left: auto;
+      color: var(--gray-300);
+      font-size: 9px;
+      transform: rotate(90deg);
+    }
+
+    .nav-sub {
+      margin: 1px 8px;
+      padding: 5px 10px 5px 40px;
+      border-radius: 999px;
+      color: var(--gray-500);
+      cursor: default;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .nav-sub.active {
+      background: #EEF2FF;
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .sidebar-user {
+      margin-top: auto;
+      border-top: 1px solid var(--gray-100);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sidebar-user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: var(--radius-sm);
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .sidebar-user-name {
+      color: var(--gray-800);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .sidebar-user-role {
+      margin-top: 1px;
+      color: var(--gray-400);
+      font-size: 11px;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .topbar {
+      height: var(--topbar-h);
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--gray-400);
+      font-size: 13px;
+    }
+
+    .breadcrumb-link { color: var(--gray-400); }
+    .breadcrumb-sep { color: var(--gray-300); }
+    .breadcrumb-current { color: var(--gray-800); font-weight: 600; }
+
+    .topbar-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .content {
+      flex: 1;
+      overflow: auto;
+      background: var(--gray-50);
+      padding: 24px;
+    }
+
+    .master-page {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .master-page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 4px;
+    }
+
+    .master-page-title {
+      color: var(--gray-900);
+      font-size: 20px;
+      line-height: 1.2;
+      font-weight: 700;
+    }
+
+    .master-page-description {
+      margin-top: 6px;
+      color: var(--gray-500);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .master-page-actions,
+    .master-summary-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn {
+      min-height: 34px;
+      padding: 0 14px;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--gray-700);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .btn-primary {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      border-color: var(--primary-hover);
+      background: var(--primary-hover);
+      color: #fff;
+    }
+
+    .btn-danger {
+      border-color: #FCA5A5;
+      color: #B91C1C;
+    }
+
+    .btn-danger:hover {
+      border-color: var(--danger);
+      background: var(--danger-light);
+      color: #B91C1C;
+    }
+
+    .btn[disabled] {
+      cursor: not-allowed;
+      border-color: var(--gray-200);
+      background: var(--gray-50);
+      color: var(--gray-400);
+    }
+
+    .master-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 10px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .master-pill-success { color: #065f46; background: var(--success-light); }
+    .master-pill-blue { color: #1d4ed8; background: #dbeafe; }
+    .master-pill-orange { color: #92400e; background: var(--warning-light); }
+    .master-pill-red { color: #b91c1c; background: var(--danger-light); }
+    .master-pill-default { color: #475569; background: var(--gray-100); }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .tag-blue { color: #1d4ed8; background: #dbeafe; }
+    .tag-green { color: #065f46; background: var(--success-light); }
+    .tag-orange { color: #92400e; background: var(--warning-light); }
+    .tag-red { color: #b91c1c; background: var(--danger-light); }
+    .tag-gray { color: #475569; background: var(--gray-100); }
+
+    .master-summary-card {
+      background: #fff;
+      border: 1px solid var(--erp-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--erp-shadow-soft);
+      padding: 20px 24px;
+    }
+
+    .master-summary-code {
+      margin-bottom: 8px;
+      color: var(--gray-400);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .master-summary-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .master-summary-title-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .master-summary-title {
+      color: var(--gray-900);
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.2;
+    }
+
+    .master-summary-meta {
+      margin-top: 14px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .master-summary-meta-label {
+      margin-bottom: 4px;
+      color: var(--gray-400);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .master-summary-meta-value {
+      color: var(--gray-700);
+      font-size: 14px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .shipping-demand-hub {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .shipping-demand-flow {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(88px, 1fr));
+      gap: 0;
+      overflow-x: auto;
+      padding: 4px 0 8px;
+    }
+
+    .shipping-demand-flow-step {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-width: 88px;
+    }
+
+    .shipping-demand-flow-step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 17px;
+      left: calc(50% + 22px);
+      right: calc(-50% + 22px);
+      height: 2px;
+      background: var(--gray-200);
+    }
+
+    .shipping-demand-flow-step.done:not(:last-child)::after {
+      background: #86efac;
+    }
+
+    .shipping-demand-flow-node {
+      z-index: 1;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gray-500);
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .shipping-demand-flow-step.done .shipping-demand-flow-node {
+      color: #166534;
+      background: #dcfce7;
+      border-color: #bbf7d0;
+    }
+
+    .shipping-demand-flow-step.active .shipping-demand-flow-node {
+      color: #1d4ed8;
+      background: #dbeafe;
+      border-color: #93c5fd;
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    }
+
+    .shipping-demand-flow-label {
+      color: var(--gray-500);
+      font-size: 12px;
+      line-height: 1.4;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .shipping-demand-flow-step.done .shipping-demand-flow-label { color: #166534; }
+    .shipping-demand-flow-step.active .shipping-demand-flow-label { color: #1d4ed8; }
+
+    .shipping-demand-smart-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .shipping-demand-smart-button {
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #dbe3ef;
+      border-radius: 8px;
+      background: #fff;
+      color: var(--gray-700);
+      padding: 0 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: default;
+    }
+
+    .shipping-demand-smart-button.enabled {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    .shipping-demand-smart-button.disabled {
+      color: var(--gray-400);
+      background: var(--gray-50);
+    }
+
+    .shipping-demand-smart-badge {
+      min-width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      background: var(--primary);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 0 6px;
+    }
+
+    .shipping-demand-smart-badge.zero { background: var(--gray-300); }
+
+    .shipping-demand-stat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .shipping-demand-stat {
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      background: #fff;
+      padding: 14px 16px;
+    }
+
+    .shipping-demand-stat-label {
+      color: var(--gray-500);
+      font-size: 12px;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+
+    .shipping-demand-stat-value {
+      margin-top: 6px;
+      color: var(--gray-900);
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1.1;
+    }
+
+    .shipping-demand-stat-subtitle {
+      margin-top: 6px;
+      color: var(--gray-400);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .shipping-demand-stat-blue .shipping-demand-stat-value { color: #1d4ed8; }
+    .shipping-demand-stat-green .shipping-demand-stat-value { color: #047857; }
+    .shipping-demand-stat-orange .shipping-demand-stat-value { color: #b45309; }
+
+    .master-detail-layout {
+      display: grid;
+      grid-template-columns: 160px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .master-anchor-nav {
+      position: sticky;
+      top: 72px;
+      background: #fff;
+      border: 1px solid var(--erp-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--erp-shadow-soft);
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .master-anchor-link {
+      display: flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 0 12px;
+      border-radius: 8px;
+      color: var(--gray-600);
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      border-left: 3px solid transparent;
+    }
+
+    .master-anchor-link.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-left-color: var(--primary);
+    }
+
+    .master-detail-main {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .master-section-card {
+      background: #fff;
+      border: 1px solid var(--erp-border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--erp-shadow-soft);
+      overflow: hidden;
+    }
+
+    .master-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .master-section-title {
+      color: var(--gray-900);
+      font-size: 16px;
+      line-height: 1.4;
+      font-weight: 700;
+    }
+
+    .master-section-description {
+      margin-top: 4px;
+      color: var(--gray-500);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .master-section-body {
+      padding: 18px 20px 20px;
+    }
+
+    .master-section-table {
+      padding: 0;
+    }
+
+    .master-info-tip {
+      margin: 0 20px 16px;
+      border: 1px dashed #dbeafe;
+      background: var(--gray-50);
+      color: var(--gray-500);
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-size: 13px;
+    }
+
+    .master-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px 16px;
+    }
+
+    .master-meta-label {
+      color: var(--gray-400);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .master-meta-value {
+      color: var(--gray-700);
+      font-size: 14px;
+      font-weight: 600;
+      word-break: break-word;
+      line-height: 1.5;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .data-table th {
+      height: 42px;
+      padding: 10px 14px;
+      background: var(--gray-50);
+      color: var(--gray-500);
+      border-bottom: 1px solid var(--gray-200);
+      font-size: 11px;
+      font-weight: 700;
+      text-align: left;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+
+    .data-table td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--gray-100);
+      color: var(--gray-700);
+      font-size: 13px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .data-table tr:hover td { background: var(--gray-50); }
+    .data-table tr:last-child td { border-bottom: 0; }
+
+    .td-code {
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    .td-sub {
+      margin-top: 2px;
+      color: var(--gray-400);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .table-footer {
+      padding: 10px 14px;
+      border-top: 1px solid var(--gray-100);
+      color: var(--gray-400);
+      text-align: right;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .master-status-timeline {
+      padding: 18px 20px;
+    }
+
+    .master-tl-item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .master-tl-item:last-child { margin-bottom: 0; }
+
+    .master-tl-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--primary);
+      margin-top: 4px;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .master-tl-dot.gray {
+      background: var(--gray-400);
+      box-shadow: none;
+    }
+
+    .master-tl-operator {
+      color: var(--gray-800);
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .master-tl-action {
+      margin-top: 2px;
+      color: var(--gray-700);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .master-tl-time {
+      margin-top: 2px;
+      color: var(--gray-400);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .scenario-switch {
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: #fff;
+      border: 1px solid var(--gray-200);
+      border-radius: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .scenario-switch button {
+      height: 32px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--gray-500);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .scenario-switch button.active {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    @media (max-width: 1200px) {
+      body { min-width: 960px; }
+      .master-summary-meta,
+      .shipping-demand-stat-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .master-meta-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-name">星辰科技 ERP</div>
+        <div class="sidebar-logo-sub">INFITEK ENTERPRISE</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-parent open">
+          <span class="nav-icon">▦</span>
+          销售履约
+          <span class="nav-arrow">▶</span>
+        </div>
+        <div class="nav-sub">销售订单</div>
+        <div class="nav-sub active">发货需求</div>
+        <div class="nav-sub">物流单</div>
+      </div>
+      <div class="nav-group">
+        <div class="nav-parent open">
+          <span class="nav-icon">▤</span>
+          采购管理
+          <span class="nav-arrow">▶</span>
+        </div>
+        <div class="nav-sub">采购订单</div>
+        <div class="nav-sub">收货入库</div>
+      </div>
+      <div class="sidebar-user">
+        <div class="sidebar-user-avatar">F</div>
+        <div>
+          <div class="sidebar-user-name">friday</div>
+          <div class="sidebar-user-role">采购助理</div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div class="breadcrumb">
+          <span class="breadcrumb-link">销售履约</span>
+          <span class="breadcrumb-sep">›</span>
+          <span class="breadcrumb-link">发货需求</span>
+          <span class="breadcrumb-sep">›</span>
+          <span class="breadcrumb-current">SD-20260429-0038</span>
+        </div>
+        <div class="topbar-right">
+          <span id="topbarStatus" class="master-pill master-pill-orange">待生成采购单</span>
+          <button class="btn">返回列表</button>
+          <button class="btn">编辑</button>
+          <span class="avatar">F</span>
+        </div>
+      </header>
+
+      <section class="content">
+        <div class="master-page">
+          <div class="master-page-header">
+            <div>
+              <div class="master-page-title">发货需求详情</div>
+              <div class="master-page-description">SD-20260429-0038 · 来源 SO-20260429-081 · Aster Biotech</div>
+            </div>
+            <div class="scenario-switch" aria-label="状态切片">
+              <button class="active" data-scenario="pending">确认分配后</button>
+              <button data-scenario="purchasing">采购单生成后</button>
+              <button data-scenario="prepared">全部到货后</button>
+            </div>
+          </div>
+
+          <section class="master-summary-card">
+            <div class="master-summary-code">SHIPPING DEMAND</div>
+            <div class="master-summary-header">
+              <div>
+                <div class="master-summary-title-row">
+                  <div class="master-summary-title">SD-20260429-0038</div>
+                  <span id="summaryStatus" class="master-pill master-pill-orange">待生成采购单</span>
+                </div>
+                <div class="master-summary-meta">
+                  <div>
+                    <div class="master-summary-meta-label">客户</div>
+                    <div class="master-summary-meta-value">Aster Biotech</div>
+                  </div>
+                  <div>
+                    <div class="master-summary-meta-label">来源销售订单</div>
+                    <div class="master-summary-meta-value">SO-20260429-081</div>
+                  </div>
+                  <div>
+                    <div class="master-summary-meta-label">应发 SKU</div>
+                    <div class="master-summary-meta-value">3 个</div>
+                  </div>
+                  <div>
+                    <div class="master-summary-meta-label">采购待处理量</div>
+                    <div id="summaryPurchase" class="master-summary-meta-value">9 件</div>
+                  </div>
+                </div>
+              </div>
+              <div class="master-summary-actions">
+                <button id="primaryAction" class="btn btn-primary">生成采购单</button>
+                <button id="secondaryAction" class="btn">修改分配</button>
+                <button class="btn btn-danger">作废</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="master-section-card">
+            <div class="master-section-header">
+              <div>
+                <div class="master-section-title">发货枢纽</div>
+                <div id="hubDescription" class="master-section-description">履行类型已确认，存在需采购数量；采购单尚未生成。</div>
+              </div>
+            </div>
+            <div class="master-section-body">
+              <div class="shipping-demand-hub">
+                <div id="flow" class="shipping-demand-flow"></div>
+                <div class="shipping-demand-smart-row">
+                  <button id="purchaseNode" class="shipping-demand-smart-button enabled">
+                    <span>采购订单</span>
+                    <span id="purchaseNodeBadge" class="shipping-demand-smart-badge zero">0</span>
+                  </button>
+                  <button id="logisticsNode" class="shipping-demand-smart-button disabled">
+                    <span>物流单</span>
+                    <span id="logisticsNodeBadge" class="shipping-demand-smart-badge zero">0</span>
+                  </button>
+                  <button class="shipping-demand-smart-button disabled">
+                    <span>出库单</span>
+                    <span class="shipping-demand-smart-badge zero">0</span>
+                  </button>
+                </div>
+                <div class="shipping-demand-stat-grid">
+                  <div class="shipping-demand-stat shipping-demand-stat-blue">
+                    <div class="shipping-demand-stat-label">总 SKU 种类</div>
+                    <div class="shipping-demand-stat-value">3</div>
+                    <div class="shipping-demand-stat-subtitle">按发货需求明细统计</div>
+                  </div>
+                  <div class="shipping-demand-stat">
+                    <div class="shipping-demand-stat-label">总应发数量</div>
+                    <div class="shipping-demand-stat-value">25</div>
+                    <div class="shipping-demand-stat-subtitle">来自销售订单签约数量</div>
+                  </div>
+                  <div class="shipping-demand-stat shipping-demand-stat-green">
+                    <div class="shipping-demand-stat-label">已锁定数量</div>
+                    <div id="lockedQuantity" class="shipping-demand-stat-value">16</div>
+                    <div class="shipping-demand-stat-subtitle">当前锁定待发数量</div>
+                  </div>
+                  <div class="shipping-demand-stat shipping-demand-stat-orange">
+                    <div class="shipping-demand-stat-label">采购待处理量</div>
+                    <div id="purchaseQuantity" class="shipping-demand-stat-value">9</div>
+                    <div id="purchaseQuantitySubtitle" class="shipping-demand-stat-subtitle">待生成采购单</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="master-detail-layout">
+            <nav class="master-anchor-nav">
+              <a class="master-anchor-link active" href="#basic">基础信息</a>
+              <a class="master-anchor-link" href="#items">产品明细</a>
+              <a class="master-anchor-link" href="#records">操作记录</a>
+            </nav>
+
+            <div class="master-detail-main">
+              <section id="basic" class="master-section-card">
+                <div class="master-section-header">
+                  <div>
+                    <div class="master-section-title">基础信息</div>
+                    <div class="master-section-description">查看发货需求来源、客户和当前状态口径。</div>
+                  </div>
+                </div>
+                <div class="master-section-body">
+                  <div class="master-meta-grid">
+                    <div>
+                      <div class="master-meta-label">发货需求编号</div>
+                      <div class="master-meta-value">SD-20260429-0038</div>
+                    </div>
+                    <div>
+                      <div class="master-meta-label">来源销售订单</div>
+                      <div class="master-meta-value"><span class="td-code">SO-20260429-081</span></div>
+                    </div>
+                    <div>
+                      <div class="master-meta-label">状态</div>
+                      <div class="master-meta-value"><span id="basicStatus" class="master-pill master-pill-orange">待生成采购单</span></div>
+                    </div>
+                    <div>
+                      <div class="master-meta-label">客户</div>
+                      <div class="master-meta-value">Aster Biotech</div>
+                    </div>
+                    <div>
+                      <div class="master-meta-label">运抵国</div>
+                      <div class="master-meta-value">德国</div>
+                    </div>
+                    <div>
+                      <div class="master-meta-label">商务跟单</div>
+                      <div class="master-meta-value">小王</div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section id="items" class="master-section-card">
+                <div class="master-section-header">
+                  <div>
+                    <div class="master-section-title">产品明细</div>
+                    <div class="master-section-description">查看履行类型、库存锁定和采购单生成状态。</div>
+                  </div>
+                  <button id="itemsAction" class="btn btn-primary">生成采购单</button>
+                </div>
+                <div class="master-info-tip" id="itemsTip">已确认分配但采购单尚未生成，状态不进入采购中；主操作应指向生成采购单。</div>
+                <div class="master-section-table">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th style="width: 220px;">SKU</th>
+                        <th>应发数量</th>
+                        <th>履行类型</th>
+                        <th>锁定库存</th>
+                        <th>需采购量</th>
+                        <th>采购单</th>
+                        <th>到货/锁定</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <div class="td-code">SKU-IFK-3001</div>
+                          <div class="td-sub">高速离心机</div>
+                        </td>
+                        <td>6</td>
+                        <td><span class="tag tag-orange">部分采购</span></td>
+                        <td id="row1Stock">4</td>
+                        <td id="row1Purchase">2</td>
+                        <td><span id="row1Po" class="tag tag-orange">待生成</span></td>
+                        <td><span id="row1Receipt" class="tag tag-gray">未到货</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="td-code">SKU-IFK-1820</div>
+                          <div class="td-sub">移液器套装</div>
+                        </td>
+                        <td>7</td>
+                        <td><span class="tag tag-orange">全部采购</span></td>
+                        <td id="row2Stock">0</td>
+                        <td id="row2Purchase">7</td>
+                        <td><span id="row2Po" class="tag tag-orange">待生成</span></td>
+                        <td><span id="row2Receipt" class="tag tag-gray">未到货</span></td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div class="td-code">SKU-IFK-0608</div>
+                          <div class="td-sub">试剂瓶 250ml</div>
+                        </td>
+                        <td>12</td>
+                        <td><span class="tag tag-blue">使用现有库存</span></td>
+                        <td>12</td>
+                        <td>0</td>
+                        <td><span class="tag tag-gray">不需采购</span></td>
+                        <td><span class="tag tag-green">已锁定</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div class="table-footer">共 3 条记录</div>
+                </div>
+              </section>
+
+              <section id="records" class="master-section-card">
+                <div class="master-section-header">
+                  <div>
+                    <div class="master-section-title">操作记录</div>
+                    <div class="master-section-description">按状态变化和关键动作记录发货需求生命周期。</div>
+                  </div>
+                </div>
+                <div id="timeline" class="master-status-timeline"></div>
+              </section>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const flowSteps = ["需求创建", "库存检查", "待生成采购单", "采购中", "库存锁定", "创建物流", "出库发货"];
+
+    const scenarios = {
+      pending: {
+        statusText: "待生成采购单",
+        statusClass: "master-pill master-pill-orange",
+        summaryPurchase: "9 件",
+        primaryAction: "生成采购单",
+        secondaryAction: "修改分配",
+        hubDescription: "履行类型已确认，存在需采购数量；采购单尚未生成。",
+        activeIndex: 2,
+        lockedQuantity: "16",
+        purchaseQuantity: "9",
+        purchaseQuantitySubtitle: "待生成采购单",
+        purchaseNodeClass: "shipping-demand-smart-button enabled",
+        purchaseBadge: "0",
+        logisticsNodeClass: "shipping-demand-smart-button disabled",
+        logisticsBadge: "0",
+        itemsAction: "生成采购单",
+        itemsActionClass: "btn btn-primary",
+        itemsTip: "已确认分配但采购单尚未生成，状态不进入采购中；主操作应指向生成采购单。",
+        po: ["待生成", "tag tag-orange"],
+        receipt: ["未到货", "tag tag-gray"],
+        row1Stock: "4",
+        row1Purchase: "2",
+        row2Stock: "0",
+        row2Purchase: "7",
+        timeline: [
+          ["采购助理 小王", "确认库存分配，2 个 SKU 需要采购，库存部分已锁定", "2026-04-29 15:18", false],
+          ["系统", "发货需求状态更新为待生成采购单", "2026-04-29 15:18", true],
+          ["系统", "发货需求由销售订单 SO-20260429-081 生成", "2026-04-29 14:42", true]
+        ]
+      },
+      purchasing: {
+        statusText: "采购中",
+        statusClass: "master-pill master-pill-blue",
+        summaryPurchase: "9 件",
+        primaryAction: "查看采购单",
+        secondaryAction: "更新到货信息",
+        hubDescription: "采购订单已生成，采购链路已开始；等待收货入库后自动锁定。",
+        activeIndex: 3,
+        lockedQuantity: "16",
+        purchaseQuantity: "9",
+        purchaseQuantitySubtitle: "PO-20260429-016 待收货",
+        purchaseNodeClass: "shipping-demand-smart-button enabled",
+        purchaseBadge: "1",
+        logisticsNodeClass: "shipping-demand-smart-button disabled",
+        logisticsBadge: "0",
+        itemsAction: "查看采购单",
+        itemsActionClass: "btn",
+        itemsTip: "采购单生成后，发货需求进入采购中；采购单状态和到货进度在明细中可见。",
+        po: ["PO-20260429-016", "tag tag-blue"],
+        receipt: ["待收货", "tag tag-orange"],
+        row1Stock: "4",
+        row1Purchase: "2",
+        row2Stock: "0",
+        row2Purchase: "7",
+        timeline: [
+          ["采购助理 小王", "生成采购订单 PO-20260429-016", "2026-04-29 15:31", false],
+          ["系统", "发货需求状态更新为采购中", "2026-04-29 15:31", true],
+          ["采购助理 小王", "确认库存分配，2 个 SKU 需要采购，库存部分已锁定", "2026-04-29 15:18", true],
+          ["系统", "发货需求状态更新为待生成采购单", "2026-04-29 15:18", true]
+        ]
+      },
+      prepared: {
+        statusText: "备货完成",
+        statusClass: "master-pill master-pill-success",
+        summaryPurchase: "0 件",
+        primaryAction: "创建物流单",
+        secondaryAction: "更新到货信息",
+        hubDescription: "采购入库已锁定至本发货需求，全部应发数量已备齐。",
+        activeIndex: 4,
+        lockedQuantity: "25",
+        purchaseQuantity: "0",
+        purchaseQuantitySubtitle: "采购入库已锁定",
+        purchaseNodeClass: "shipping-demand-smart-button enabled",
+        purchaseBadge: "1",
+        logisticsNodeClass: "shipping-demand-smart-button enabled",
+        logisticsBadge: "0",
+        itemsAction: "创建物流单",
+        itemsActionClass: "btn btn-primary",
+        itemsTip: "全部库存已锁定到本发货需求，下一步可创建物流单。",
+        po: ["已收货", "tag tag-green"],
+        receipt: ["已锁定", "tag tag-green"],
+        row1Stock: "6",
+        row1Purchase: "0",
+        row2Stock: "7",
+        row2Purchase: "0",
+        timeline: [
+          ["系统", "采购入库完成，9 件采购数量已锁定至本发货需求", "2026-05-08 10:06", false],
+          ["系统", "发货需求状态更新为备货完成", "2026-05-08 10:06", true],
+          ["采购助理 小王", "生成采购订单 PO-20260429-016", "2026-04-29 15:31", true],
+          ["采购助理 小王", "确认库存分配，2 个 SKU 需要采购，库存部分已锁定", "2026-04-29 15:18", true]
+        ]
+      }
+    };
+
+    const buttons = Array.from(document.querySelectorAll(".scenario-switch button"));
+
+    function setText(id, value) {
+      document.getElementById(id).textContent = value;
+    }
+
+    function setPill(id, scenario) {
+      const element = document.getElementById(id);
+      element.textContent = scenario.statusText;
+      element.className = scenario.statusClass;
+    }
+
+    function setTag(id, tuple) {
+      const element = document.getElementById(id);
+      element.textContent = tuple[0];
+      element.className = tuple[1];
+    }
+
+    function renderFlow(activeIndex) {
+      document.getElementById("flow").innerHTML = flowSteps.map((step, index) => {
+        const done = index < activeIndex;
+        const active = index === activeIndex;
+        const className = done ? "done" : active ? "active" : "pending";
+        return `
+          <div class="shipping-demand-flow-step ${className}">
+            <div class="shipping-demand-flow-node">${done ? "✓" : index + 1}</div>
+            <div class="shipping-demand-flow-label">${step}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderTimeline(items) {
+      document.getElementById("timeline").innerHTML = items.map(([operator, action, time, gray]) => `
+        <div class="master-tl-item">
+          <div class="master-tl-dot${gray ? " gray" : ""}"></div>
+          <div class="master-tl-content">
+            <div class="master-tl-operator">操作人：${operator}</div>
+            <div class="master-tl-action">操作记录：${action}</div>
+            <div class="master-tl-time">操作时间：${time}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function applyScenario(name) {
+      const scenario = scenarios[name];
+      buttons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.scenario === name);
+      });
+
+      setPill("topbarStatus", scenario);
+      setPill("summaryStatus", scenario);
+      setPill("basicStatus", scenario);
+      setText("summaryPurchase", scenario.summaryPurchase);
+      setText("primaryAction", scenario.primaryAction);
+      setText("secondaryAction", scenario.secondaryAction);
+      setText("hubDescription", scenario.hubDescription);
+      setText("lockedQuantity", scenario.lockedQuantity);
+      setText("purchaseQuantity", scenario.purchaseQuantity);
+      setText("purchaseQuantitySubtitle", scenario.purchaseQuantitySubtitle);
+      setText("purchaseNodeBadge", scenario.purchaseBadge);
+      setText("logisticsNodeBadge", scenario.logisticsBadge);
+      setText("itemsAction", scenario.itemsAction);
+      setText("itemsTip", scenario.itemsTip);
+      setText("row1Stock", scenario.row1Stock);
+      setText("row1Purchase", scenario.row1Purchase);
+      setText("row2Stock", scenario.row2Stock);
+      setText("row2Purchase", scenario.row2Purchase);
+
+      document.getElementById("purchaseNode").className = scenario.purchaseNodeClass;
+      document.getElementById("logisticsNode").className = scenario.logisticsNodeClass;
+      document.getElementById("itemsAction").className = scenario.itemsActionClass;
+      setTag("row1Po", scenario.po);
+      setTag("row2Po", scenario.po);
+      setTag("row1Receipt", scenario.receipt);
+      setTag("row2Receipt", scenario.receipt);
+      renderFlow(scenario.activeIndex);
+      renderTimeline(scenario.timeline);
+    }
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => applyScenario(button.dataset.scenario));
+    });
+
+    applyScenario("pending");
+  </script>
+</body>
+</html>
