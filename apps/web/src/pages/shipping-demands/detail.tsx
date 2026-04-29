@@ -467,6 +467,7 @@ export default function ShippingDemandDetailPage() {
     data?.status === ShippingDemandStatus.PENDING_ALLOCATION;
   const canVoidDemand =
     data?.status === ShippingDemandStatus.PENDING_ALLOCATION;
+  const canEditDemand = Boolean(data && data.status !== ShippingDemandStatus.VOIDED);
   const canCreateLogisticsOrder =
     (data?.status === ShippingDemandStatus.PREPARED ||
       data?.status === ShippingDemandStatus.PARTIALLY_SHIPPED) &&
@@ -1197,6 +1198,11 @@ export default function ShippingDemandDetailPage() {
                   >
                     编辑来源销售订单
                   </Button>
+                  {canEditDemand ? (
+                    <Button onClick={() => navigate(`/shipping-demands/${demandId}/edit`)}>
+                      编辑发货需求
+                    </Button>
+                  ) : null}
                   {canConfirmAllocation ? (
                     <Button
                       type="primary"

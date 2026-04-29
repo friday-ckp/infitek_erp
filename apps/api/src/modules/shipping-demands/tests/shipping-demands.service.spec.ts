@@ -27,6 +27,7 @@ describe('ShippingDemandsService', () => {
     createQueryRunner: jest.fn(),
     findAll: jest.fn(),
     findById: jest.fn(),
+    update: jest.fn(),
   };
   const inventoryService = {
     findAvailable: jest.fn(),
@@ -404,6 +405,79 @@ describe('ShippingDemandsService', () => {
       page: 1,
       pageSize: 20,
     });
+  });
+
+  it('updates editable shipping demand fields without touching quantities', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      consigneeCompany: 'Old consignee',
+      items: [{ id: 700, requiredQuantity: 2, lockedRemainingQuantity: 2 }],
+    });
+    shippingDemandsRepository.update.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      consigneeCompany: 'New consignee',
+      requiredDeliveryAt: '2026-05-20',
+      items: [{ id: 700, requiredQuantity: 2, lockedRemainingQuantity: 2 }],
+    });
+
+    const result = await service.update(
+      500,
+      {
+        consigneeCompany: 'New consignee',
+        requiredDeliveryAt: '2026-05-20',
+        exchangeRate: 7.123456,
+      },
+      'admin',
+    );
+
+    expect(result.consigneeCompany).toBe('New consignee');
+    expect(shippingDemandsRepository.update).toHaveBeenCalledWith(
+      500,
+      expect.objectContaining({
+        consigneeCompany: 'New consignee',
+        requiredDeliveryAt: '2026-05-20',
+        exchangeRate: '7.123456',
+        updatedBy: 'admin',
+      }),
+    );
+    expect(shippingDemandsRepository.update.mock.calls[0][1]).not.toHaveProperty('items');
+    expect(shippingDemandsRepository.update.mock.calls[0][1]).not.toHaveProperty('requiredQuantity');
+  });
+
+  it('rejects shipping demand edits that try to change protected fields', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      status: ShippingDemandStatus.PREPARED,
+      items: [{ id: 700, requiredQuantity: 2 }],
+    });
+
+    await expect(
+      service.update(
+        500,
+        {
+          consigneeCompany: 'New consignee',
+          items: [{ id: 700, requiredQuantity: 3 }],
+        } as any,
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(shippingDemandsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects editing voided shipping demand', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      status: ShippingDemandStatus.VOIDED,
+    });
+
+    await expect(
+      service.update(500, { consigneeCompany: 'New consignee' }, 'admin'),
+    ).rejects.toThrow('已作废发货需求不允许编辑');
+    expect(shippingDemandsRepository.update).not.toHaveBeenCalled();
   });
 
   it('generates shipping demand from approved sales order', async () => {

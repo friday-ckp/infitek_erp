@@ -60,6 +60,7 @@ import SalesOrderFormPage from "./pages/sales-orders/form";
 import SalesOrderDetailPage from "./pages/sales-orders/detail";
 import ShippingDemandsListPage from "./pages/shipping-demands/index";
 import ShippingDemandDetailPage from "./pages/shipping-demands/detail";
+import ShippingDemandFormPage from "./pages/shipping-demands/form";
 import LogisticsOrderFormPage from "./pages/logistics-orders/form";
 import InventoryPage from "./pages/inventory/index";
 import HomePage from "./pages/home/index";
@@ -440,6 +441,10 @@ function App() {
                   <Route
                     path="/shipping-demands"
                     element={<ShippingDemandsListPage />}
+                  />
+                  <Route
+                    path="/shipping-demands/:id/edit"
+                    element={<ShippingDemandFormPage />}
                   />
                   <Route
                     path="/shipping-demands/:id"

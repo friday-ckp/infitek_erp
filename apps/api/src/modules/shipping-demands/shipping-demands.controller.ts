@@ -4,12 +4,14 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
+import { UpdateShippingDemandDto } from './dto/update-shipping-demand.dto';
 import { ShippingDemandsService } from './shipping-demands.service';
 
 @Controller('shipping-demands')
@@ -26,6 +28,15 @@ export class ShippingDemandsController {
   @Get(':id')
   findById(@Param('id', ParseIntPipe) id: number) {
     return this.shippingDemandsService.findById(id);
+  }
+
+  @Patch(':id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateShippingDemandDto,
+    @CurrentUser() user: { username?: string },
+  ) {
+    return this.shippingDemandsService.update(id, dto, user?.username);
   }
 
   @Post(':id/confirm-allocation')

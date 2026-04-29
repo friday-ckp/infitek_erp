@@ -113,6 +113,7 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     sectionPath: COMMERCE_SECTION_PATH,
     listLabel: '发货需求',
     detailLabel: '发货需求详情',
+    editLabel: '编辑发货需求',
   }),
   ...createCrudBreadcrumbRoutes({
     basePath: '/inventory',

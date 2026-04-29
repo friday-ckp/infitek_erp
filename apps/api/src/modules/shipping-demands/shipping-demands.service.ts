@@ -27,6 +27,7 @@ import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
 import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
+import { UpdateShippingDemandDto } from './dto/update-shipping-demand.dto';
 import { ShippingDemandInventoryAllocation } from './entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
 import { ShippingDemand } from './entities/shipping-demand.entity';
@@ -36,6 +37,56 @@ const MAX_DEMAND_CODE_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 50;
 const MAX_CONFIRM_ALLOCATION_RETRIES = 3;
 const INITIAL_CONFIRM_ALLOCATION_RETRY_DELAY_MS = 25;
+const EDITABLE_SHIPPING_DEMAND_FIELDS = new Set([
+  'afterSalesProductSummary',
+  'tradeTerm',
+  'bankAccount',
+  'primaryIndustry',
+  'secondaryIndustry',
+  'exchangeRate',
+  'crmSignedAt',
+  'paymentTerm',
+  'orderNature',
+  'receiptStatus',
+  'merchandiserAbbr',
+  'transportationMethod',
+  'requiredDeliveryAt',
+  'isSharedOrder',
+  'isSinosure',
+  'isAliTradeAssurance',
+  'isInsured',
+  'isPalletized',
+  'isSplitInAdvance',
+  'requiresExportCustoms',
+  'requiresWarrantyCard',
+  'requiresCustomsCertificate',
+  'requiresMaternityHandover',
+  'customsDeclarationMethod',
+  'usesMarketingFund',
+  'aliTradeAssuranceOrderCode',
+  'forwarderQuoteNote',
+  'contractFileKeys',
+  'contractFileNames',
+  'plugPhotoKeys',
+  'consigneeCompany',
+  'consigneeOtherInfo',
+  'notifyCompany',
+  'notifyOtherInfo',
+  'shipperCompany',
+  'domesticCustomerCompany',
+  'domesticCustomerDeliveryInfo',
+  'usesDefaultShippingMark',
+  'shippingMarkNote',
+  'shippingMarkTemplateKey',
+  'needsInvoice',
+  'invoiceType',
+  'shippingDocumentsNote',
+  'blType',
+  'originalMailAddress',
+  'businessRectificationNote',
+  'customsDocumentNote',
+  'otherRequirementNote',
+]);
 
 interface PreparedAllocationLine {
   item: ShippingDemandItem;
@@ -78,6 +129,30 @@ export class ShippingDemandsService {
 
   findAll(query: QueryShippingDemandDto) {
     return this.shippingDemandsRepository.findAll(query);
+  }
+
+  async update(
+    id: number,
+    dto: UpdateShippingDemandDto,
+    operator?: string,
+  ): Promise<ShippingDemand & Record<string, unknown>> {
+    const demand = await this.shippingDemandsRepository.findById(id);
+    if (!demand) {
+      throw new NotFoundException('发货需求不存在');
+    }
+    if (demand.status === ShippingDemandStatus.VOIDED) {
+      throw new BadRequestException('已作废发货需求不允许编辑');
+    }
+    this.assertEditableUpdatePayload(dto);
+
+    const updateData = this.buildUpdateData(dto, operator);
+    if (Object.keys(updateData).length === 0) {
+      return this.withSignedUrls(demand);
+    }
+
+    return this.withSignedUrls(
+      await this.shippingDemandsRepository.update(id, updateData),
+    );
   }
 
   async generateFromSalesOrder(
@@ -642,6 +717,53 @@ export class ShippingDemandsService {
       throw new BadRequestException('发货需求没有产品明细，无法确认分配');
     }
     return demand;
+  }
+
+  private assertEditableUpdatePayload(dto: UpdateShippingDemandDto): void {
+    const protectedFields = Object.keys(dto as Record<string, unknown>).filter(
+      (key) => !EDITABLE_SHIPPING_DEMAND_FIELDS.has(key),
+    );
+    if (protectedFields.length > 0) {
+      throw new BadRequestException({
+        code: 'SHIPPING_DEMAND_PROTECTED_FIELDS',
+        message: `发货需求编辑不允许修改受保护字段：${protectedFields.join(', ')}`,
+      });
+    }
+    if (
+      dto.contractFileKeys &&
+      dto.contractFileNames &&
+      dto.contractFileKeys.length !== dto.contractFileNames.length
+    ) {
+      throw new BadRequestException('合同文件 key 与名称数量不一致');
+    }
+  }
+
+  private buildUpdateData(
+    dto: UpdateShippingDemandDto,
+    operator?: string,
+  ): Partial<ShippingDemand> {
+    const data: Partial<ShippingDemand> = {};
+    for (const key of EDITABLE_SHIPPING_DEMAND_FIELDS) {
+      if (!Object.prototype.hasOwnProperty.call(dto, key)) continue;
+      const value = (dto as Record<string, unknown>)[key];
+      (data as Record<string, unknown>)[key] = this.normalizeEditableValue(
+        key,
+        value,
+      );
+    }
+    if (Object.keys(data).length > 0 && operator !== undefined) {
+      data.updatedBy = operator;
+    }
+    return data;
+  }
+
+  private normalizeEditableValue(key: string, value: unknown) {
+    if (value === undefined) return undefined;
+    if (value === null || value === '') return null;
+    if (key === 'exchangeRate') {
+      return Number(value).toFixed(6);
+    }
+    return value;
   }
 
   private prepareAllocationLines(
