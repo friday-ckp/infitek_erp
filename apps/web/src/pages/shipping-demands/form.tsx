@@ -152,6 +152,7 @@ const BL_TYPE_OPTIONS = [
 
 const LABEL_MAP: Record<string, string> = {
   [ShippingDemandStatus.PENDING_ALLOCATION]: "待分配库存",
+  [ShippingDemandStatus.PENDING_PURCHASE_ORDER]: "待生成采购单",
   [ShippingDemandStatus.PURCHASING]: "采购中",
   [ShippingDemandStatus.PREPARED]: "备货完成",
   [ShippingDemandStatus.PARTIALLY_SHIPPED]: "部分发货",
@@ -208,6 +209,40 @@ const LABEL_MAP: Record<string, string> = {
   [BlType.ORIGINAL]: "正本",
 };
 
+const SHIPPING_DEMAND_STATUS_STYLE_MAP: Record<
+  ShippingDemandStatus,
+  { className: string; text: string }
+> = {
+  [ShippingDemandStatus.PENDING_ALLOCATION]: {
+    className: "master-pill-blue",
+    text: "待分配库存",
+  },
+  [ShippingDemandStatus.PENDING_PURCHASE_ORDER]: {
+    className: "master-pill-orange",
+    text: "待生成采购单",
+  },
+  [ShippingDemandStatus.PURCHASING]: {
+    className: "master-pill-blue",
+    text: "采购中",
+  },
+  [ShippingDemandStatus.PREPARED]: {
+    className: "master-pill-success",
+    text: "备货完成",
+  },
+  [ShippingDemandStatus.PARTIALLY_SHIPPED]: {
+    className: "master-pill-orange",
+    text: "部分发货",
+  },
+  [ShippingDemandStatus.SHIPPED]: {
+    className: "master-pill-success",
+    text: "已发货",
+  },
+  [ShippingDemandStatus.VOIDED]: {
+    className: "master-pill-red",
+    text: "已作废",
+  },
+};
+
 function dateValue(value?: string | null) {
   return value ? dayjs(value) : undefined;
 }
@@ -246,6 +281,18 @@ function canEditShippingDemand(demand?: ShippingDemand | null) {
   return Boolean(demand && demand.status !== ShippingDemandStatus.VOIDED);
 }
 
+function getShippingDemandStatusInfo(status?: ShippingDemandStatus | null) {
+  return status
+    ? SHIPPING_DEMAND_STATUS_STYLE_MAP[status] ?? {
+        className: "master-pill-default",
+        text: formatLabel(status),
+      }
+    : {
+        className: "master-pill-default",
+        text: "—",
+      };
+}
+
 export default function ShippingDemandFormPage() {
   const { modal, message } = App.useApp();
   const navigate = useNavigate();
@@ -272,6 +319,7 @@ export default function ShippingDemandFormPage() {
     enabled: isValidId,
   });
   const demand = detailQuery.data;
+  const statusInfo = getShippingDemandStatusInfo(demand?.status);
 
   const updateMutation = useMutation({
     mutationFn: (payload: UpdateShippingDemandPayload) =>
@@ -573,7 +621,11 @@ export default function ShippingDemandFormPage() {
               <div className="master-form-grid">
                 <ProFormText name="demandCode" label="发货需求编号" readonly />
                 <ProFormText name="sourceDocumentCode" label="来源销售订单" readonly />
-                <ProFormText name="statusDisplay" label="状态" readonly />
+                <ProForm.Item label="状态">
+                  <span className={`master-pill ${statusInfo.className}`}>
+                    {statusInfo.text}
+                  </span>
+                </ProForm.Item>
                 <ProFormText name="domesticTradeTypeDisplay" label="内外销" readonly />
                 <ProFormText name="externalOrderCode" label="订单号" readonly />
                 <ProFormText name="customerName" label="客户" readonly />

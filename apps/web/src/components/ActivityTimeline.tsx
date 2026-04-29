@@ -84,6 +84,7 @@ const ENUM_VALUE_LABELS: Record<string, Record<string, string>> = {
     rejected: '已拒绝',
     voided: '已作废',
     pending_allocation: '待分配库存',
+    pending_purchase_order: '待生成采购单',
     purchasing: '采购中',
     enabled: '启用',
     disabled: '停用',
@@ -453,6 +454,7 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, s
     },
     status: {
       pending_allocation: '待分配库存',
+      pending_purchase_order: '待生成采购单',
       purchasing: '采购中',
       prepared: '备货完成',
       partially_shipped: '部分发货',

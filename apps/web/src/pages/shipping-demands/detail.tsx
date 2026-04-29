@@ -62,6 +62,7 @@ import {
   SummaryMetaItem,
   displayOrDash,
 } from "../master-data/components/page-scaffold";
+import { getLogisticsOrderCreatePrefill } from "../../api/logistics-orders.api";
 import "../master-data/master-page.css";
 
 const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
@@ -69,8 +70,12 @@ const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
     className: "master-pill-blue",
     text: "待分配库存",
   },
-  [ShippingDemandStatus.PURCHASING]: {
+  [ShippingDemandStatus.PENDING_PURCHASE_ORDER]: {
     className: "master-pill-orange",
+    text: "待生成采购单",
+  },
+  [ShippingDemandStatus.PURCHASING]: {
+    className: "master-pill-blue",
     text: "采购中",
   },
   [ShippingDemandStatus.PREPARED]: {
@@ -360,21 +365,54 @@ function StatCard({
   );
 }
 
-function FlowProgress({ status }: { status?: ShippingDemandStatus }) {
-  const activeIndexByStatus: Record<string, number> = {
-    [ShippingDemandStatus.PENDING_ALLOCATION]: 1,
-    [ShippingDemandStatus.PURCHASING]: 2,
-    [ShippingDemandStatus.PREPARED]: 3,
-    [ShippingDemandStatus.PARTIALLY_SHIPPED]: 5,
-    [ShippingDemandStatus.SHIPPED]: 6,
-    [ShippingDemandStatus.VOIDED]: 0,
+function FlowProgress({
+  status,
+  hasPurchaseRequirement,
+}: {
+  status?: ShippingDemandStatus;
+  hasPurchaseRequirement: boolean;
+}) {
+  const getProgressState = () => {
+    switch (status) {
+      case ShippingDemandStatus.PENDING_ALLOCATION:
+        return { activeIndex: 1, doneIndexes: new Set([0]) };
+      case ShippingDemandStatus.PENDING_PURCHASE_ORDER:
+        return { activeIndex: 2, doneIndexes: new Set([0, 1]) };
+      case ShippingDemandStatus.PURCHASING:
+        return { activeIndex: 3, doneIndexes: new Set([0, 1, 2]) };
+      case ShippingDemandStatus.PREPARED:
+        return {
+          activeIndex: 4,
+          doneIndexes: new Set(
+            hasPurchaseRequirement ? [0, 1, 2, 3] : [0, 1],
+          ),
+        };
+      case ShippingDemandStatus.PARTIALLY_SHIPPED:
+        return {
+          activeIndex: 6,
+          doneIndexes: new Set(
+            hasPurchaseRequirement ? [0, 1, 2, 3, 4, 5] : [0, 1, 4, 5],
+          ),
+        };
+      case ShippingDemandStatus.SHIPPED:
+        return {
+          activeIndex: 7,
+          doneIndexes: new Set(
+            hasPurchaseRequirement ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 4, 5, 6],
+          ),
+        };
+      case ShippingDemandStatus.VOIDED:
+      default:
+        return { activeIndex: 0, doneIndexes: new Set<number>() };
+    }
   };
-  const activeIndex = activeIndexByStatus[status ?? ""] ?? 0;
+  const { activeIndex, doneIndexes } = getProgressState();
   const steps = [
     "需求创建",
-    "库存检查",
-    "采购备货",
-    "库存锁定",
+    "分配库存",
+    "待生成采购单",
+    "采购中",
+    "备货完成",
     "创建物流",
     "出库发货",
     "完成",
@@ -383,7 +421,7 @@ function FlowProgress({ status }: { status?: ShippingDemandStatus }) {
   return (
     <div className="shipping-demand-flow">
       {steps.map((step, index) => {
-        const done = index < activeIndex;
+        const done = doneIndexes.has(index);
         const active =
           index === activeIndex && status !== ShippingDemandStatus.VOIDED;
         const className = done ? "done" : active ? "active" : "pending";
@@ -467,10 +505,11 @@ export default function ShippingDemandDetailPage() {
   const canVoidDemand =
     data?.status === ShippingDemandStatus.PENDING_ALLOCATION;
   const canEditDemand = Boolean(data && data.status !== ShippingDemandStatus.VOIDED);
-  const canCreateLogisticsOrder =
-    (data?.status === ShippingDemandStatus.PREPARED ||
-      data?.status === ShippingDemandStatus.PARTIALLY_SHIPPED) &&
-    items.some((item) => numberValue(item.lockedRemainingQuantity) > 0);
+  const canGeneratePurchaseOrder =
+    data?.status === ShippingDemandStatus.PENDING_PURCHASE_ORDER;
+  const isLogisticsEligibleStatus =
+    data?.status === ShippingDemandStatus.PREPARED ||
+    data?.status === ShippingDemandStatus.PARTIALLY_SHIPPED;
   const sourceSalesOrderLink = data?.salesOrderId
     ? () => navigate(`/sales-orders/${data.salesOrderId}`)
     : undefined;
@@ -486,6 +525,9 @@ export default function ShippingDemandDetailPage() {
   const totalShippedQuantity = items.reduce(
     (sum, item) => sum + numberValue(item.shippedQuantity),
     0,
+  );
+  const hasPurchaseRequirement = items.some(
+    (item) => numberValue(item.purchaseRequiredQuantity) > 0,
   );
   const batchSkuIds = useMemo(
     () =>
@@ -508,6 +550,20 @@ export default function ShippingDemandDetailPage() {
     queryKey: ["shipping-demand-warehouses"],
     queryFn: () => getWarehouses({ page: 1, pageSize: 500 }),
   });
+  const logisticsPrefillQuery = useQuery({
+    queryKey: ["logistics-order-create-prefill", demandId],
+    queryFn: () => getLogisticsOrderCreatePrefill(demandId),
+    enabled:
+      Number.isInteger(demandId) &&
+      demandId > 0 &&
+      Boolean(data) &&
+      isLogisticsEligibleStatus,
+  });
+  const canCreateLogisticsOrder =
+    isLogisticsEligibleStatus &&
+    (logisticsPrefillQuery.data?.planItems ?? []).some(
+      (item) => numberValue(item.availableToPlan) > 0,
+    );
   const warehouseMap = useMemo(() => {
     const map = new Map<number, Warehouse>();
     for (const warehouse of warehousesQuery.data?.list ?? []) {
@@ -1235,13 +1291,23 @@ export default function ShippingDemandDetailPage() {
         description="查看流程阶段、关联入口和履约数量摘要。"
       >
         <div className="shipping-demand-hub">
-          <FlowProgress status={data?.status} />
+          <FlowProgress
+            status={data?.status}
+            hasPurchaseRequirement={hasPurchaseRequirement}
+          />
           <div className="shipping-demand-smart-row">
             <SmartButton
               icon={<FileProtectOutlined />}
-              label="采购订单"
+              label={canGeneratePurchaseOrder ? "生成采购单" : "采购订单"}
               count={0}
               disabled
+              disabledTooltip={
+                canGeneratePurchaseOrder
+                  ? "采购订单功能将在 Epic 6 启用"
+                  : data?.status === ShippingDemandStatus.PURCHASING
+                    ? "采购订单已生成后进入采购中，补单入口将在 Epic 6 启用"
+                    : "确认分配产生采购缺口后可生成采购单，功能将在 Epic 6 启用"
+              }
             />
             <SmartButton
               icon={<ExportOutlined />}

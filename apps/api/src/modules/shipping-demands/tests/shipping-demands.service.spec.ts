@@ -769,7 +769,7 @@ describe('ShippingDemandsService', () => {
     );
   });
 
-  it('confirms allocation and keeps demand purchasing when purchase quantity remains', async () => {
+  it('confirms allocation and keeps demand pending purchase order when purchase quantity remains', async () => {
     const state: Record<string, unknown> = {
       demand: makeDemandForAllocation(),
     };
@@ -778,7 +778,7 @@ describe('ShippingDemandsService', () => {
     shippingDemandsRepository.findById.mockResolvedValue({
       id: 500,
       demandCode: 'SD2026042800001',
-      status: ShippingDemandStatus.PURCHASING,
+      status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
       items: [{ id: 700, lockedRemainingQuantity: 1 }],
     });
     inventoryService.lockStockInTransaction.mockResolvedValue({
@@ -815,16 +815,23 @@ describe('ShippingDemandsService', () => {
       }),
     ]);
     expect(state.savedDemand).toEqual(
-      expect.objectContaining({ status: ShippingDemandStatus.PURCHASING }),
+      expect.objectContaining({
+        status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+      }),
     );
     expect(state.salesOrderUpdate).toBeUndefined();
   });
 
-  it('rejects confirming allocation for non-pending demand', async () => {
+  it.each([
+    ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+    ShippingDemandStatus.PURCHASING,
+    ShippingDemandStatus.PREPARED,
+    ShippingDemandStatus.PARTIALLY_SHIPPED,
+    ShippingDemandStatus.SHIPPED,
+    ShippingDemandStatus.VOIDED,
+  ])('rejects confirming allocation for non-pending demand %s', async (status) => {
     const state: Record<string, unknown> = {
-      demand: makeDemandForAllocation({
-        status: ShippingDemandStatus.PURCHASING,
-      }),
+      demand: makeDemandForAllocation({ status }),
     };
     const queryRunner = makeQueryRunner(state);
     shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);

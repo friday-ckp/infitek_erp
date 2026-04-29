@@ -75,6 +75,7 @@ export type SalesOrderSource =
 
 export const ShippingDemandStatus = {
   PENDING_ALLOCATION: 'pending_allocation',
+  PENDING_PURCHASE_ORDER: 'pending_purchase_order',
   PURCHASING: 'purchasing',
   PREPARED: 'prepared',
   PARTIALLY_SHIPPED: 'partially_shipped',
