@@ -716,6 +716,10 @@ export const RESOURCE_OPERATION_LOG_FIELD_LABELS: Record<
     items: '产品明细',
     expenses: '加项费用',
   },
+  'shipping-demands': {
+    afterSalesProductSummary: '所有售后产品品名及对应总价',
+    items: '产品明细',
+  },
 };
 
 export function resolveOperationLogFieldLabel(

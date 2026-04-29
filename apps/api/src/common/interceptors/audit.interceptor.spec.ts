@@ -111,6 +111,31 @@ describe('AuditInterceptor', () => {
     ]);
   });
 
+  it('limits patch update summaries to submitted fields', () => {
+    const { interceptor } = createInterceptor();
+
+    const result = (interceptor as any).buildChangeSummary(
+      'UPDATE',
+      'shipping-demands',
+      { afterSalesProductSummary: null },
+      {
+        afterSalesProductSummary: '售后产品A：1000',
+        items: [{ id: 1, requiredQuantity: 2 }],
+      },
+      { afterSalesProductSummary: '售后产品A：1000' },
+      'PATCH',
+    );
+
+    expect(result).toEqual([
+      {
+        field: 'afterSalesProductSummary',
+        fieldLabel: '所有售后产品品名及对应总价',
+        oldValue: null,
+        newValue: '售后产品A：1000',
+      },
+    ]);
+  });
+
   it('uses created entity id for create action resource id before path id', () => {
     const { interceptor } = createInterceptor();
 

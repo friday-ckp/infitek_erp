@@ -20,6 +20,7 @@ import { SalesOrderItem } from '../../sales-orders/entities/sales-order-item.ent
 import { ShippingDemandInventoryAllocation } from '../entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from '../entities/shipping-demand-item.entity';
 import { ShippingDemand } from '../entities/shipping-demand.entity';
+import { UpdateShippingDemandDto } from '../dto/update-shipping-demand.dto';
 import { ShippingDemandsService } from '../shipping-demands.service';
 
 describe('ShippingDemandsService', () => {
@@ -446,6 +447,39 @@ describe('ShippingDemandsService', () => {
     );
     expect(shippingDemandsRepository.update.mock.calls[0][1]).not.toHaveProperty('items');
     expect(shippingDemandsRepository.update.mock.calls[0][1]).not.toHaveProperty('requiredQuantity');
+  });
+
+  it('ignores undefined DTO fields when editing shipping demand', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      afterSalesProductSummary: null,
+      items: [{ id: 700, requiredQuantity: 2 }],
+    });
+    shippingDemandsRepository.update.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      afterSalesProductSummary: '售后产品A：1000',
+      items: [{ id: 700, requiredQuantity: 2 }],
+    });
+    const dto = Object.assign(new UpdateShippingDemandDto(), {
+      afterSalesProductSummary: '售后产品A：1000',
+      status: undefined,
+    });
+
+    const result = await service.update(500, dto, 'admin');
+
+    expect(result.afterSalesProductSummary).toBe('售后产品A：1000');
+    expect(shippingDemandsRepository.update).toHaveBeenCalledWith(
+      500,
+      expect.objectContaining({
+        afterSalesProductSummary: '售后产品A：1000',
+        updatedBy: 'admin',
+      }),
+    );
+    expect(shippingDemandsRepository.update.mock.calls[0][1]).not.toHaveProperty('status');
   });
 
   it('rejects shipping demand edits that try to change protected fields', async () => {

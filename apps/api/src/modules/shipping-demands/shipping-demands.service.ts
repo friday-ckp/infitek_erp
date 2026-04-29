@@ -724,11 +724,14 @@ export class ShippingDemandsService {
     dto: UpdateShippingDemandDto,
     demand: ShippingDemand,
   ): void {
-    const protectedFields = Object.keys(dto as Record<string, unknown>).filter(
-      (key) =>
-        !EDITABLE_SHIPPING_DEMAND_FIELDS.has(key) &&
-        !this.isReadonlyEchoField(key, dto, demand),
-    );
+    const providedEntries = this.getProvidedDtoEntries(dto);
+    const protectedFields = providedEntries
+      .filter(
+        ([key]) =>
+          !EDITABLE_SHIPPING_DEMAND_FIELDS.has(key) &&
+          !this.isReadonlyEchoField(key, dto, demand),
+      )
+      .map(([key]) => key);
     if (protectedFields.length > 0) {
       throw new BadRequestException({
         code: 'SHIPPING_DEMAND_PROTECTED_FIELDS',
@@ -742,6 +745,12 @@ export class ShippingDemandsService {
     ) {
       throw new BadRequestException('合同文件 key 与名称数量不一致');
     }
+  }
+
+  private getProvidedDtoEntries(dto: UpdateShippingDemandDto) {
+    return Object.entries(dto as Record<string, unknown>).filter(
+      ([, value]) => value !== undefined,
+    );
   }
 
   private isReadonlyEchoField(
@@ -762,9 +771,10 @@ export class ShippingDemandsService {
     operator?: string,
   ): Partial<ShippingDemand> {
     const data: Partial<ShippingDemand> = {};
+    const providedValues = new Map(this.getProvidedDtoEntries(dto));
     for (const key of EDITABLE_SHIPPING_DEMAND_FIELDS) {
-      if (!Object.prototype.hasOwnProperty.call(dto, key)) continue;
-      const value = (dto as Record<string, unknown>)[key];
+      if (!providedValues.has(key)) continue;
+      const value = providedValues.get(key);
       (data as Record<string, unknown>)[key] = this.normalizeEditableValue(
         key,
         value,
