@@ -87,6 +87,7 @@ const EDITABLE_SHIPPING_DEMAND_FIELDS = new Set([
   'customsDocumentNote',
   'otherRequirementNote',
 ]);
+const READONLY_ECHO_SHIPPING_DEMAND_FIELDS = new Set(['status']);
 
 interface PreparedAllocationLine {
   item: ShippingDemandItem;
@@ -143,7 +144,7 @@ export class ShippingDemandsService {
     if (demand.status === ShippingDemandStatus.VOIDED) {
       throw new BadRequestException('已作废发货需求不允许编辑');
     }
-    this.assertEditableUpdatePayload(dto);
+    this.assertEditableUpdatePayload(dto, demand);
 
     const updateData = this.buildUpdateData(dto, operator);
     if (Object.keys(updateData).length === 0) {
@@ -719,9 +720,14 @@ export class ShippingDemandsService {
     return demand;
   }
 
-  private assertEditableUpdatePayload(dto: UpdateShippingDemandDto): void {
+  private assertEditableUpdatePayload(
+    dto: UpdateShippingDemandDto,
+    demand: ShippingDemand,
+  ): void {
     const protectedFields = Object.keys(dto as Record<string, unknown>).filter(
-      (key) => !EDITABLE_SHIPPING_DEMAND_FIELDS.has(key),
+      (key) =>
+        !EDITABLE_SHIPPING_DEMAND_FIELDS.has(key) &&
+        !this.isReadonlyEchoField(key, dto, demand),
     );
     if (protectedFields.length > 0) {
       throw new BadRequestException({
@@ -736,6 +742,19 @@ export class ShippingDemandsService {
     ) {
       throw new BadRequestException('合同文件 key 与名称数量不一致');
     }
+  }
+
+  private isReadonlyEchoField(
+    key: string,
+    dto: UpdateShippingDemandDto,
+    demand: ShippingDemand,
+  ): boolean {
+    if (!READONLY_ECHO_SHIPPING_DEMAND_FIELDS.has(key)) return false;
+    const demandValue = demand[key as keyof ShippingDemand];
+    return (
+      (dto as Record<string, unknown>)[key] ===
+      demandValue
+    );
   }
 
   private buildUpdateData(

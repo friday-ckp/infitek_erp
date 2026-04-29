@@ -26,11 +26,13 @@ import {
   InvoiceType,
   OrderNature,
   PaymentTerm,
+  PlugType,
   PrimaryIndustry,
   ProductLineType,
   ReceiptStatus,
   SecondaryIndustry,
   ShippingDemandStatus,
+  SalesOrderType,
   TradeTerm,
   TransportationMethod,
   YesNo,
@@ -157,15 +159,53 @@ const LABEL_MAP: Record<string, string> = {
   [ShippingDemandStatus.VOIDED]: "已作废",
   [DomesticTradeType.DOMESTIC]: "内销",
   [DomesticTradeType.FOREIGN]: "外销",
+  [SalesOrderType.SALES]: "销售订单",
+  [SalesOrderType.AFTER_SALES]: "售后订单",
+  [SalesOrderType.SAMPLE]: "样品销售",
   [YesNo.YES]: "是",
   [YesNo.NO]: "否",
   [ProductLineType.MAIN]: "主品",
   [ProductLineType.OPTIONAL]: "选配",
   [ProductLineType.STANDARD]: "标配",
   [ProductLineType.GIFT]: "赠品",
+  [PlugType.EU]: "欧标",
+  [PlugType.UK]: "英标",
+  [PlugType.US]: "美标",
+  [PlugType.CN]: "中标",
+  [PlugType.OTHER]: "其他",
+  [PlugType.NONE]: "无",
   [FulfillmentType.FULL_PURCHASE]: "全部采购",
   [FulfillmentType.PARTIAL_PURCHASE]: "部分采购",
   [FulfillmentType.USE_STOCK]: "使用现有库存",
+  [TransportationMethod.SEA]: "海运",
+  [TransportationMethod.AIR]: "空运",
+  [TransportationMethod.ROAD]: "公路",
+  [TransportationMethod.RAIL]: "铁路",
+  [TransportationMethod.EXPRESS]: "快递",
+  [PrimaryIndustry.EDUCATION]: "教育(教学、科研）",
+  [PrimaryIndustry.GOVERNMENT]: "政府",
+  [PrimaryIndustry.MEDICAL]: "医疗",
+  [PrimaryIndustry.ENTERPRISE]: "企业",
+  [SecondaryIndustry.AGRICULTURE_COLLEGE]: "农学院",
+  [SecondaryIndustry.FOOD]: "食品",
+  [SecondaryIndustry.ANIMAL_SCIENCE]: "动物科学学院",
+  [SecondaryIndustry.PHARMACY]: "药学院",
+  [SecondaryIndustry.MEDICAL_COLLEGE]: "医学院",
+  [SecondaryIndustry.PUBLIC_HEALTH]: "公共卫生学院",
+  [SecondaryIndustry.LIFE_SCIENCE]: "生命科学",
+  [SecondaryIndustry.ENVIRONMENT]: "环境",
+  [OrderNature.BIDDING]: "投标订单",
+  [OrderNature.RETAIL]: "零售订单",
+  [OrderNature.STOCK_PREPARE]: "备库存订单",
+  [ReceiptStatus.UNPAID]: "未收款",
+  [ReceiptStatus.PARTIALLY_PAID]: "部分收款",
+  [ReceiptStatus.PAID]: "已收款",
+  [CustomsDeclarationMethod.SELF]: "公司自行报关",
+  [CustomsDeclarationMethod.ALI_ONE_TOUCH]: "阿里一达通报关",
+  [InvoiceType.VAT_SPECIAL]: "增值税专用发票",
+  [InvoiceType.VAT_NORMAL]: "增值税普通发票",
+  [BlType.TELEX_RELEASE]: "电放",
+  [BlType.ORIGINAL]: "正本",
 };
 
 function dateValue(value?: string | null) {
@@ -191,8 +231,11 @@ function formatLabel(value?: string | null) {
 }
 
 function demandToFormValues(demand: ShippingDemand) {
+  const { status, domesticTradeType, ...formValues } = demand;
   return {
-    ...demand,
+    ...formValues,
+    statusDisplay: formatLabel(status),
+    domesticTradeTypeDisplay: formatLabel(domesticTradeType),
     crmSignedAt: dateValue(demand.crmSignedAt),
     requiredDeliveryAt: dateValue(demand.requiredDeliveryAt),
     exchangeRate: demand.exchangeRate == null ? undefined : Number(demand.exchangeRate),
@@ -509,13 +552,6 @@ export default function ShippingDemandFormPage() {
         formRef={formRef}
         submitter={false}
         initialValues={formInitialValues}
-        onValuesChange={(_, allValues) => {
-          setDomesticTradeType(
-            allValues.domesticTradeType === DomesticTradeType.DOMESTIC
-              ? DomesticTradeType.DOMESTIC
-              : DomesticTradeType.FOREIGN,
-          );
-        }}
         onFinish={async (values) => {
           modal.confirm({
             title: "确认保存发货需求？",
@@ -537,8 +573,8 @@ export default function ShippingDemandFormPage() {
               <div className="master-form-grid">
                 <ProFormText name="demandCode" label="发货需求编号" readonly />
                 <ProFormText name="sourceDocumentCode" label="来源销售订单" readonly />
-                <ProFormText name="status" label="状态" readonly transform={(value) => LABEL_MAP[value] ?? value} />
-                <ProFormText name="domesticTradeType" label="内外销" readonly transform={(value) => LABEL_MAP[value] ?? value} />
+                <ProFormText name="statusDisplay" label="状态" readonly />
+                <ProFormText name="domesticTradeTypeDisplay" label="内外销" readonly />
                 <ProFormText name="externalOrderCode" label="订单号" readonly />
                 <ProFormText name="customerName" label="客户" readonly />
                 <ProFormText name="customerCode" label="客户代码" readonly />

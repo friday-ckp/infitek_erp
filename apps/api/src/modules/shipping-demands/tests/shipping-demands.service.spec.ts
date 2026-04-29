@@ -468,6 +468,62 @@ describe('ShippingDemandsService', () => {
     expect(shippingDemandsRepository.update).not.toHaveBeenCalled();
   });
 
+  it('allows readonly status echo without writing it during shipping demand edit', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      consigneeCompany: 'Old consignee',
+      items: [{ id: 700, requiredQuantity: 2 }],
+    });
+    shippingDemandsRepository.update.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      consigneeCompany: 'New consignee',
+      items: [{ id: 700, requiredQuantity: 2 }],
+    });
+
+    const result = await service.update(
+      500,
+      {
+        status: ShippingDemandStatus.PREPARED,
+        consigneeCompany: 'New consignee',
+      },
+      'admin',
+    );
+
+    expect(result.consigneeCompany).toBe('New consignee');
+    expect(shippingDemandsRepository.update).toHaveBeenCalledWith(
+      500,
+      expect.objectContaining({
+        consigneeCompany: 'New consignee',
+        updatedBy: 'admin',
+      }),
+    );
+    expect(shippingDemandsRepository.update.mock.calls[0][1]).not.toHaveProperty('status');
+  });
+
+  it('rejects shipping demand edits that try to change status', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      status: ShippingDemandStatus.PREPARED,
+      items: [{ id: 700, requiredQuantity: 2 }],
+    });
+
+    await expect(
+      service.update(
+        500,
+        {
+          status: ShippingDemandStatus.SHIPPED,
+          consigneeCompany: 'New consignee',
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(shippingDemandsRepository.update).not.toHaveBeenCalled();
+  });
+
   it('rejects editing voided shipping demand', async () => {
     shippingDemandsRepository.findById.mockResolvedValue({
       id: 500,
