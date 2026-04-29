@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
@@ -6,7 +14,9 @@ import { ShippingDemandsService } from './shipping-demands.service';
 
 @Controller('shipping-demands')
 export class ShippingDemandsController {
-  constructor(private readonly shippingDemandsService: ShippingDemandsService) {}
+  constructor(
+    private readonly shippingDemandsService: ShippingDemandsService,
+  ) {}
 
   @Get()
   findAll(@Query() query: QueryShippingDemandDto) {
@@ -29,6 +39,14 @@ export class ShippingDemandsController {
       dto,
       user?.username,
     );
+  }
+
+  @Post(':id/void')
+  voidDemand(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: { username?: string },
+  ) {
+    return this.shippingDemandsService.voidDemand(id, user?.username);
   }
 
   @Post('generate-from-sales-order/:salesOrderId')

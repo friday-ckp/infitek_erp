@@ -1,5 +1,13 @@
 import { Expose } from 'class-transformer';
-import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, Unique } from 'typeorm';
+import {
+  Column,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  Unique,
+} from 'typeorm';
 import {
   BlType,
   CustomsDeclarationMethod,
@@ -45,13 +53,26 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   sourceDocumentCode: string;
 
-  @Column({ name: 'source_document_type', type: 'varchar', length: 40, default: "'sales_order'" })
+  @Column({
+    name: 'source_document_type',
+    type: 'varchar',
+    length: 40,
+    default: "'sales_order'",
+  })
   @Expose()
   sourceDocumentType: string;
 
   @Column({ name: 'status', type: 'varchar', length: 30 })
   @Expose()
   status: ShippingDemandStatus;
+
+  @Column({ name: 'voided_at', type: 'datetime', nullable: true })
+  @Expose()
+  voidedAt: Date | null;
+
+  @Column({ name: 'voided_by', type: 'varchar', length: 100, nullable: true })
+  @Expose()
+  voidedBy: string | null;
 
   @Column({ name: 'order_type', type: 'varchar', length: 30 })
   @Expose()
@@ -65,7 +86,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   domesticTradeType: DomesticTradeType;
 
-  @Column({ name: 'external_order_code', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'external_order_code',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   externalOrderCode: string | null;
 
@@ -81,15 +107,29 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   customerCode: string;
 
-  @Column({ name: 'customer_contact_person', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'customer_contact_person',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   customerContactPerson: string | null;
 
-  @Column({ name: 'after_sales_source_order_id', type: 'bigint', nullable: true })
+  @Column({
+    name: 'after_sales_source_order_id',
+    type: 'bigint',
+    nullable: true,
+  })
   @Expose()
   afterSalesSourceOrderId: number | null;
 
-  @Column({ name: 'after_sales_source_order_code', type: 'varchar', length: 32, nullable: true })
+  @Column({
+    name: 'after_sales_source_order_code',
+    type: 'varchar',
+    length: 32,
+    nullable: true,
+  })
   @Expose()
   afterSalesSourceOrderCode: string | null;
 
@@ -101,15 +141,30 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   currencyId: number | null;
 
-  @Column({ name: 'currency_code', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'currency_code',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   @Expose()
   currencyCode: string | null;
 
-  @Column({ name: 'currency_name', type: 'varchar', length: 50, nullable: true })
+  @Column({
+    name: 'currency_name',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   @Expose()
   currencyName: string | null;
 
-  @Column({ name: 'currency_symbol', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'currency_symbol',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   @Expose()
   currencySymbol: string | null;
 
@@ -117,7 +172,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   tradeTerm: TradeTerm | null;
 
-  @Column({ name: 'bank_account', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'bank_account',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   @Expose()
   bankAccount: string | null;
 
@@ -125,19 +185,40 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   extraViewerId: number | null;
 
-  @Column({ name: 'extra_viewer_name', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'extra_viewer_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   extraViewerName: string | null;
 
-  @Column({ name: 'primary_industry', type: 'varchar', length: 50, nullable: true })
+  @Column({
+    name: 'primary_industry',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   @Expose()
   primaryIndustry: PrimaryIndustry | null;
 
-  @Column({ name: 'secondary_industry', type: 'varchar', length: 50, nullable: true })
+  @Column({
+    name: 'secondary_industry',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
   @Expose()
   secondaryIndustry: SecondaryIndustry | null;
 
-  @Column({ name: 'exchange_rate', type: 'decimal', precision: 18, scale: 6, nullable: true })
+  @Column({
+    name: 'exchange_rate',
+    type: 'decimal',
+    precision: 18,
+    scale: 6,
+    nullable: true,
+  })
   @Expose()
   exchangeRate: string | null;
 
@@ -149,11 +230,20 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   paymentTerm: PaymentTerm | null;
 
-  @Column({ name: 'shipment_origin_country_id', type: 'bigint', nullable: true })
+  @Column({
+    name: 'shipment_origin_country_id',
+    type: 'bigint',
+    nullable: true,
+  })
   @Expose()
   shipmentOriginCountryId: number | null;
 
-  @Column({ name: 'shipment_origin_country_name', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'shipment_origin_country_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   shipmentOriginCountryName: string | null;
 
@@ -161,7 +251,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   destinationCountryId: number | null;
 
-  @Column({ name: 'destination_country_name', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'destination_country_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   destinationCountryName: string | null;
 
@@ -169,7 +264,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   destinationPortId: number | null;
 
-  @Column({ name: 'destination_port_name', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'destination_port_name',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   @Expose()
   destinationPortName: string | null;
 
@@ -177,7 +277,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   signingCompanyId: number | null;
 
-  @Column({ name: 'signing_company_name', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'signing_company_name',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   @Expose()
   signingCompanyName: string | null;
 
@@ -185,7 +290,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   salespersonId: number | null;
 
-  @Column({ name: 'salesperson_name', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'salesperson_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   salespersonName: string | null;
 
@@ -193,11 +303,21 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   merchandiserId: number | null;
 
-  @Column({ name: 'merchandiser_name', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'merchandiser_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   merchandiserName: string | null;
 
-  @Column({ name: 'merchandiser_abbr', type: 'varchar', length: 20, nullable: true })
+  @Column({
+    name: 'merchandiser_abbr',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
   @Expose()
   merchandiserAbbr: string | null;
 
@@ -205,11 +325,21 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   orderNature: OrderNature | null;
 
-  @Column({ name: 'receipt_status', type: 'varchar', length: 30, nullable: true })
+  @Column({
+    name: 'receipt_status',
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+  })
   @Expose()
   receiptStatus: ReceiptStatus | null;
 
-  @Column({ name: 'transportation_method', type: 'varchar', length: 30, nullable: true })
+  @Column({
+    name: 'transportation_method',
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+  })
   @Expose()
   transportationMethod: TransportationMethod | null;
 
@@ -217,7 +347,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   requiredDeliveryAt: string | null;
 
-  @Column({ name: 'is_shared_order', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'is_shared_order',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   isSharedOrder: YesNo | null;
 
@@ -225,7 +360,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   isSinosure: YesNo | null;
 
-  @Column({ name: 'is_ali_trade_assurance', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'is_ali_trade_assurance',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   isAliTradeAssurance: YesNo | null;
 
@@ -233,39 +373,84 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   isInsured: YesNo | null;
 
-  @Column({ name: 'is_palletized', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'is_palletized',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   isPalletized: YesNo | null;
 
-  @Column({ name: 'is_split_in_advance', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'is_split_in_advance',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   isSplitInAdvance: YesNo | null;
 
-  @Column({ name: 'requires_export_customs', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'requires_export_customs',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   requiresExportCustoms: YesNo | null;
 
-  @Column({ name: 'requires_warranty_card', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'requires_warranty_card',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   requiresWarrantyCard: YesNo | null;
 
-  @Column({ name: 'requires_customs_certificate', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'requires_customs_certificate',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   requiresCustomsCertificate: YesNo | null;
 
-  @Column({ name: 'requires_maternity_handover', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'requires_maternity_handover',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   requiresMaternityHandover: YesNo | null;
 
-  @Column({ name: 'customs_declaration_method', type: 'varchar', length: 30, nullable: true })
+  @Column({
+    name: 'customs_declaration_method',
+    type: 'varchar',
+    length: 30,
+    nullable: true,
+  })
   @Expose()
   customsDeclarationMethod: CustomsDeclarationMethod | null;
 
-  @Column({ name: 'uses_marketing_fund', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'uses_marketing_fund',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   usesMarketingFund: YesNo | null;
 
-  @Column({ name: 'ali_trade_assurance_order_code', type: 'varchar', length: 100, nullable: true })
+  @Column({
+    name: 'ali_trade_assurance_order_code',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
   @Expose()
   aliTradeAssuranceOrderCode: string | null;
 
@@ -305,11 +490,20 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   shipperCompany: string | null;
 
-  @Column({ name: 'shipper_other_info_company_id', type: 'bigint', nullable: true })
+  @Column({
+    name: 'shipper_other_info_company_id',
+    type: 'bigint',
+    nullable: true,
+  })
   @Expose()
   shipperOtherInfoCompanyId: number | null;
 
-  @Column({ name: 'shipper_other_info_company_name', type: 'varchar', length: 200, nullable: true })
+  @Column({
+    name: 'shipper_other_info_company_name',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
   @Expose()
   shipperOtherInfoCompanyName: string | null;
 
@@ -317,23 +511,47 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   domesticCustomerCompany: string | null;
 
-  @Column({ name: 'domestic_customer_delivery_info', type: 'text', nullable: true })
+  @Column({
+    name: 'domestic_customer_delivery_info',
+    type: 'text',
+    nullable: true,
+  })
   @Expose()
   domesticCustomerDeliveryInfo: string | null;
 
-  @Column({ name: 'uses_default_shipping_mark', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'uses_default_shipping_mark',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   usesDefaultShippingMark: YesNo | null;
 
-  @Column({ name: 'shipping_mark_note', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'shipping_mark_note',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   @Expose()
   shippingMarkNote: string | null;
 
-  @Column({ name: 'shipping_mark_template_key', type: 'varchar', length: 255, nullable: true })
+  @Column({
+    name: 'shipping_mark_template_key',
+    type: 'varchar',
+    length: 255,
+    nullable: true,
+  })
   @Expose()
   shippingMarkTemplateKey: string | null;
 
-  @Column({ name: 'needs_invoice', type: 'varchar', length: 10, nullable: true })
+  @Column({
+    name: 'needs_invoice',
+    type: 'varchar',
+    length: 10,
+    nullable: true,
+  })
   @Expose()
   needsInvoice: YesNo | null;
 
@@ -341,7 +559,12 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   invoiceType: InvoiceType | null;
 
-  @Column({ name: 'shipping_documents_note', type: 'varchar', length: 500, nullable: true })
+  @Column({
+    name: 'shipping_documents_note',
+    type: 'varchar',
+    length: 500,
+    nullable: true,
+  })
   @Expose()
   shippingDocumentsNote: string | null;
 
@@ -365,31 +588,69 @@ export class ShippingDemand extends BaseEntity {
   @Expose()
   otherRequirementNote: string | null;
 
-  @Column({ name: 'contract_amount', type: 'decimal', precision: 18, scale: 2, default: 0 })
+  @Column({
+    name: 'contract_amount',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 0,
+  })
   @Expose()
   contractAmount: string;
 
-  @Column({ name: 'received_amount', type: 'decimal', precision: 18, scale: 2, default: 0 })
+  @Column({
+    name: 'received_amount',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 0,
+  })
   @Expose()
   receivedAmount: string;
 
-  @Column({ name: 'outstanding_amount', type: 'decimal', precision: 18, scale: 2, default: 0 })
+  @Column({
+    name: 'outstanding_amount',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 0,
+  })
   @Expose()
   outstandingAmount: string;
 
-  @Column({ name: 'total_amount', type: 'decimal', precision: 18, scale: 2, default: 0 })
+  @Column({
+    name: 'total_amount',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 0,
+  })
   @Expose()
   totalAmount: string;
 
-  @Column({ name: 'product_total_amount', type: 'decimal', precision: 18, scale: 2, default: 0 })
+  @Column({
+    name: 'product_total_amount',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 0,
+  })
   @Expose()
   productTotalAmount: string;
 
-  @Column({ name: 'expense_total_amount', type: 'decimal', precision: 18, scale: 2, default: 0 })
+  @Column({
+    name: 'expense_total_amount',
+    type: 'decimal',
+    precision: 18,
+    scale: 2,
+    default: 0,
+  })
   @Expose()
   expenseTotalAmount: string;
 
-  @OneToMany(() => ShippingDemandItem, (item) => item.shippingDemand, { cascade: false })
+  @OneToMany(() => ShippingDemandItem, (item) => item.shippingDemand, {
+    cascade: false,
+  })
   @Expose()
   items?: ShippingDemandItem[];
 

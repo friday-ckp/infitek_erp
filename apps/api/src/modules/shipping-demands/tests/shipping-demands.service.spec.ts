@@ -16,6 +16,7 @@ import {
   OperationLogAction,
 } from '../../operation-logs/entities/operation-log.entity';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
+import { SalesOrderItem } from '../../sales-orders/entities/sales-order-item.entity';
 import { ShippingDemandInventoryAllocation } from '../entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from '../entities/shipping-demand-item.entity';
 import { ShippingDemand } from '../entities/shipping-demand.entity';
@@ -30,6 +31,7 @@ describe('ShippingDemandsService', () => {
   const inventoryService = {
     findAvailable: jest.fn(),
     lockStockInTransaction: jest.fn(),
+    unlockStockInTransaction: jest.fn(),
   };
   const filesService = {
     getSignedUrl: jest.fn(),
@@ -188,6 +190,29 @@ describe('ShippingDemandsService', () => {
     ...overrides,
   });
 
+  const makeActiveAllocation = (
+    overrides: Partial<ShippingDemandInventoryAllocation> = {},
+  ): Partial<ShippingDemandInventoryAllocation> => ({
+    id: 800,
+    shippingDemandId: 500,
+    shippingDemandItemId: 700,
+    salesOrderItemId: 101,
+    skuId: 11,
+    warehouseId: 22,
+    inventoryBatchId: 901,
+    lockSource: 'existing_stock',
+    sourceDocumentType: 'shipping_demand',
+    sourceDocumentId: 500,
+    originalLockedQuantity: 2,
+    lockedQuantity: 2,
+    shippedQuantity: 0,
+    releasedQuantity: 0,
+    status: ShippingDemandAllocationStatus.ACTIVE,
+    sourceActionKey:
+      'shipping-demand:500:confirm-allocation:item:700:batch:901',
+    ...overrides,
+  });
+
   const makeQueryBuilder = (result: unknown) => {
     const qb = {
       leftJoinAndSelect: jest.fn(() => qb),
@@ -196,6 +221,7 @@ describe('ShippingDemandsService', () => {
       andWhere: jest.fn(() => qb),
       orderBy: jest.fn(() => qb),
       getOne: jest.fn().mockResolvedValue(result),
+      getMany: jest.fn().mockResolvedValue(Array.isArray(result) ? result : []),
     };
     return qb;
   };
@@ -207,6 +233,23 @@ describe('ShippingDemandsService', () => {
         update: jest.fn().mockImplementation(async (_id, patch) => {
           state.salesOrderUpdate = patch;
         }),
+      };
+    }
+    if (entity === SalesOrderItem) {
+      const updateBuilder = {
+        update: jest.fn(() => updateBuilder),
+        set: jest.fn((patch) => {
+          state.salesOrderItemUpdate = patch;
+          return updateBuilder;
+        }),
+        where: jest.fn((condition, params) => {
+          state.salesOrderItemUpdateWhere = { condition, params };
+          return updateBuilder;
+        }),
+        execute: jest.fn().mockResolvedValue(undefined),
+      };
+      return {
+        createQueryBuilder: jest.fn(() => updateBuilder),
       };
     }
     if (entity === ShippingDemand) {
@@ -241,9 +284,19 @@ describe('ShippingDemandsService', () => {
     }
     if (entity === ShippingDemandInventoryAllocation) {
       return {
+        createQueryBuilder: jest.fn(() =>
+          makeQueryBuilder((state.allocations as unknown[]) ?? []),
+        ),
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
-          state.savedAllocations = data;
+          if (Array.isArray(data)) {
+            state.savedAllocations = data;
+          } else {
+            state.savedReleasedAllocations = [
+              ...((state.savedReleasedAllocations as unknown[]) ?? []),
+              { ...data },
+            ];
+          }
           return data;
         }),
       };
@@ -262,6 +315,10 @@ describe('ShippingDemandsService', () => {
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
           state.savedOperationLog = { id: 900, ...data };
+          state.savedOperationLogs = [
+            ...((state.savedOperationLogs as unknown[]) ?? []),
+            state.savedOperationLog,
+          ];
           return state.savedOperationLog;
         }),
       };
@@ -529,16 +586,19 @@ describe('ShippingDemandsService', () => {
     expect(state.savedOperationLog).toEqual(
       expect.objectContaining({
         requestSummary: expect.objectContaining({
-          allocationSummary: '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
+          allocationSummary:
+            '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
         }),
         changeSummary: expect.arrayContaining([
           expect.objectContaining({
             field: 'allocationSummary',
-            newValue: '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
+            newValue:
+              '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
           }),
           expect.objectContaining({
             field: 'allocationDetails',
-            newValue: '1. SKU001 / 离心机：使用现有库存，应发 2，锁定库存 2，需采购 0，仓库 22',
+            newValue:
+              '1. SKU001 / 离心机：使用现有库存，应发 2，锁定库存 2，需采购 0，仓库 22',
           }),
         ]),
       }),
@@ -623,6 +683,178 @@ describe('ShippingDemandsService', () => {
     ).rejects.toThrow(BadRequestException);
     expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     expect(inventoryService.lockStockInTransaction).not.toHaveBeenCalled();
+  });
+
+  it('voids pending demand without allocations and rolls sales order back to approved', async () => {
+    const state: Record<string, unknown> = {
+      order: { id: 10, status: SalesOrderStatus.PREPARING },
+      demand: makeDemandForAllocation(),
+      allocations: [],
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.VOIDED,
+      voidedBy: 'admin',
+      items: [{ id: 700, lockedRemainingQuantity: 0 }],
+    });
+
+    const result = await service.voidDemand(500, 'admin');
+
+    expect(result.status).toBe(ShippingDemandStatus.VOIDED);
+    expect(queryRunner.commitTransaction).toHaveBeenCalled();
+    expect(inventoryService.unlockStockInTransaction).not.toHaveBeenCalled();
+    expect(state.savedDemand).toEqual(
+      expect.objectContaining({
+        status: ShippingDemandStatus.VOIDED,
+        voidedBy: 'admin',
+      }),
+    );
+    expect(state.salesOrderUpdate).toEqual({
+      status: SalesOrderStatus.APPROVED,
+      updatedBy: 'admin',
+    });
+    expect(state.salesOrderItemUpdate).toEqual({
+      purchaseQuantity: 0,
+      useStockQuantity: 0,
+      preparedQuantity: 0,
+      shippedQuantity: 0,
+      updatedBy: 'admin',
+    });
+    expect(state.salesOrderItemUpdateWhere).toEqual({
+      condition: 'id IN (:...ids)',
+      params: { ids: [101] },
+    });
+    expect(state.savedOperationLogs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: OperationLogAction.UPDATE,
+          resourceType: 'shipping-demands',
+          resourceId: '500',
+          resourcePath: '/api/shipping-demands/500/void',
+        }),
+      ]),
+    );
+  });
+
+  it('voids pending demand with active allocation by unlocking stock and writing unlock transaction', async () => {
+    const state: Record<string, unknown> = {
+      order: { id: 10, status: SalesOrderStatus.PREPARING },
+      demand: makeDemandForAllocation({
+        items: [
+          {
+            ...(makeDemandForAllocation().items?.[0] as ShippingDemandItem),
+            lockedRemainingQuantity: 2,
+          },
+        ],
+      }),
+      allocations: [makeActiveAllocation()],
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.VOIDED,
+      items: [{ id: 700, lockedRemainingQuantity: 0 }],
+    });
+    inventoryService.unlockStockInTransaction.mockResolvedValue({
+      summary: {
+        actualQuantity: 5,
+        lockedQuantity: 0,
+        availableQuantity: 5,
+      },
+      batches: [],
+    });
+
+    await service.voidDemand(500, 'admin');
+
+    expect(inventoryService.unlockStockInTransaction).toHaveBeenCalledWith(
+      queryRunner,
+      {
+        skuId: 11,
+        warehouseId: 22,
+        allocations: [{ batchId: 901, quantity: 2 }],
+        operator: 'admin',
+      },
+    );
+    expect(state.savedReleasedAllocations).toEqual([
+      expect.objectContaining({
+        id: 800,
+        status: ShippingDemandAllocationStatus.RELEASED,
+        lockedQuantity: 0,
+        releasedQuantity: 2,
+      }),
+    ]);
+    expect(state.savedAllocationItems).toEqual([
+      expect.objectContaining({
+        id: 700,
+        lockedRemainingQuantity: 0,
+      }),
+    ]);
+    expect(state.savedInventoryTransactions).toEqual([
+      expect.objectContaining({
+        changeType: InventoryChangeType.UNLOCK,
+        actualQuantityDelta: 0,
+        lockedQuantityDelta: -2,
+        availableQuantityDelta: 2,
+        beforeLockedQuantity: 2,
+        afterLockedQuantity: 0,
+        beforeAvailableQuantity: 3,
+        afterAvailableQuantity: 5,
+        sourceDocumentType: 'shipping_demand',
+        sourceDocumentId: 500,
+        sourceActionKey: 'shipping-demand:500:void:sku:11:warehouse:22',
+      }),
+    ]);
+  });
+
+  it('rejects voiding non-pending demand without unlocking inventory', async () => {
+    const state: Record<string, unknown> = {
+      order: { id: 10, status: SalesOrderStatus.PREPARED },
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.PREPARED,
+      }),
+      allocations: [makeActiveAllocation()],
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(service.voidDemand(500, 'admin')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(inventoryService.unlockStockInTransaction).not.toHaveBeenCalled();
+    expect(state.savedDemand).toBeUndefined();
+  });
+
+  it('treats already voided demand as idempotent without unlocking again', async () => {
+    const state: Record<string, unknown> = {
+      order: { id: 10, status: SalesOrderStatus.APPROVED },
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.VOIDED,
+        voidedBy: 'admin',
+      }),
+      allocations: [makeActiveAllocation()],
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.VOIDED,
+      items: [{ id: 700, lockedRemainingQuantity: 0 }],
+    });
+
+    const result = await service.voidDemand(500, 'admin');
+
+    expect(result.status).toBe(ShippingDemandStatus.VOIDED);
+    expect(queryRunner.commitTransaction).toHaveBeenCalled();
+    expect(inventoryService.unlockStockInTransaction).not.toHaveBeenCalled();
+    expect(state.savedDemand).toBeUndefined();
+    expect(state.savedReleasedAllocations).toBeUndefined();
   });
 
   it('rolls back when stock is insufficient during allocation confirmation', async () => {

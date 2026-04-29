@@ -17,8 +17,8 @@ import {
   TradeTerm,
   TransportationMethod,
   YesNo,
-} from '@infitek/shared';
-import request from './request';
+} from "@infitek/shared";
+import request from "./request";
 
 export interface ShippingDemandItem {
   id: number;
@@ -74,6 +74,8 @@ export interface ShippingDemand {
   sourceDocumentCode: string;
   sourceDocumentType?: string | null;
   status: ShippingDemandStatus;
+  voidedAt?: string | null;
+  voidedBy?: string | null;
   orderType: SalesOrderType;
   orderSource?: SalesOrderSource | null;
   domesticTradeType: DomesticTradeType;
@@ -197,25 +199,25 @@ export interface ConfirmShippingDemandAllocationPayload {
 }
 
 function normalizeApiError(error: unknown): never {
-  if (typeof error === 'object' && error !== null) throw error;
-  throw { message: '请求失败，请稍后重试' };
+  if (typeof error === "object" && error !== null) throw error;
+  throw { message: "请求失败，请稍后重试" };
 }
 
 export const getShippingDemands = (
   params: ShippingDemandListParams,
 ): Promise<ShippingDemandListData> =>
   request
-    .get<unknown, ShippingDemandListData>('/shipping-demands', { params })
+    .get<unknown, ShippingDemandListData>("/shipping-demands", { params })
     .catch(normalizeApiError);
 
 export const generateShippingDemandFromSalesOrder = (
   salesOrderId: number,
 ): Promise<ShippingDemand> =>
   request
-    .post<unknown, ShippingDemand>(
-      `/shipping-demands/generate-from-sales-order/${salesOrderId}`,
-      {},
-    )
+    .post<
+      unknown,
+      ShippingDemand
+    >(`/shipping-demands/generate-from-sales-order/${salesOrderId}`, {})
     .catch(normalizeApiError);
 
 export const getShippingDemandById = (id: number): Promise<ShippingDemand> =>
@@ -228,8 +230,13 @@ export const confirmShippingDemandAllocation = (
   payload: ConfirmShippingDemandAllocationPayload,
 ): Promise<ShippingDemand> =>
   request
-    .post<unknown, ShippingDemand>(
-      `/shipping-demands/${id}/confirm-allocation`,
-      payload,
-    )
+    .post<
+      unknown,
+      ShippingDemand
+    >(`/shipping-demands/${id}/confirm-allocation`, payload)
+    .catch(normalizeApiError);
+
+export const voidShippingDemand = (id: number): Promise<ShippingDemand> =>
+  request
+    .post<unknown, ShippingDemand>(`/shipping-demands/${id}/void`, {})
     .catch(normalizeApiError);

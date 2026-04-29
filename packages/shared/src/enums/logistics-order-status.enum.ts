@@ -1,7 +1,9 @@
-export enum LogisticsOrderStatus {
-  // 待实现（Story 后续补全）
-  CREATED = 'created',
-  SHIPPED = 'shipped',
-  DELIVERED = 'delivered',
-  CANCELLED = 'cancelled',
-}
+export const LogisticsOrderStatus = {
+  CONFIRMED: "confirmed",
+  SHIPPED: "shipped",
+  DELIVERED: "delivered",
+  CANCELLED: "cancelled",
+} as const;
+
+export type LogisticsOrderStatus =
+  (typeof LogisticsOrderStatus)[keyof typeof LogisticsOrderStatus];

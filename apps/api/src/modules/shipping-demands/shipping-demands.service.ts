@@ -15,7 +15,10 @@ import { QueryRunner, Repository } from 'typeorm';
 import { FilesService } from '../../files/files.service';
 import { InventorySummary } from '../inventory/entities/inventory-summary.entity';
 import { InventoryTransaction } from '../inventory/entities/inventory-transaction.entity';
-import { InventoryService, type AvailableInventoryItem } from '../inventory/inventory.service';
+import {
+  InventoryService,
+  type AvailableInventoryItem,
+} from '../inventory/inventory.service';
 import {
   OperationLog,
   OperationLogAction,
@@ -42,6 +45,13 @@ interface PreparedAllocationLine {
   warehouseId: number | null;
 }
 
+interface ActiveAllocationGroup {
+  skuId: number;
+  warehouseId: number;
+  allocations: ShippingDemandInventoryAllocation[];
+  quantity: number;
+}
+
 const FULFILLMENT_TYPE_LABELS: Record<FulfillmentType, string> = {
   [FulfillmentType.FULL_PURCHASE]: '全部采购',
   [FulfillmentType.PARTIAL_PURCHASE]: '部分采购',
@@ -56,7 +66,9 @@ export class ShippingDemandsService {
     private readonly filesService: FilesService,
   ) {}
 
-  async findById(id: number): Promise<ShippingDemand & Record<string, unknown>> {
+  async findById(
+    id: number,
+  ): Promise<ShippingDemand & Record<string, unknown>> {
     const demand = await this.shippingDemandsRepository.findById(id);
     if (!demand) {
       throw new NotFoundException('发货需求不存在');
@@ -72,15 +84,17 @@ export class ShippingDemandsService {
     salesOrderId: number,
     operator?: string,
   ): Promise<ShippingDemand> {
-    const demandId = await this.executeWithDemandCodeRetry(async (queryRunner) => {
-      const savedDemand = await this.generateFromSalesOrderInTransaction(
-        queryRunner,
-        salesOrderId,
-        operator,
-      );
+    const demandId = await this.executeWithDemandCodeRetry(
+      async (queryRunner) => {
+        const savedDemand = await this.generateFromSalesOrderInTransaction(
+          queryRunner,
+          salesOrderId,
+          operator,
+        );
 
-      return Number(savedDemand.id);
-    });
+        return Number(savedDemand.id);
+      },
+    );
 
     return this.findById(demandId);
   }
@@ -92,7 +106,26 @@ export class ShippingDemandsService {
   ): Promise<ShippingDemand & Record<string, unknown>> {
     const demandId = await this.executeWithConfirmAllocationRetry(
       async (queryRunner) => {
-        await this.confirmAllocationInTransaction(queryRunner, id, dto, operator);
+        await this.confirmAllocationInTransaction(
+          queryRunner,
+          id,
+          dto,
+          operator,
+        );
+        return id;
+      },
+    );
+
+    return this.findById(demandId);
+  }
+
+  async voidDemand(
+    id: number,
+    operator?: string,
+  ): Promise<ShippingDemand & Record<string, unknown>> {
+    const demandId = await this.executeWithConfirmAllocationRetry(
+      async (queryRunner) => {
+        await this.voidDemandInTransaction(queryRunner, id, operator);
         return id;
       },
     );
@@ -105,9 +138,15 @@ export class ShippingDemandsService {
     salesOrderId: number,
     operator?: string,
   ): Promise<ShippingDemand> {
-    const order = await this.findSalesOrderForGeneration(queryRunner, salesOrderId);
+    const order = await this.findSalesOrderForGeneration(
+      queryRunner,
+      salesOrderId,
+    );
 
-    const existingDemand = await this.findActiveDemandForUpdate(queryRunner, salesOrderId);
+    const existingDemand = await this.findActiveDemandForUpdate(
+      queryRunner,
+      salesOrderId,
+    );
     if (existingDemand) {
       throw new BadRequestException('该销售订单已存在未作废的发货需求');
     }
@@ -115,9 +154,14 @@ export class ShippingDemandsService {
     this.assertGeneratable(order);
 
     const demandCode = await this.generateDemandCode(queryRunner);
-    const skuIds = [...new Set((order.items ?? []).map((item) => Number(item.skuId)))];
-    const availableInventory = await this.inventoryService.findAvailable({ skuIds });
-    const availableBySkuId = this.groupAvailableInventoryBySkuId(availableInventory);
+    const skuIds = [
+      ...new Set((order.items ?? []).map((item) => Number(item.skuId))),
+    ];
+    const availableInventory = await this.inventoryService.findAvailable({
+      skuIds,
+    });
+    const availableBySkuId =
+      this.groupAvailableInventoryBySkuId(availableInventory);
 
     const demandRepo = queryRunner.manager.getRepository(ShippingDemand);
     const itemRepo = queryRunner.manager.getRepository(ShippingDemandItem);
@@ -262,10 +306,12 @@ export class ShippingDemandsService {
     );
     await itemRepo.save(demandItems);
 
-    await queryRunner.manager.getRepository(SalesOrder).update(Number(order.id), {
-      status: SalesOrderStatus.PREPARING,
-      updatedBy: operator,
-    });
+    await queryRunner.manager
+      .getRepository(SalesOrder)
+      .update(Number(order.id), {
+        status: SalesOrderStatus.PREPARING,
+        updatedBy: operator,
+      });
     await this.writeSalesOrderStatusOperationLog(queryRunner, order, operator);
 
     return savedDemand;
@@ -280,7 +326,9 @@ export class ShippingDemandsService {
     const demand = await this.findShippingDemandForAllocation(queryRunner, id);
     const preparedLines = this.prepareAllocationLines(demand, dto);
     const oldStatus = demand.status;
-    const hasPurchaseQuantity = preparedLines.some((line) => line.purchaseQuantity > 0);
+    const hasPurchaseQuantity = preparedLines.some(
+      (line) => line.purchaseQuantity > 0,
+    );
     const nextStatus = hasPurchaseQuantity
       ? ShippingDemandStatus.PURCHASING
       : ShippingDemandStatus.PREPARED;
@@ -368,10 +416,12 @@ export class ShippingDemandsService {
     await queryRunner.manager.getRepository(ShippingDemand).save(demand);
 
     if (nextStatus === ShippingDemandStatus.PREPARED) {
-      await queryRunner.manager.getRepository(SalesOrder).update(demand.salesOrderId, {
-        status: SalesOrderStatus.PREPARED,
-        updatedBy: operator,
-      });
+      await queryRunner.manager
+        .getRepository(SalesOrder)
+        .update(demand.salesOrderId, {
+          status: SalesOrderStatus.PREPARED,
+          updatedBy: operator,
+        });
     }
 
     await this.writeShippingDemandAllocationOperationLog(
@@ -380,6 +430,188 @@ export class ShippingDemandsService {
       oldStatus,
       nextStatus,
       preparedLines,
+      operator,
+    );
+  }
+
+  private async voidDemandInTransaction(
+    queryRunner: QueryRunner,
+    id: number,
+    operator?: string,
+  ): Promise<void> {
+    const demandReference = await queryRunner.manager
+      .getRepository(ShippingDemand)
+      .createQueryBuilder('demand')
+      .where('demand.id = :id', { id })
+      .getOne();
+
+    if (!demandReference) {
+      throw new NotFoundException('发货需求不存在');
+    }
+
+    const order = await queryRunner.manager
+      .getRepository(SalesOrder)
+      .createQueryBuilder('salesOrder')
+      .setLock('pessimistic_write')
+      .where('salesOrder.id = :salesOrderId', {
+        salesOrderId: demandReference.salesOrderId,
+      })
+      .getOne();
+
+    if (!order) {
+      throw new NotFoundException('销售订单不存在');
+    }
+
+    const demand = await queryRunner.manager
+      .getRepository(ShippingDemand)
+      .createQueryBuilder('demand')
+      .leftJoinAndSelect('demand.items', 'items')
+      .setLock('pessimistic_write')
+      .where('demand.id = :id', { id })
+      .orderBy('items.id', 'ASC')
+      .getOne();
+
+    if (!demand) {
+      throw new NotFoundException('发货需求不存在');
+    }
+
+    if (demand.status === ShippingDemandStatus.VOIDED) {
+      return;
+    }
+
+    if (demand.status !== ShippingDemandStatus.PENDING_ALLOCATION) {
+      throw new BadRequestException({
+        code: 'SHIPPING_DEMAND_VOID_NOT_ALLOWED',
+        message: '只有待分配库存的发货需求可以作废',
+      });
+    }
+
+    const allocationRepo = queryRunner.manager.getRepository(
+      ShippingDemandInventoryAllocation,
+    );
+    const itemRepo = queryRunner.manager.getRepository(ShippingDemandItem);
+    const inventoryTransactionRepo =
+      queryRunner.manager.getRepository(InventoryTransaction);
+    const oldStatus = demand.status;
+
+    const activeAllocations = await allocationRepo
+      .createQueryBuilder('allocation')
+      .where('allocation.shipping_demand_id = :id', { id })
+      .andWhere('allocation.status = :status', {
+        status: ShippingDemandAllocationStatus.ACTIVE,
+      })
+      .andWhere('allocation.locked_quantity > 0')
+      .orderBy('allocation.id', 'ASC')
+      .getMany();
+
+    const allocationGroups = this.groupActiveAllocations(activeAllocations);
+    const unlockTransactions: InventoryTransaction[] = [];
+
+    for (const group of allocationGroups) {
+      const unlockResult = await this.inventoryService.unlockStockInTransaction(
+        queryRunner,
+        {
+          skuId: group.skuId,
+          warehouseId: group.warehouseId,
+          allocations: group.allocations.map((allocation) => ({
+            batchId: Number(allocation.inventoryBatchId),
+            quantity: Number(allocation.lockedQuantity),
+          })),
+          operator,
+        },
+      );
+
+      unlockTransactions.push(
+        this.buildUnlockInventoryTransaction(
+          inventoryTransactionRepo,
+          demand,
+          group,
+          unlockResult.summary,
+          operator,
+        ),
+      );
+
+      const lockedAllocations = await allocationRepo
+        .createQueryBuilder('allocation')
+        .setLock('pessimistic_write')
+        .where('allocation.id IN (:...ids)', {
+          ids: group.allocations.map((allocation) => Number(allocation.id)),
+        })
+        .orderBy('allocation.id', 'ASC')
+        .getMany();
+
+      for (const allocation of lockedAllocations) {
+        const lockedQuantity = Number(allocation.lockedQuantity ?? 0);
+        allocation.releasedQuantity =
+          Number(allocation.releasedQuantity ?? 0) + lockedQuantity;
+        allocation.lockedQuantity = 0;
+        allocation.status = ShippingDemandAllocationStatus.RELEASED;
+        if (operator !== undefined) {
+          allocation.updatedBy = operator;
+        }
+        await allocationRepo.save(allocation);
+      }
+    }
+
+    if (unlockTransactions.length > 0) {
+      await inventoryTransactionRepo.save(unlockTransactions);
+    }
+
+    for (const item of demand.items ?? []) {
+      item.lockedRemainingQuantity = 0;
+      if (operator !== undefined) {
+        item.updatedBy = operator;
+      }
+      await itemRepo.save(item);
+    }
+
+    const salesOrderItemIds = [
+      ...new Set(
+        (demand.items ?? []).map((item) => Number(item.salesOrderItemId)),
+      ),
+    ].filter((itemId) => itemId > 0);
+    if (salesOrderItemIds.length > 0) {
+      await queryRunner.manager
+        .getRepository(SalesOrderItem)
+        .createQueryBuilder()
+        .update(SalesOrderItem)
+        .set({
+          purchaseQuantity: 0,
+          useStockQuantity: 0,
+          preparedQuantity: 0,
+          shippedQuantity: 0,
+          updatedBy: operator,
+        })
+        .where('id IN (:...ids)', { ids: salesOrderItemIds })
+        .execute();
+    }
+
+    demand.status = ShippingDemandStatus.VOIDED;
+    demand.voidedAt = new Date();
+    demand.voidedBy = operator ?? 'system';
+    if (operator !== undefined) {
+      demand.updatedBy = operator;
+    }
+    await queryRunner.manager.getRepository(ShippingDemand).save(demand);
+
+    await queryRunner.manager
+      .getRepository(SalesOrder)
+      .update(demand.salesOrderId, {
+        status: SalesOrderStatus.APPROVED,
+        updatedBy: operator,
+      });
+
+    await this.writeShippingDemandVoidOperationLog(
+      queryRunner,
+      demand,
+      oldStatus,
+      activeAllocations,
+      operator,
+    );
+    await this.writeSalesOrderRollbackOperationLog(
+      queryRunner,
+      order,
+      demand,
       operator,
     );
   }
@@ -417,7 +649,10 @@ export class ShippingDemandsService {
     dto: ConfirmShippingDemandAllocationDto,
   ): PreparedAllocationLine[] {
     const items = demand.items ?? [];
-    const dtoByItemId = new Map<number, ConfirmShippingDemandAllocationDto['items'][number]>();
+    const dtoByItemId = new Map<
+      number,
+      ConfirmShippingDemandAllocationDto['items'][number]
+    >();
     for (const line of dto.items ?? []) {
       if (dtoByItemId.has(line.itemId)) {
         throw new BadRequestException({
@@ -463,7 +698,12 @@ export class ShippingDemandsService {
         });
       }
       const purchaseQuantity = requiredQuantity - stockQuantity;
-      this.assertFulfillmentQuantity(item, input.fulfillmentType, stockQuantity, purchaseQuantity);
+      this.assertFulfillmentQuantity(
+        item,
+        input.fulfillmentType,
+        stockQuantity,
+        purchaseQuantity,
+      );
       return {
         item,
         fulfillmentType: input.fulfillmentType,
@@ -480,13 +720,19 @@ export class ShippingDemandsService {
     stockQuantity: number,
     purchaseQuantity: number,
   ): void {
-    if (fulfillmentType === FulfillmentType.FULL_PURCHASE && stockQuantity !== 0) {
+    if (
+      fulfillmentType === FulfillmentType.FULL_PURCHASE &&
+      stockQuantity !== 0
+    ) {
       throw new BadRequestException({
         code: 'INVALID_FULL_PURCHASE_QUANTITY',
         message: `${item.skuCode} 全部采购时使用库存数量必须为 0`,
       });
     }
-    if (fulfillmentType === FulfillmentType.USE_STOCK && purchaseQuantity !== 0) {
+    if (
+      fulfillmentType === FulfillmentType.USE_STOCK &&
+      purchaseQuantity !== 0
+    ) {
       throw new BadRequestException({
         code: 'INVALID_USE_STOCK_QUANTITY',
         message: `${item.skuCode} 使用现有库存时必须覆盖全部应发数量`,
@@ -540,7 +786,9 @@ export class ShippingDemandsService {
       .createQueryBuilder('demand')
       .setLock('pessimistic_write')
       .where('demand.sales_order_id = :salesOrderId', { salesOrderId })
-      .andWhere('demand.status != :voided', { voided: ShippingDemandStatus.VOIDED })
+      .andWhere('demand.status != :voided', {
+        voided: ShippingDemandStatus.VOIDED,
+      })
       .getOne();
   }
 
@@ -617,6 +865,84 @@ export class ShippingDemandsService {
     ] as InventoryTransaction[];
   }
 
+  private groupActiveAllocations(
+    allocations: ShippingDemandInventoryAllocation[],
+  ): ActiveAllocationGroup[] {
+    const groupByKey = new Map<string, ActiveAllocationGroup>();
+    for (const allocation of allocations) {
+      const quantity = Number(allocation.lockedQuantity ?? 0);
+      if (quantity <= 0) continue;
+      const skuId = Number(allocation.skuId);
+      const warehouseId = Number(allocation.warehouseId);
+      const key = `${skuId}:${warehouseId}`;
+      const group =
+        groupByKey.get(key) ??
+        ({
+          skuId,
+          warehouseId,
+          allocations: [],
+          quantity: 0,
+        } satisfies ActiveAllocationGroup);
+      group.allocations.push(allocation);
+      group.quantity += quantity;
+      groupByKey.set(key, group);
+    }
+
+    return [...groupByKey.values()].sort(
+      (a, b) => a.skuId - b.skuId || a.warehouseId - b.warehouseId,
+    );
+  }
+
+  private buildUnlockInventoryTransaction(
+    repo: Repository<InventoryTransaction>,
+    demand: ShippingDemand,
+    group: ActiveAllocationGroup,
+    summary: InventorySummary,
+    operator?: string,
+  ): InventoryTransaction {
+    const afterActual = Number(summary.actualQuantity ?? 0);
+    const afterLocked = Number(summary.lockedQuantity ?? 0);
+    const afterAvailable = Number(summary.availableQuantity ?? 0);
+    const unlockedQuantity = group.quantity;
+    const sourceDocumentItemId = this.getSingleSourceDocumentItemId(group);
+
+    return repo.create({
+      skuId: group.skuId,
+      warehouseId: group.warehouseId,
+      inventoryBatchId: null,
+      changeType: InventoryChangeType.UNLOCK,
+      actualQuantityDelta: 0,
+      lockedQuantityDelta: -unlockedQuantity,
+      availableQuantityDelta: unlockedQuantity,
+      beforeActualQuantity: afterActual,
+      afterActualQuantity: afterActual,
+      beforeLockedQuantity: afterLocked + unlockedQuantity,
+      afterLockedQuantity: afterLocked,
+      beforeAvailableQuantity: afterAvailable - unlockedQuantity,
+      afterAvailableQuantity: afterAvailable,
+      sourceDocumentType: 'shipping_demand',
+      sourceDocumentId: Number(demand.id),
+      sourceDocumentItemId,
+      sourceActionKey: this.buildVoidInventoryTransactionActionKey(
+        demand,
+        group.skuId,
+        group.warehouseId,
+      ),
+      operatedBy: operator ?? 'system',
+    });
+  }
+
+  private getSingleSourceDocumentItemId(
+    group: ActiveAllocationGroup,
+  ): number | null {
+    const itemIds = new Set(
+      group.allocations.map((allocation) =>
+        Number(allocation.shippingDemandItemId),
+      ),
+    );
+    return itemIds.size === 1 ? [...itemIds][0] : null;
+  }
+
   private async writeShippingDemandAllocationOperationLog(
     queryRunner: QueryRunner,
     demand: ShippingDemand,
@@ -638,8 +964,14 @@ export class ShippingDemandsService {
         resourcePath: `/api/shipping-demands/${demand.id}/confirm-allocation`,
         requestSummary: {
           sourceAction: 'confirm_shipping_demand_allocation',
-          lockedQuantity: lines.reduce((sum, line) => sum + line.stockQuantity, 0),
-          purchaseQuantity: lines.reduce((sum, line) => sum + line.purchaseQuantity, 0),
+          lockedQuantity: lines.reduce(
+            (sum, line) => sum + line.stockQuantity,
+            0,
+          ),
+          purchaseQuantity: lines.reduce(
+            (sum, line) => sum + line.purchaseQuantity,
+            0,
+          ),
           itemCount: lines.length,
           allocationSummary,
         },
@@ -667,11 +999,98 @@ export class ShippingDemandsService {
     );
   }
 
-  private buildAllocationOperationSummary(lines: PreparedAllocationLine[]): string {
-    const lockedQuantity = lines.reduce((sum, line) => sum + line.stockQuantity, 0);
-    const purchaseQuantity = lines.reduce((sum, line) => sum + line.purchaseQuantity, 0);
-    const stockLineCount = lines.filter((line) => line.stockQuantity > 0).length;
-    const purchaseLineCount = lines.filter((line) => line.purchaseQuantity > 0).length;
+  private async writeShippingDemandVoidOperationLog(
+    queryRunner: QueryRunner,
+    demand: ShippingDemand,
+    oldStatus: ShippingDemandStatus,
+    activeAllocations: ShippingDemandInventoryAllocation[],
+    operator?: string,
+  ): Promise<void> {
+    const releasedQuantity = activeAllocations.reduce(
+      (sum, allocation) => sum + Number(allocation.lockedQuantity ?? 0),
+      0,
+    );
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    await operationLogRepo.save(
+      operationLogRepo.create({
+        operator: operator ?? 'system',
+        operatorId: null,
+        action: OperationLogAction.UPDATE,
+        resourceType: 'shipping-demands',
+        resourceId: String(demand.id),
+        resourcePath: `/api/shipping-demands/${demand.id}/void`,
+        requestSummary: {
+          sourceAction: 'void_shipping_demand',
+          releasedQuantity,
+          allocationCount: activeAllocations.length,
+        },
+        changeSummary: [
+          {
+            field: 'status',
+            fieldLabel: '发货需求状态',
+            oldValue: oldStatus,
+            newValue: ShippingDemandStatus.VOIDED,
+          },
+          {
+            field: 'releasedQuantity',
+            fieldLabel: '释放锁定库存',
+            oldValue: 0,
+            newValue: releasedQuantity,
+          },
+        ],
+      }),
+    );
+  }
+
+  private async writeSalesOrderRollbackOperationLog(
+    queryRunner: QueryRunner,
+    order: SalesOrder,
+    demand: ShippingDemand,
+    operator?: string,
+  ): Promise<void> {
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    await operationLogRepo.save(
+      operationLogRepo.create({
+        operator: operator ?? 'system',
+        operatorId: null,
+        action: OperationLogAction.UPDATE,
+        resourceType: 'sales-orders',
+        resourceId: String(order.id),
+        resourcePath: `/api/shipping-demands/${demand.id}/void`,
+        requestSummary: {
+          sourceAction: 'void_shipping_demand',
+          shippingDemandId: Number(demand.id),
+          shippingDemandCode: demand.demandCode,
+        },
+        changeSummary: [
+          {
+            field: 'status',
+            fieldLabel: '订单状态',
+            oldValue: order.status,
+            newValue: SalesOrderStatus.APPROVED,
+          },
+        ],
+      }),
+    );
+  }
+
+  private buildAllocationOperationSummary(
+    lines: PreparedAllocationLine[],
+  ): string {
+    const lockedQuantity = lines.reduce(
+      (sum, line) => sum + line.stockQuantity,
+      0,
+    );
+    const purchaseQuantity = lines.reduce(
+      (sum, line) => sum + line.purchaseQuantity,
+      0,
+    );
+    const stockLineCount = lines.filter(
+      (line) => line.stockQuantity > 0,
+    ).length;
+    const purchaseLineCount = lines.filter(
+      (line) => line.purchaseQuantity > 0,
+    ).length;
 
     return [
       `共 ${lines.length} 个 SKU`,
@@ -682,12 +1101,16 @@ export class ShippingDemandsService {
     ].join('；');
   }
 
-  private buildAllocationOperationDetails(lines: PreparedAllocationLine[]): string {
+  private buildAllocationOperationDetails(
+    lines: PreparedAllocationLine[],
+  ): string {
     return lines
       .map((line, index) => {
         const productName = line.item.productNameCn || line.item.productNameEn;
         const productText = productName ? ` / ${productName}` : '';
-        const warehouseText = line.warehouseId ? `，仓库 ${line.warehouseId}` : '';
+        const warehouseText = line.warehouseId
+          ? `，仓库 ${line.warehouseId}`
+          : '';
 
         return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}`;
       })
@@ -709,6 +1132,14 @@ export class ShippingDemandsService {
     return `shipping-demand:${demand.id}:confirm-allocation:item:${item.id}:lock`;
   }
 
+  private buildVoidInventoryTransactionActionKey(
+    demand: ShippingDemand,
+    skuId: number,
+    warehouseId: number,
+  ): string {
+    return `shipping-demand:${demand.id}:void:sku:${skuId}:warehouse:${warehouseId}`;
+  }
+
   private async generateDemandCode(queryRunner: QueryRunner): Promise<string> {
     const now = new Date();
     const year = now.getFullYear();
@@ -722,7 +1153,9 @@ export class ShippingDemandsService {
       .where('demand.demand_code LIKE :prefix', { prefix: `${prefix}%` })
       .orderBy('demand.demand_code', 'DESC')
       .getOne();
-    const lastNumber = latest?.demandCode ? Number(latest.demandCode.slice(prefix.length)) : 0;
+    const lastNumber = latest?.demandCode
+      ? Number(latest.demandCode.slice(prefix.length))
+      : 0;
     return `${prefix}${String(lastNumber + 1).padStart(5, '0')}`;
   }
 
@@ -746,7 +1179,10 @@ export class ShippingDemandsService {
           await queryRunner.rollbackTransaction();
         }
 
-        if (this.isDuplicateEntryError(error) && retryCount < MAX_DEMAND_CODE_RETRIES) {
+        if (
+          this.isDuplicateEntryError(error) &&
+          retryCount < MAX_DEMAND_CODE_RETRIES
+        ) {
           retryCount += 1;
           await this.delay(INITIAL_RETRY_DELAY_MS * 2 ** (retryCount - 1));
           continue;
@@ -832,13 +1268,17 @@ export class ShippingDemandsService {
   }
 
   private groupAvailableInventoryBySkuId(items: AvailableInventoryItem[]) {
-    const result = new Map<number, ShippingDemandItem['availableStockSnapshot']>();
+    const result = new Map<
+      number,
+      ShippingDemandItem['availableStockSnapshot']
+    >();
     for (const item of items) {
       const skuId = Number(item.skuId);
       const rows = result.get(skuId) ?? [];
       rows.push({
         skuId,
-        warehouseId: item.warehouseId === null ? null : Number(item.warehouseId),
+        warehouseId:
+          item.warehouseId === null ? null : Number(item.warehouseId),
         actualQuantity: Number(item.actualQuantity),
         lockedQuantity: Number(item.lockedQuantity),
         availableQuantity: Number(item.availableQuantity),
