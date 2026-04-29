@@ -926,6 +926,18 @@
   background: #fef2f2;
 }
 
+.shipping-demand-source-link {
+  color: #2563eb;
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.shipping-demand-source-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
 .shipping-demand-allocation-control {
   width: 100%;
   min-width: 110px;

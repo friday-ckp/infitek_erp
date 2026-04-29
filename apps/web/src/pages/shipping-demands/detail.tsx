@@ -35,7 +35,6 @@ import {
   ExportOutlined,
   FileDoneOutlined,
   FileProtectOutlined,
-  FileSearchOutlined,
 } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -475,10 +474,6 @@ export default function ShippingDemandDetailPage() {
   const sourceSalesOrderLink = data?.salesOrderId
     ? () => navigate(`/sales-orders/${data.salesOrderId}`)
     : undefined;
-  const editSourceSalesOrderLink =
-    data?.salesOrderId
-      ? () => navigate(`/sales-orders/${data.salesOrderId}/edit`)
-      : undefined;
   const totalSkuCount = data?.skuCount ?? items.length;
   const totalRequiredQuantity = items.reduce(
     (sum, item) => sum + numberValue(item.requiredQuantity),
@@ -1186,18 +1181,6 @@ export default function ShippingDemandDetailPage() {
                   <Button onClick={() => navigate("/shipping-demands")}>
                     返回列表
                   </Button>
-                  <Button
-                    disabled={!sourceSalesOrderLink}
-                    onClick={sourceSalesOrderLink}
-                  >
-                    来源销售订单
-                  </Button>
-                  <Button
-                    disabled={!editSourceSalesOrderLink}
-                    onClick={editSourceSalesOrderLink}
-                  >
-                    编辑来源销售订单
-                  </Button>
                   {canEditDemand ? (
                     <Button onClick={() => navigate(`/shipping-demands/${demandId}/edit`)}>
                       编辑发货需求
@@ -1254,13 +1237,6 @@ export default function ShippingDemandDetailPage() {
         <div className="shipping-demand-hub">
           <FlowProgress status={data?.status} />
           <div className="shipping-demand-smart-row">
-            <SmartButton
-              icon={<FileSearchOutlined />}
-              label="来源销售订单"
-              count={data ? 1 : 0}
-              disabledTooltip="发货需求加载后可跳转"
-              onClick={sourceSalesOrderLink}
-            />
             <SmartButton
               icon={<FileProtectOutlined />}
               label="采购订单"
@@ -1343,7 +1319,14 @@ export default function ShippingDemandDetailPage() {
                 label="来源销售订单"
                 value={
                   data?.salesOrderId ? (
-                    <a onClick={sourceSalesOrderLink}>
+                    <a
+                      className="shipping-demand-source-link"
+                      href={`/sales-orders/${data.salesOrderId}`}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        sourceSalesOrderLink?.();
+                      }}
+                    >
                       {displayOrDash(data.sourceDocumentCode)}
                     </a>
                   ) : (
