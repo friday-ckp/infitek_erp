@@ -88,6 +88,18 @@ export class ShippingDemandItem extends BaseEntity {
   @Expose()
   unitName: string | null;
 
+  @Column({ name: 'purchaser_id', type: 'bigint', nullable: true })
+  @Expose()
+  purchaserId: number | null;
+
+  @Column({ name: 'purchaser_name', type: 'varchar', length: 100, nullable: true })
+  @Expose()
+  purchaserName: string | null;
+
+  @Column({ name: 'needs_purchase', type: 'varchar', length: 10, nullable: true })
+  @Expose()
+  needsPurchase: YesNo | null;
+
   @Column({ name: 'required_quantity', type: 'int', default: 0 })
   @Expose()
   requiredQuantity: number;

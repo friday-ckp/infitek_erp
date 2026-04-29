@@ -4,8 +4,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { SalesOrderStatus, ShippingDemandStatus } from '@infitek/shared';
-import { QueryRunner } from 'typeorm';
+import {
+  FulfillmentType,
+  InventoryChangeType,
+  SalesOrderStatus,
+  ShippingDemandAllocationStatus,
+  ShippingDemandStatus,
+} from '@infitek/shared';
+import { QueryRunner, Repository } from 'typeorm';
+import { FilesService } from '../../files/files.service';
+import { InventorySummary } from '../inventory/entities/inventory-summary.entity';
+import { InventoryTransaction } from '../inventory/entities/inventory-transaction.entity';
 import { InventoryService, type AvailableInventoryItem } from '../inventory/inventory.service';
 import {
   OperationLog,
@@ -13,27 +22,46 @@ import {
 } from '../operation-logs/entities/operation-log.entity';
 import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
+import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
+import { ShippingDemandInventoryAllocation } from './entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
 import { ShippingDemand } from './entities/shipping-demand.entity';
 import { ShippingDemandsRepository } from './shipping-demands.repository';
 
 const MAX_DEMAND_CODE_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 50;
+const MAX_CONFIRM_ALLOCATION_RETRIES = 3;
+const INITIAL_CONFIRM_ALLOCATION_RETRY_DELAY_MS = 25;
+
+interface PreparedAllocationLine {
+  item: ShippingDemandItem;
+  fulfillmentType: FulfillmentType;
+  stockQuantity: number;
+  purchaseQuantity: number;
+  warehouseId: number | null;
+}
+
+const FULFILLMENT_TYPE_LABELS: Record<FulfillmentType, string> = {
+  [FulfillmentType.FULL_PURCHASE]: '全部采购',
+  [FulfillmentType.PARTIAL_PURCHASE]: '部分采购',
+  [FulfillmentType.USE_STOCK]: '使用现有库存',
+};
 
 @Injectable()
 export class ShippingDemandsService {
   constructor(
     private readonly shippingDemandsRepository: ShippingDemandsRepository,
     private readonly inventoryService: InventoryService,
+    private readonly filesService: FilesService,
   ) {}
 
-  async findById(id: number): Promise<ShippingDemand> {
+  async findById(id: number): Promise<ShippingDemand & Record<string, unknown>> {
     const demand = await this.shippingDemandsRepository.findById(id);
     if (!demand) {
       throw new NotFoundException('发货需求不存在');
     }
-    return demand;
+    return this.withSignedUrls(demand);
   }
 
   findAll(query: QueryShippingDemandDto) {
@@ -53,6 +81,21 @@ export class ShippingDemandsService {
 
       return Number(savedDemand.id);
     });
+
+    return this.findById(demandId);
+  }
+
+  async confirmAllocation(
+    id: number,
+    dto: ConfirmShippingDemandAllocationDto,
+    operator?: string,
+  ): Promise<ShippingDemand & Record<string, unknown>> {
+    const demandId = await this.executeWithConfirmAllocationRetry(
+      async (queryRunner) => {
+        await this.confirmAllocationInTransaction(queryRunner, id, dto, operator);
+        return id;
+      },
+    );
 
     return this.findById(demandId);
   }
@@ -86,15 +129,28 @@ export class ShippingDemandsService {
         sourceDocumentType: 'sales_order',
         status: ShippingDemandStatus.PENDING_ALLOCATION,
         orderType: order.orderType,
+        orderSource: order.orderSource,
         domesticTradeType: order.domesticTradeType,
+        externalOrderCode: order.externalOrderCode,
         customerId: order.customerId,
         customerName: order.customerName,
         customerCode: order.customerCode,
+        customerContactPerson: order.customerContactPerson,
+        afterSalesSourceOrderId: order.afterSalesSourceOrderId,
+        afterSalesSourceOrderCode: order.afterSalesSourceOrderCode,
+        afterSalesProductSummary: order.afterSalesProductSummary,
         currencyId: order.currencyId,
         currencyCode: order.currencyCode,
         currencyName: order.currencyName,
         currencySymbol: order.currencySymbol,
         tradeTerm: order.tradeTerm,
+        bankAccount: order.bankAccount,
+        extraViewerId: order.extraViewerId,
+        extraViewerName: order.extraViewerName,
+        primaryIndustry: order.primaryIndustry,
+        secondaryIndustry: order.secondaryIndustry,
+        exchangeRate: order.exchangeRate,
+        crmSignedAt: order.crmSignedAt,
         paymentTerm: order.paymentTerm,
         shipmentOriginCountryId: order.shipmentOriginCountryId,
         shipmentOriginCountryName: order.shipmentOriginCountryName,
@@ -118,13 +174,43 @@ export class ShippingDemandsService {
         isAliTradeAssurance: order.isAliTradeAssurance,
         isInsured: order.isInsured,
         isPalletized: order.isPalletized,
+        isSplitInAdvance: order.isSplitInAdvance,
         requiresExportCustoms: order.requiresExportCustoms,
         requiresWarrantyCard: order.requiresWarrantyCard,
         requiresCustomsCertificate: order.requiresCustomsCertificate,
+        requiresMaternityHandover: order.requiresMaternityHandover,
+        customsDeclarationMethod: order.customsDeclarationMethod,
         usesMarketingFund: order.usesMarketingFund,
+        aliTradeAssuranceOrderCode: order.aliTradeAssuranceOrderCode,
+        forwarderQuoteNote: order.forwarderQuoteNote,
+        contractFileKeys: order.contractFileKeys,
+        contractFileNames: order.contractFileNames,
+        plugPhotoKeys: order.plugPhotoKeys,
+        consigneeCompany: order.consigneeCompany,
+        consigneeOtherInfo: order.consigneeOtherInfo,
+        notifyCompany: order.notifyCompany,
+        notifyOtherInfo: order.notifyOtherInfo,
+        shipperCompany: order.shipperCompany,
+        shipperOtherInfoCompanyId: order.shipperOtherInfoCompanyId,
+        shipperOtherInfoCompanyName: order.shipperOtherInfoCompanyName,
+        domesticCustomerCompany: order.domesticCustomerCompany,
+        domesticCustomerDeliveryInfo: order.domesticCustomerDeliveryInfo,
+        usesDefaultShippingMark: order.usesDefaultShippingMark,
+        shippingMarkNote: order.shippingMarkNote,
+        shippingMarkTemplateKey: order.shippingMarkTemplateKey,
+        needsInvoice: order.needsInvoice,
+        invoiceType: order.invoiceType,
+        shippingDocumentsNote: order.shippingDocumentsNote,
+        blType: order.blType,
+        originalMailAddress: order.originalMailAddress,
+        businessRectificationNote: order.businessRectificationNote,
+        customsDocumentNote: order.customsDocumentNote,
+        otherRequirementNote: order.otherRequirementNote,
         contractAmount: order.contractAmount,
         receivedAmount: order.receivedAmount,
         outstandingAmount: order.outstandingAmount,
+        productTotalAmount: order.productTotalAmount,
+        expenseTotalAmount: order.expenseTotalAmount,
         totalAmount: order.totalAmount,
         createdBy: operator,
         updatedBy: operator,
@@ -150,6 +236,9 @@ export class ShippingDemandsService {
         currencyCode: item.currencyCode,
         unitId: item.unitId,
         unitName: item.unitName,
+        purchaserId: item.purchaserId,
+        purchaserName: item.purchaserName,
+        needsPurchase: item.needsPurchase,
         requiredQuantity: item.quantity,
         availableStockSnapshot: availableBySkuId.get(Number(item.skuId)) ?? [],
         fulfillmentType: null,
@@ -180,6 +269,238 @@ export class ShippingDemandsService {
     await this.writeSalesOrderStatusOperationLog(queryRunner, order, operator);
 
     return savedDemand;
+  }
+
+  private async confirmAllocationInTransaction(
+    queryRunner: QueryRunner,
+    id: number,
+    dto: ConfirmShippingDemandAllocationDto,
+    operator?: string,
+  ): Promise<void> {
+    const demand = await this.findShippingDemandForAllocation(queryRunner, id);
+    const preparedLines = this.prepareAllocationLines(demand, dto);
+    const oldStatus = demand.status;
+    const hasPurchaseQuantity = preparedLines.some((line) => line.purchaseQuantity > 0);
+    const nextStatus = hasPurchaseQuantity
+      ? ShippingDemandStatus.PURCHASING
+      : ShippingDemandStatus.PREPARED;
+
+    const itemRepo = queryRunner.manager.getRepository(ShippingDemandItem);
+    const allocationRepo = queryRunner.manager.getRepository(
+      ShippingDemandInventoryAllocation,
+    );
+    const inventoryTransactionRepo =
+      queryRunner.manager.getRepository(InventoryTransaction);
+
+    for (const line of preparedLines) {
+      line.item.fulfillmentType = line.fulfillmentType;
+      line.item.stockRequiredQuantity = line.stockQuantity;
+      line.item.purchaseRequiredQuantity = line.purchaseQuantity;
+      line.item.lockedRemainingQuantity = line.stockQuantity;
+      if (operator !== undefined) {
+        line.item.updatedBy = operator;
+      }
+
+      if (line.stockQuantity > 0) {
+        const warehouseId = line.warehouseId;
+        if (!warehouseId) {
+          throw new BadRequestException({
+            code: 'WAREHOUSE_REQUIRED',
+            message: `${line.item.skuCode} 使用库存时必须选择仓库`,
+          });
+        }
+        const lockResult = await this.inventoryService.lockStockInTransaction(
+          queryRunner,
+          {
+            skuId: Number(line.item.skuId),
+            warehouseId,
+            quantity: line.stockQuantity,
+            operator,
+          },
+        );
+        await allocationRepo.save(
+          (lockResult.allocations ?? []).map((allocation) =>
+            allocationRepo.create({
+              shippingDemandId: Number(demand.id),
+              shippingDemandItemId: Number(line.item.id),
+              salesOrderItemId: Number(line.item.salesOrderItemId),
+              skuId: Number(line.item.skuId),
+              warehouseId,
+              inventoryBatchId: allocation.batchId,
+              lockSource: 'existing_stock',
+              sourceDocumentType: 'shipping_demand',
+              sourceDocumentId: Number(demand.id),
+              originalLockedQuantity: allocation.quantity,
+              lockedQuantity: allocation.quantity,
+              shippedQuantity: 0,
+              releasedQuantity: 0,
+              status: ShippingDemandAllocationStatus.ACTIVE,
+              sourceActionKey: this.buildAllocationActionKey(
+                demand,
+                line.item,
+                allocation.batchId,
+              ),
+              createdBy: operator,
+              updatedBy: operator,
+            }),
+          ),
+        );
+        await inventoryTransactionRepo.save(
+          this.buildLockInventoryTransactions(
+            inventoryTransactionRepo,
+            demand,
+            line.item,
+            warehouseId,
+            lockResult.summary,
+            lockResult.allocations ?? [],
+            operator,
+          ),
+        );
+      }
+
+      await itemRepo.save(line.item);
+    }
+
+    demand.status = nextStatus;
+    if (operator !== undefined) {
+      demand.updatedBy = operator;
+    }
+    await queryRunner.manager.getRepository(ShippingDemand).save(demand);
+
+    if (nextStatus === ShippingDemandStatus.PREPARED) {
+      await queryRunner.manager.getRepository(SalesOrder).update(demand.salesOrderId, {
+        status: SalesOrderStatus.PREPARED,
+        updatedBy: operator,
+      });
+    }
+
+    await this.writeShippingDemandAllocationOperationLog(
+      queryRunner,
+      demand,
+      oldStatus,
+      nextStatus,
+      preparedLines,
+      operator,
+    );
+  }
+
+  private async findShippingDemandForAllocation(
+    queryRunner: QueryRunner,
+    id: number,
+  ): Promise<ShippingDemand> {
+    const demand = await queryRunner.manager
+      .getRepository(ShippingDemand)
+      .createQueryBuilder('demand')
+      .leftJoinAndSelect('demand.items', 'items')
+      .setLock('pessimistic_write')
+      .where('demand.id = :id', { id })
+      .orderBy('items.id', 'ASC')
+      .getOne();
+
+    if (!demand) {
+      throw new NotFoundException('发货需求不存在');
+    }
+    if (demand.status !== ShippingDemandStatus.PENDING_ALLOCATION) {
+      throw new BadRequestException({
+        code: 'ALLOCATION_ALREADY_CONFIRMED',
+        message: '只有待分配库存的发货需求可以确认分配',
+      });
+    }
+    if (!demand.items?.length) {
+      throw new BadRequestException('发货需求没有产品明细，无法确认分配');
+    }
+    return demand;
+  }
+
+  private prepareAllocationLines(
+    demand: ShippingDemand,
+    dto: ConfirmShippingDemandAllocationDto,
+  ): PreparedAllocationLine[] {
+    const items = demand.items ?? [];
+    const dtoByItemId = new Map<number, ConfirmShippingDemandAllocationDto['items'][number]>();
+    for (const line of dto.items ?? []) {
+      if (dtoByItemId.has(line.itemId)) {
+        throw new BadRequestException({
+          code: 'DUPLICATE_ALLOCATION_ITEM',
+          message: '发货需求明细不能重复提交',
+        });
+      }
+      dtoByItemId.set(line.itemId, line);
+    }
+    if (dtoByItemId.size !== items.length) {
+      throw new BadRequestException({
+        code: 'ALLOCATION_ITEMS_INCOMPLETE',
+        message: '所有发货需求明细都必须设置履行类型',
+      });
+    }
+
+    return items.map((item) => {
+      const input = dtoByItemId.get(Number(item.id));
+      if (!input) {
+        throw new BadRequestException({
+          code: 'ALLOCATION_ITEM_MISSING',
+          message: `${item.skuCode} 未设置履行类型`,
+        });
+      }
+      const requiredQuantity = Number(item.requiredQuantity ?? 0);
+      if (!Number.isInteger(requiredQuantity) || requiredQuantity <= 0) {
+        throw new BadRequestException({
+          code: 'INVALID_REQUIRED_QUANTITY',
+          message: `${item.skuCode} 应发数量必须为正整数`,
+        });
+      }
+      const stockQuantity = Number(input.stockQuantity ?? 0);
+      if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
+        throw new BadRequestException({
+          code: 'INVALID_STOCK_QUANTITY',
+          message: `${item.skuCode} 使用库存数量必须为非负整数`,
+        });
+      }
+      if (stockQuantity > requiredQuantity) {
+        throw new BadRequestException({
+          code: 'STOCK_QUANTITY_EXCEEDS_REQUIRED',
+          message: `${item.skuCode} 使用库存数量不能超过应发数量`,
+        });
+      }
+      const purchaseQuantity = requiredQuantity - stockQuantity;
+      this.assertFulfillmentQuantity(item, input.fulfillmentType, stockQuantity, purchaseQuantity);
+      return {
+        item,
+        fulfillmentType: input.fulfillmentType,
+        stockQuantity,
+        purchaseQuantity,
+        warehouseId: stockQuantity > 0 ? Number(input.warehouseId) : null,
+      };
+    });
+  }
+
+  private assertFulfillmentQuantity(
+    item: ShippingDemandItem,
+    fulfillmentType: FulfillmentType,
+    stockQuantity: number,
+    purchaseQuantity: number,
+  ): void {
+    if (fulfillmentType === FulfillmentType.FULL_PURCHASE && stockQuantity !== 0) {
+      throw new BadRequestException({
+        code: 'INVALID_FULL_PURCHASE_QUANTITY',
+        message: `${item.skuCode} 全部采购时使用库存数量必须为 0`,
+      });
+    }
+    if (fulfillmentType === FulfillmentType.USE_STOCK && purchaseQuantity !== 0) {
+      throw new BadRequestException({
+        code: 'INVALID_USE_STOCK_QUANTITY',
+        message: `${item.skuCode} 使用现有库存时必须覆盖全部应发数量`,
+      });
+    }
+    if (
+      fulfillmentType === FulfillmentType.PARTIAL_PURCHASE &&
+      (stockQuantity <= 0 || purchaseQuantity <= 0)
+    ) {
+      throw new BadRequestException({
+        code: 'INVALID_PARTIAL_PURCHASE_QUANTITY',
+        message: `${item.skuCode} 部分采购必须同时包含库存数量和采购数量`,
+      });
+    }
   }
 
   private async findSalesOrderForGeneration(
@@ -252,6 +573,142 @@ export class ShippingDemandsService {
     );
   }
 
+  private buildLockInventoryTransactions(
+    repo: Repository<InventoryTransaction>,
+    demand: ShippingDemand,
+    item: ShippingDemandItem,
+    warehouseId: number,
+    summary: InventorySummary,
+    allocations: Array<{ batchId: number; quantity: number }>,
+    operator?: string,
+  ): InventoryTransaction[] {
+    const lockedQuantity = allocations.reduce(
+      (sum, allocation) => sum + Number(allocation.quantity ?? 0),
+      0,
+    );
+    if (lockedQuantity <= 0) return [];
+    const afterActual = Number(summary.actualQuantity ?? 0);
+    const afterLocked = Number(summary.lockedQuantity ?? 0);
+    const afterAvailable = Number(summary.availableQuantity ?? 0);
+    const beforeLocked = afterLocked - lockedQuantity;
+    const beforeAvailable = afterAvailable + lockedQuantity;
+
+    return [
+      repo.create({
+        skuId: Number(item.skuId),
+        warehouseId,
+        inventoryBatchId: null,
+        changeType: InventoryChangeType.LOCK,
+        actualQuantityDelta: 0,
+        lockedQuantityDelta: lockedQuantity,
+        availableQuantityDelta: -lockedQuantity,
+        beforeActualQuantity: afterActual,
+        afterActualQuantity: afterActual,
+        beforeLockedQuantity: beforeLocked,
+        afterLockedQuantity: afterLocked,
+        beforeAvailableQuantity: beforeAvailable,
+        afterAvailableQuantity: afterAvailable,
+        sourceDocumentType: 'shipping_demand',
+        sourceDocumentId: Number(demand.id),
+        sourceDocumentItemId: Number(item.id),
+        sourceActionKey: this.buildInventoryTransactionActionKey(demand, item),
+        operatedBy: operator ?? 'system',
+      }),
+    ] as InventoryTransaction[];
+  }
+
+  private async writeShippingDemandAllocationOperationLog(
+    queryRunner: QueryRunner,
+    demand: ShippingDemand,
+    oldStatus: ShippingDemandStatus,
+    newStatus: ShippingDemandStatus,
+    lines: PreparedAllocationLine[],
+    operator?: string,
+  ): Promise<void> {
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    const allocationSummary = this.buildAllocationOperationSummary(lines);
+    const allocationDetails = this.buildAllocationOperationDetails(lines);
+    await operationLogRepo.save(
+      operationLogRepo.create({
+        operator: operator ?? 'system',
+        operatorId: null,
+        action: OperationLogAction.UPDATE,
+        resourceType: 'shipping-demands',
+        resourceId: String(demand.id),
+        resourcePath: `/api/shipping-demands/${demand.id}/confirm-allocation`,
+        requestSummary: {
+          sourceAction: 'confirm_shipping_demand_allocation',
+          lockedQuantity: lines.reduce((sum, line) => sum + line.stockQuantity, 0),
+          purchaseQuantity: lines.reduce((sum, line) => sum + line.purchaseQuantity, 0),
+          itemCount: lines.length,
+          allocationSummary,
+        },
+        changeSummary: [
+          {
+            field: 'status',
+            fieldLabel: '发货需求状态',
+            oldValue: oldStatus,
+            newValue: newStatus,
+          },
+          {
+            field: 'allocationSummary',
+            fieldLabel: '分配结果',
+            oldValue: null,
+            newValue: allocationSummary,
+          },
+          {
+            field: 'allocationDetails',
+            fieldLabel: '分配明细',
+            oldValue: null,
+            newValue: allocationDetails,
+          },
+        ],
+      }),
+    );
+  }
+
+  private buildAllocationOperationSummary(lines: PreparedAllocationLine[]): string {
+    const lockedQuantity = lines.reduce((sum, line) => sum + line.stockQuantity, 0);
+    const purchaseQuantity = lines.reduce((sum, line) => sum + line.purchaseQuantity, 0);
+    const stockLineCount = lines.filter((line) => line.stockQuantity > 0).length;
+    const purchaseLineCount = lines.filter((line) => line.purchaseQuantity > 0).length;
+
+    return [
+      `共 ${lines.length} 个 SKU`,
+      `锁定现有库存 ${lockedQuantity}`,
+      `需采购 ${purchaseQuantity}`,
+      `使用库存 ${stockLineCount} 行`,
+      `涉及采购 ${purchaseLineCount} 行`,
+    ].join('；');
+  }
+
+  private buildAllocationOperationDetails(lines: PreparedAllocationLine[]): string {
+    return lines
+      .map((line, index) => {
+        const productName = line.item.productNameCn || line.item.productNameEn;
+        const productText = productName ? ` / ${productName}` : '';
+        const warehouseText = line.warehouseId ? `，仓库 ${line.warehouseId}` : '';
+
+        return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}`;
+      })
+      .join('\n');
+  }
+
+  private buildAllocationActionKey(
+    demand: ShippingDemand,
+    item: ShippingDemandItem,
+    batchId: number,
+  ): string {
+    return `shipping-demand:${demand.id}:confirm-allocation:item:${item.id}:batch:${batchId}`;
+  }
+
+  private buildInventoryTransactionActionKey(
+    demand: ShippingDemand,
+    item: ShippingDemandItem,
+  ): string {
+    return `shipping-demand:${demand.id}:confirm-allocation:item:${item.id}:lock`;
+  }
+
   private async generateDemandCode(queryRunner: QueryRunner): Promise<string> {
     const now = new Date();
     const year = now.getFullYear();
@@ -309,9 +766,65 @@ export class ShippingDemandsService {
     }
   }
 
+  private async executeWithConfirmAllocationRetry<T>(
+    operation: (queryRunner: QueryRunner) => Promise<T>,
+  ): Promise<T> {
+    let retryCount = 0;
+    while (true) {
+      const queryRunner = this.shippingDemandsRepository.createQueryRunner();
+      let transactionStarted = false;
+
+      try {
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        transactionStarted = true;
+        const result = await operation(queryRunner);
+        await queryRunner.commitTransaction();
+        return result;
+      } catch (error) {
+        if (transactionStarted) {
+          await queryRunner.rollbackTransaction();
+        }
+
+        if (
+          this.isRetryableConcurrencyError(error) &&
+          retryCount < MAX_CONFIRM_ALLOCATION_RETRIES
+        ) {
+          retryCount += 1;
+          await this.delay(
+            INITIAL_CONFIRM_ALLOCATION_RETRY_DELAY_MS * 2 ** (retryCount - 1),
+          );
+          continue;
+        }
+
+        if (this.isRetryableConcurrencyError(error)) {
+          throw new ConflictException({
+            code: 'CONCURRENT_UPDATE',
+            message: '库存并发更新失败，请稍后重试',
+          });
+        }
+
+        throw error;
+      } finally {
+        await queryRunner.release();
+      }
+    }
+  }
+
   private isDuplicateEntryError(error: unknown): boolean {
     const maybeError = error as { code?: string; errno?: number };
     return maybeError?.code === 'ER_DUP_ENTRY' || maybeError?.errno === 1062;
+  }
+
+  private isRetryableConcurrencyError(error: unknown): boolean {
+    return this.isDeadlockError(error) || this.isDuplicateEntryError(error);
+  }
+
+  private isDeadlockError(error: unknown): boolean {
+    const maybeError = error as { code?: string; errno?: number };
+    return (
+      maybeError?.code === 'ER_LOCK_DEADLOCK' || maybeError?.errno === 1213
+    );
   }
 
   private delay(ms: number): Promise<void> {
@@ -333,5 +846,41 @@ export class ShippingDemandsService {
       result.set(skuId, rows);
     }
     return result;
+  }
+
+  private async withSignedUrls(demand: ShippingDemand) {
+    const contractFileUrls = demand.contractFileKeys
+      ? await Promise.all(
+          demand.contractFileKeys.map(async (key) => {
+            try {
+              return await this.filesService.getSignedUrl(key);
+            } catch {
+              return key;
+            }
+          }),
+        )
+      : null;
+    const plugPhotoUrls = demand.plugPhotoKeys
+      ? await Promise.all(
+          demand.plugPhotoKeys.map(async (key) => {
+            try {
+              return await this.filesService.getSignedUrl(key);
+            } catch {
+              return key;
+            }
+          }),
+        )
+      : null;
+    const shippingMarkTemplateUrl = demand.shippingMarkTemplateKey
+      ? await this.filesService
+          .getSignedUrl(demand.shippingMarkTemplateKey)
+          .catch(() => demand.shippingMarkTemplateKey)
+      : null;
+    return {
+      ...demand,
+      contractFileUrls,
+      plugPhotoUrls,
+      shippingMarkTemplateUrl,
+    };
   }
 }

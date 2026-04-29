@@ -26,6 +26,7 @@ export * from './enums/sales-order-status.enum';
 export * from './enums/sales-order-type.enum';
 export * from './enums/sales-order-source.enum';
 export * from './enums/shipping-demand-status.enum';
+export * from './enums/shipping-demand-allocation-status.enum';
 export * from './enums/fulfillment-type.enum';
 export * from './enums/inventory-batch-source-type.enum';
 export * from './enums/inventory-change-type.enum';

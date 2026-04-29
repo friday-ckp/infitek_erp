@@ -1,5 +1,6 @@
-import { Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
 import { ShippingDemandsService } from './shipping-demands.service';
 
@@ -15,6 +16,19 @@ export class ShippingDemandsController {
   @Get(':id')
   findById(@Param('id', ParseIntPipe) id: number) {
     return this.shippingDemandsService.findById(id);
+  }
+
+  @Post(':id/confirm-allocation')
+  confirmAllocation(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: ConfirmShippingDemandAllocationDto,
+    @CurrentUser() user: { username?: string },
+  ) {
+    return this.shippingDemandsService.confirmAllocation(
+      id,
+      dto,
+      user?.username,
+    );
   }
 
   @Post('generate-from-sales-order/:salesOrderId')

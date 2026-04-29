@@ -150,14 +150,25 @@ export function OperationTimeline({
             <div className="master-tl-action">操作记录：{record.action}</div>
             {record.changes?.length ? (
               <div className="master-tl-changes">
-                {record.changes.map((change) => (
-                  <div className="master-tl-change-chip" key={change.key}>
-                    <span className="master-tl-change-field">{change.fieldLabel}</span>
-                    <span className="master-tl-change-old">{change.oldValue}</span>
-                    <span className="master-tl-change-arrow">→</span>
-                    <span className="master-tl-change-new">{change.newValue}</span>
-                  </div>
-                ))}
+                {record.changes.map((change) => {
+                  const isLongChange =
+                    change.oldValue.length > 80 ||
+                    change.newValue.length > 80 ||
+                    change.oldValue.includes('\n') ||
+                    change.newValue.includes('\n');
+
+                  return (
+                    <div
+                      className={`master-tl-change-chip${isLongChange ? ' master-tl-change-chip-block' : ''}`}
+                      key={change.key}
+                    >
+                      <span className="master-tl-change-field">{change.fieldLabel}</span>
+                      <span className="master-tl-change-old">{change.oldValue}</span>
+                      <span className="master-tl-change-arrow">→</span>
+                      <span className="master-tl-change-new">{change.newValue}</span>
+                    </div>
+                  );
+                })}
               </div>
             ) : null}
             <Tooltip title={dayjs(record.time).fromNow()}>

@@ -82,6 +82,14 @@ export const ShippingDemandStatus = {
 export type ShippingDemandStatus =
   (typeof ShippingDemandStatus)[keyof typeof ShippingDemandStatus];
 
+export const ShippingDemandAllocationStatus = {
+  ACTIVE: 'active',
+  RELEASED: 'released',
+  SHIPPED: 'shipped',
+} as const;
+export type ShippingDemandAllocationStatus =
+  (typeof ShippingDemandAllocationStatus)[keyof typeof ShippingDemandAllocationStatus];
+
 export const FulfillmentType = {
   FULL_PURCHASE: 'full_purchase',
   PARTIAL_PURCHASE: 'partial_purchase',

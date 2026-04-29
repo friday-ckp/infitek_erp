@@ -1,15 +1,22 @@
 import { BadRequestException } from '@nestjs/common';
 import {
   DomesticTradeType,
+  FulfillmentType,
+  InventoryChangeType,
   SalesOrderStatus,
+  SalesOrderSource,
   SalesOrderType,
+  ShippingDemandAllocationStatus,
   ShippingDemandStatus,
+  YesNo,
 } from '@infitek/shared';
+import { InventoryTransaction } from '../../inventory/entities/inventory-transaction.entity';
 import {
   OperationLog,
   OperationLogAction,
 } from '../../operation-logs/entities/operation-log.entity';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
+import { ShippingDemandInventoryAllocation } from '../entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from '../entities/shipping-demand-item.entity';
 import { ShippingDemand } from '../entities/shipping-demand.entity';
 import { ShippingDemandsService } from '../shipping-demands.service';
@@ -22,6 +29,10 @@ describe('ShippingDemandsService', () => {
   };
   const inventoryService = {
     findAvailable: jest.fn(),
+    lockStockInTransaction: jest.fn(),
+  };
+  const filesService = {
+    getSignedUrl: jest.fn(),
   };
 
   const makeOrder = (
@@ -29,17 +40,30 @@ describe('ShippingDemandsService', () => {
   ): Partial<SalesOrder> => ({
     id: 10,
     erpSalesOrderCode: 'SO2026042800001',
+    externalOrderCode: 'EXT-001',
+    orderSource: SalesOrderSource.MANUAL,
     status,
     orderType: SalesOrderType.SALES,
     domesticTradeType: DomesticTradeType.FOREIGN,
     customerId: 1,
     customerName: '测试客户',
     customerCode: 'KH001',
+    customerContactPerson: '张三',
+    afterSalesSourceOrderId: null,
+    afterSalesSourceOrderCode: null,
+    afterSalesProductSummary: null,
     currencyId: 2,
     currencyCode: 'USD',
     currencyName: '美元',
     currencySymbol: '$',
     tradeTerm: null,
+    bankAccount: 'BOC-001',
+    extraViewerId: null,
+    extraViewerName: null,
+    primaryIndustry: null,
+    secondaryIndustry: null,
+    exchangeRate: '7.100000',
+    crmSignedAt: '2026-04-27',
     paymentTerm: null,
     shipmentOriginCountryId: null,
     shipmentOriginCountryName: null,
@@ -63,13 +87,43 @@ describe('ShippingDemandsService', () => {
     isAliTradeAssurance: null,
     isInsured: null,
     isPalletized: null,
+    isSplitInAdvance: YesNo.NO,
     requiresExportCustoms: null,
     requiresWarrantyCard: null,
     requiresCustomsCertificate: null,
+    requiresMaternityHandover: null,
+    customsDeclarationMethod: null,
     usesMarketingFund: null,
+    aliTradeAssuranceOrderCode: null,
+    forwarderQuoteNote: '询价货代备注',
+    contractFileKeys: ['contracts/a.pdf'],
+    contractFileNames: ['合同A.pdf'],
+    plugPhotoKeys: ['plugs/a.png'],
+    consigneeCompany: 'Consignee Co.',
+    consigneeOtherInfo: 'Consignee Info',
+    notifyCompany: 'Notify Co.',
+    notifyOtherInfo: 'Notify Info',
+    shipperCompany: 'Shipper Co.',
+    shipperOtherInfoCompanyId: null,
+    shipperOtherInfoCompanyName: null,
+    domesticCustomerCompany: null,
+    domesticCustomerDeliveryInfo: null,
+    usesDefaultShippingMark: YesNo.YES,
+    shippingMarkNote: '唛头备注',
+    shippingMarkTemplateKey: 'shipping-mark/a.docx',
+    needsInvoice: YesNo.YES,
+    invoiceType: null,
+    shippingDocumentsNote: '随货文件',
+    blType: null,
+    originalMailAddress: 'Mail address',
+    businessRectificationNote: '业务整改',
+    customsDocumentNote: '清关要求',
+    otherRequirementNote: '其他要求',
     contractAmount: '1000.00',
     receivedAmount: '0.00',
     outstandingAmount: '1000.00',
+    productTotalAmount: '600.00',
+    expenseTotalAmount: '0.00',
     totalAmount: '600.00',
     items: [
       {
@@ -89,6 +143,9 @@ describe('ShippingDemandsService', () => {
         currencyCode: 'USD',
         unitId: 6,
         unitName: '台',
+        purchaserId: 8,
+        purchaserName: '采购员A',
+        needsPurchase: YesNo.YES,
         quantity: 2,
         amount: '600.00',
         material: '金属',
@@ -100,6 +157,35 @@ describe('ShippingDemandsService', () => {
         skuSpecification: '220V',
       },
     ],
+  });
+
+  const makeDemandForAllocation = (
+    overrides: Partial<ShippingDemand> = {},
+  ): Partial<ShippingDemand> => ({
+    id: 500,
+    demandCode: 'SD2026042800001',
+    salesOrderId: 10,
+    sourceDocumentCode: 'SO2026042800001',
+    status: ShippingDemandStatus.PENDING_ALLOCATION,
+    items: [
+      {
+        id: 700,
+        shippingDemandId: 500,
+        salesOrderItemId: 101,
+        skuId: 11,
+        skuCode: 'SKU001',
+        productNameCn: '离心机',
+        requiredQuantity: 2,
+        fulfillmentType: null,
+        stockRequiredQuantity: 0,
+        purchaseRequiredQuantity: 0,
+        lockedRemainingQuantity: 0,
+        shippedQuantity: 0,
+        purchaseOrderedQuantity: 0,
+        receivedQuantity: 0,
+      } as ShippingDemandItem,
+    ],
+    ...overrides,
   });
 
   const makeQueryBuilder = (result: unknown) => {
@@ -126,7 +212,9 @@ describe('ShippingDemandsService', () => {
     if (entity === ShippingDemand) {
       return {
         createQueryBuilder: jest.fn(() =>
-          makeQueryBuilder(state.existingDemand ?? state.latestDemand ?? null),
+          makeQueryBuilder(
+            state.demand ?? state.existingDemand ?? state.latestDemand ?? null,
+          ),
         ),
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
@@ -139,7 +227,32 @@ describe('ShippingDemandsService', () => {
       return {
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
-          state.savedItems = data;
+          if (Array.isArray(data)) {
+            state.savedItems = data;
+          } else {
+            state.savedAllocationItems = [
+              ...((state.savedAllocationItems as unknown[]) ?? []),
+              { ...data },
+            ];
+          }
+          return data;
+        }),
+      };
+    }
+    if (entity === ShippingDemandInventoryAllocation) {
+      return {
+        create: jest.fn((data) => data),
+        save: jest.fn().mockImplementation(async (data) => {
+          state.savedAllocations = data;
+          return data;
+        }),
+      };
+    }
+    if (entity === InventoryTransaction) {
+      return {
+        create: jest.fn((data) => data),
+        save: jest.fn().mockImplementation(async (data) => {
+          state.savedInventoryTransactions = data;
           return data;
         }),
       };
@@ -174,6 +287,35 @@ describe('ShippingDemandsService', () => {
     service = new ShippingDemandsService(
       shippingDemandsRepository as any,
       inventoryService as any,
+      filesService as any,
+    );
+  });
+
+  it('finds shipping demand detail with signed urls', async () => {
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PENDING_ALLOCATION,
+      contractFileKeys: ['contracts/a.pdf'],
+      contractFileNames: ['合同A.pdf'],
+      plugPhotoKeys: ['plugs/a.png'],
+      shippingMarkTemplateKey: 'shipping-mark/a.docx',
+      items: [],
+    });
+    filesService.getSignedUrl.mockImplementation(async (key: string) => {
+      return `https://signed.example.com/${key}`;
+    });
+
+    const result = await service.findById(500);
+
+    expect(result.contractFileUrls).toEqual([
+      'https://signed.example.com/contracts/a.pdf',
+    ]);
+    expect(result.plugPhotoUrls).toEqual([
+      'https://signed.example.com/plugs/a.png',
+    ]);
+    expect(result.shippingMarkTemplateUrl).toBe(
+      'https://signed.example.com/shipping-mark/a.docx',
     );
   });
 
@@ -239,12 +381,29 @@ describe('ShippingDemandsService', () => {
         status: ShippingDemandStatus.PENDING_ALLOCATION,
         salesOrderId: 10,
         sourceDocumentCode: 'SO2026042800001',
+        externalOrderCode: 'EXT-001',
+        customerContactPerson: '张三',
+        bankAccount: 'BOC-001',
+        exchangeRate: '7.100000',
+        crmSignedAt: '2026-04-27',
+        contractFileKeys: ['contracts/a.pdf'],
+        contractFileNames: ['合同A.pdf'],
+        plugPhotoKeys: ['plugs/a.png'],
+        consigneeCompany: 'Consignee Co.',
+        notifyCompany: 'Notify Co.',
+        shipperCompany: 'Shipper Co.',
+        shippingMarkTemplateKey: 'shipping-mark/a.docx',
+        productTotalAmount: '600.00',
+        expenseTotalAmount: '0.00',
       }),
     );
     expect(state.savedItems).toEqual([
       expect.objectContaining({
         salesOrderItemId: 101,
         requiredQuantity: 2,
+        purchaserId: 8,
+        purchaserName: '采购员A',
+        needsPurchase: YesNo.YES,
         fulfillmentType: null,
         availableStockSnapshot: [
           {
@@ -276,6 +435,231 @@ describe('ShippingDemandsService', () => {
         ],
       }),
     );
+  });
+
+  it('confirms allocation and prepares demand when all items use stock', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PREPARED,
+      items: [{ id: 700, lockedRemainingQuantity: 2 }],
+    });
+    inventoryService.lockStockInTransaction.mockResolvedValue({
+      summary: {
+        actualQuantity: 5,
+        lockedQuantity: 2,
+        availableQuantity: 3,
+      },
+      batches: [],
+      allocations: [{ batchId: 901, quantity: 2 }],
+    });
+
+    const result = await service.confirmAllocation(
+      500,
+      {
+        items: [
+          {
+            itemId: 700,
+            fulfillmentType: FulfillmentType.USE_STOCK,
+            stockQuantity: 2,
+            warehouseId: 22,
+          },
+        ],
+      },
+      'admin',
+    );
+
+    expect(result.status).toBe(ShippingDemandStatus.PREPARED);
+    expect(queryRunner.commitTransaction).toHaveBeenCalled();
+    expect(inventoryService.lockStockInTransaction).toHaveBeenCalledWith(
+      queryRunner,
+      {
+        skuId: 11,
+        warehouseId: 22,
+        quantity: 2,
+        operator: 'admin',
+      },
+    );
+    expect(state.savedAllocationItems).toEqual([
+      expect.objectContaining({
+        id: 700,
+        fulfillmentType: FulfillmentType.USE_STOCK,
+        stockRequiredQuantity: 2,
+        purchaseRequiredQuantity: 0,
+        lockedRemainingQuantity: 2,
+      }),
+    ]);
+    expect(state.savedDemand).toEqual(
+      expect.objectContaining({ status: ShippingDemandStatus.PREPARED }),
+    );
+    expect(state.salesOrderUpdate).toEqual({
+      status: SalesOrderStatus.PREPARED,
+      updatedBy: 'admin',
+    });
+    expect(state.savedAllocations).toEqual([
+      expect.objectContaining({
+        shippingDemandId: 500,
+        shippingDemandItemId: 700,
+        inventoryBatchId: 901,
+        lockedQuantity: 2,
+        status: ShippingDemandAllocationStatus.ACTIVE,
+      }),
+    ]);
+    expect(state.savedInventoryTransactions).toEqual([
+      expect.objectContaining({
+        changeType: InventoryChangeType.LOCK,
+        lockedQuantityDelta: 2,
+        availableQuantityDelta: -2,
+        sourceDocumentType: 'shipping_demand',
+        sourceDocumentId: 500,
+        sourceDocumentItemId: 700,
+      }),
+    ]);
+    expect(state.savedOperationLog).toEqual(
+      expect.objectContaining({
+        resourceType: 'shipping-demands',
+        resourceId: '500',
+      }),
+    );
+    expect(state.savedOperationLog).toEqual(
+      expect.objectContaining({
+        requestSummary: expect.objectContaining({
+          allocationSummary: '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
+        }),
+        changeSummary: expect.arrayContaining([
+          expect.objectContaining({
+            field: 'allocationSummary',
+            newValue: '共 1 个 SKU；锁定现有库存 2；需采购 0；使用库存 1 行；涉及采购 0 行',
+          }),
+          expect.objectContaining({
+            field: 'allocationDetails',
+            newValue: '1. SKU001 / 离心机：使用现有库存，应发 2，锁定库存 2，需采购 0，仓库 22',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('confirms allocation and keeps demand purchasing when purchase quantity remains', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PURCHASING,
+      items: [{ id: 700, lockedRemainingQuantity: 1 }],
+    });
+    inventoryService.lockStockInTransaction.mockResolvedValue({
+      summary: {
+        actualQuantity: 5,
+        lockedQuantity: 1,
+        availableQuantity: 4,
+      },
+      batches: [],
+      allocations: [{ batchId: 901, quantity: 1 }],
+    });
+
+    await service.confirmAllocation(
+      500,
+      {
+        items: [
+          {
+            itemId: 700,
+            fulfillmentType: FulfillmentType.PARTIAL_PURCHASE,
+            stockQuantity: 1,
+            warehouseId: 22,
+          },
+        ],
+      },
+      'admin',
+    );
+
+    expect(state.savedAllocationItems).toEqual([
+      expect.objectContaining({
+        fulfillmentType: FulfillmentType.PARTIAL_PURCHASE,
+        stockRequiredQuantity: 1,
+        purchaseRequiredQuantity: 1,
+        lockedRemainingQuantity: 1,
+      }),
+    ]);
+    expect(state.savedDemand).toEqual(
+      expect.objectContaining({ status: ShippingDemandStatus.PURCHASING }),
+    );
+    expect(state.salesOrderUpdate).toBeUndefined();
+  });
+
+  it('rejects confirming allocation for non-pending demand', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.PURCHASING,
+      }),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.confirmAllocation(
+        500,
+        {
+          items: [
+            {
+              itemId: 700,
+              fulfillmentType: FulfillmentType.USE_STOCK,
+              stockQuantity: 2,
+              warehouseId: 22,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(inventoryService.lockStockInTransaction).not.toHaveBeenCalled();
+  });
+
+  it('rolls back when stock is insufficient during allocation confirmation', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    inventoryService.lockStockInTransaction.mockRejectedValue(
+      new BadRequestException({
+        code: 'STOCK_INSUFFICIENT',
+        message: '可用库存不足，当前可用 1',
+      }),
+    );
+
+    await expect(
+      service.confirmAllocation(
+        500,
+        {
+          items: [
+            {
+              itemId: 700,
+              fulfillmentType: FulfillmentType.USE_STOCK,
+              stockQuantity: 2,
+              warehouseId: 22,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(queryRunner.commitTransaction).not.toHaveBeenCalled();
+    expect(state.savedAllocations).toBeUndefined();
+    expect(state.savedInventoryTransactions).toBeUndefined();
+    expect(state.savedDemand).toBeUndefined();
   });
 
   it('retries demand code duplicate key conflicts', async () => {

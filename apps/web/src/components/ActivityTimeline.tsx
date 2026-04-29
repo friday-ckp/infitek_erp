@@ -235,6 +235,11 @@ const ENUM_VALUE_LABELS: Record<string, Record<string, string>> = {
     telex_release: '电放',
     original: '正本',
   },
+  fulfillmentType: {
+    full_purchase: '全部采购',
+    partial_purchase: '部分采购',
+    use_stock: '使用现有库存',
+  },
 };
 
 const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, string>>> = {
@@ -453,6 +458,11 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, s
       partially_shipped: '部分发货',
       shipped: '已发货',
       voided: '已作废',
+    },
+    fulfillmentType: {
+      full_purchase: '全部采购',
+      partial_purchase: '部分采购',
+      use_stock: '使用现有库存',
     },
     paymentTerm: {
       '100_tt_in_advance': '100% TT预付',
@@ -833,9 +843,153 @@ function formatChangeValue(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function readRecordValue(
+  value: Record<string, unknown>,
+  key: string,
+): unknown {
+  return value[key];
+}
+
+function formatFulfillmentType(value: unknown): string {
+  const normalizedValue = normalizeLookupId(value);
+  if (!normalizedValue) {
+    return '未设置';
+  }
+
+  return ENUM_VALUE_LABELS.fulfillmentType[normalizedValue] ?? normalizedValue;
+}
+
+function formatAllocationObject(value: Record<string, unknown>, index: number): string {
+  const skuCode = readRecordValue(value, 'skuCode');
+  const productName =
+    readRecordValue(value, 'productNameCn') ??
+    readRecordValue(value, 'productNameEn') ??
+    readRecordValue(value, 'productName');
+  const itemId = readRecordValue(value, 'itemId');
+  const stockQuantity = readRecordValue(value, 'stockQuantity');
+  const purchaseQuantity = readRecordValue(value, 'purchaseQuantity');
+  const warehouseId = readRecordValue(value, 'warehouseId');
+  const skuText = skuCode ? String(skuCode) : `明细 ${itemId ?? index + 1}`;
+  const productText = productName ? ` / ${String(productName)}` : '';
+  const warehouseText = warehouseId ? `，仓库 ID ${String(warehouseId)}` : '';
+
+  return `${index + 1}. ${skuText}${productText}：${formatFulfillmentType(readRecordValue(value, 'fulfillmentType'))}，锁定库存 ${formatChangeValue(stockQuantity)}，需采购 ${formatChangeValue(purchaseQuantity)}${warehouseText}`;
+}
+
+function formatAllocationValue(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    const allocationRows = value.filter(
+      (item): item is Record<string, unknown> =>
+        typeof item === 'object' &&
+        item !== null &&
+        ('skuCode' in item || 'fulfillmentType' in item || 'stockQuantity' in item || 'purchaseQuantity' in item),
+    );
+
+    if (!allocationRows.length) {
+      return null;
+    }
+
+    return allocationRows.map((item, index) => formatAllocationObject(item, index)).join('\n');
+  }
+
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    ('skuCode' in value || 'fulfillmentType' in value || 'stockQuantity' in value || 'purchaseQuantity' in value)
+  ) {
+    return formatAllocationObject(value as Record<string, unknown>, 0);
+  }
+
+  return null;
+}
+
+function readFirstKnownValue(
+  value: Record<string, unknown>,
+  keys: string[],
+): unknown {
+  for (const key of keys) {
+    const entryValue = readRecordValue(value, key);
+    if (entryValue !== null && entryValue !== undefined && entryValue !== '') {
+      return entryValue;
+    }
+  }
+
+  return null;
+}
+
+function formatBusinessItemObject(value: Record<string, unknown>, index: number): string {
+  const skuCode = readFirstKnownValue(value, ['skuCode', 'sku_code']);
+  const productName = readFirstKnownValue(value, [
+    'productNameCn',
+    'productNameEn',
+    'productName',
+    'nameCn',
+    'nameEn',
+  ]);
+  const itemId = readFirstKnownValue(value, ['itemId', 'id']);
+  const skuText = skuCode ? String(skuCode) : `明细 ${itemId ?? index + 1}`;
+  const productText = productName ? ` / ${String(productName)}` : '';
+  const segments = [
+    { label: '应发', value: readFirstKnownValue(value, ['requiredQuantity', 'quantity']) },
+    { label: '履行', value: readFirstKnownValue(value, ['fulfillmentType']) },
+    { label: '使用库存', value: readRecordValue(value, 'stockRequiredQuantity') },
+    { label: '需采购', value: readRecordValue(value, 'purchaseRequiredQuantity') },
+    { label: '已锁定', value: readRecordValue(value, 'lockedRemainingQuantity') },
+    { label: '已发货', value: readRecordValue(value, 'shippedQuantity') },
+  ]
+    .filter(({ value: segmentValue }) => segmentValue !== null && segmentValue !== undefined && segmentValue !== '')
+    .map(({ label, value: segmentValue }) =>
+      label === '履行'
+        ? `${label} ${formatFulfillmentType(segmentValue)}`
+        : `${label} ${formatChangeValue(segmentValue)}`,
+    );
+
+  return `${index + 1}. ${skuText}${productText}${segments.length ? `：${segments.join('，')}` : ''}`;
+}
+
+function formatBusinessItemsValue(value: unknown): string | null {
+  if (!Array.isArray(value)) {
+    return null;
+  }
+
+  const rows = value.filter(
+    (item): item is Record<string, unknown> =>
+      typeof item === 'object' &&
+      item !== null &&
+      ('skuCode' in item || 'skuId' in item || 'productNameCn' in item || 'requiredQuantity' in item || 'quantity' in item),
+  );
+
+  if (!rows.length) {
+    return null;
+  }
+
+  const visibleRows = rows.slice(0, 8).map((item, index) => formatBusinessItemObject(item, index));
+  const remainingCount = rows.length - visibleRows.length;
+
+  return [
+    `共 ${rows.length} 行`,
+    ...visibleRows,
+    ...(remainingCount > 0 ? [`其余 ${remainingCount} 行未展开`] : []),
+  ].join('\n');
+}
+
 function formatFieldValue(field: string, value: unknown): string {
   if (BOOLEAN_FIELDS.has(field) && (value === 0 || value === 1 || typeof value === 'boolean')) {
     return value === 1 || value === true ? '是' : '否';
+  }
+
+  if (field === 'items') {
+    const itemsValue = formatBusinessItemsValue(value);
+    if (itemsValue) {
+      return itemsValue;
+    }
+  }
+
+  if (field === 'allocation' || field === 'allocationDetails') {
+    const allocationValue = formatAllocationValue(value);
+    if (allocationValue) {
+      return allocationValue;
+    }
   }
 
   return formatChangeValue(value);
