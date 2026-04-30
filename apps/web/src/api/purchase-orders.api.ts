@@ -6,6 +6,7 @@ import {
   PurchaseOrderSettlementType,
   PurchaseOrderStatus,
   PurchaseOrderType,
+  ReceiptOrderStatus,
   type FulfillmentType,
   type YesNo,
 } from "@infitek/shared";
@@ -41,6 +42,15 @@ export interface PurchaseOrderItem {
   coreParams?: string | null;
   hasPlugText?: string | null;
   specialAttributeNote?: string | null;
+}
+
+export interface PurchaseOrderReceiptOrderSummary {
+  id: number;
+  receiptCode: string;
+  status: ReceiptOrderStatus;
+  receiptDate: string;
+  totalQuantity: number;
+  totalAmount: string;
 }
 
 export interface PurchaseOrder {
@@ -103,6 +113,7 @@ export interface PurchaseOrder {
   formErrorMessage?: string | null;
   invoiceCompletedAt?: string | null;
   paymentCompletedAt?: string | null;
+  receiptOrders?: PurchaseOrderReceiptOrderSummary[];
   createdAt: string;
   updatedAt: string;
   items?: PurchaseOrderItem[];

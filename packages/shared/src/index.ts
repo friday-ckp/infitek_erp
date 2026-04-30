@@ -38,6 +38,8 @@ export * from "./enums/shipping-demand-allocation-status.enum";
 export * from "./enums/fulfillment-type.enum";
 export * from "./enums/inventory-batch-source-type.enum";
 export * from "./enums/inventory-change-type.enum";
+export * from "./enums/receipt-order-status.enum";
+export * from "./enums/receipt-order-type.enum";
 export * from "./enums/domestic-trade-type.enum";
 export * from "./enums/payment-term.enum";
 export * from "./enums/trade-term.enum";
