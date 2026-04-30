@@ -1,550 +1,610 @@
-import { Skeleton } from 'antd';
-import { useMemo } from 'react';
-import { useQueries, useQuery } from '@tanstack/react-query';
+import { Skeleton } from "antd";
+import { useMemo } from "react";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import {
   OPERATION_LOG_CREATE_SUMMARY_FIELD,
   OPERATION_LOG_CREATE_SUMMARY_LABEL,
   resolveOperationLogFieldLabel,
-} from '@infitek/shared';
-import { getCompanyById } from '../api/companies.api';
-import { CONTRACT_TEMPLATE_STATUS_LABELS } from '../api/contract-templates.api';
-import { getCountryById } from '../api/countries.api';
-import { getCurrencyById } from '../api/currencies.api';
-import { getCustomerById } from '../api/customers.api';
-import { ATTRIBUTION_TYPE_LABELS, DOCUMENT_TYPE_LABELS } from '../api/product-documents.api';
+} from "@infitek/shared";
+import { getCompanyById } from "../api/companies.api";
+import { CONTRACT_TEMPLATE_STATUS_LABELS } from "../api/contract-templates.api";
+import { getCountryById } from "../api/countries.api";
+import { getCurrencyById } from "../api/currencies.api";
+import { getCustomerById } from "../api/customers.api";
+import {
+  ATTRIBUTION_TYPE_LABELS,
+  DOCUMENT_TYPE_LABELS,
+} from "../api/product-documents.api";
 import {
   getOperationLogs,
   type OperationLogAction,
   type OperationLogChangeItem,
-} from '../api/operation-logs.api';
-import { getPortById } from '../api/ports.api';
-import { getProductCategoryById } from '../api/product-categories.api';
-import { getSkuById } from '../api/skus.api';
-import { getSpuById } from '../api/spus.api';
-import { getSupplierById } from '../api/suppliers.api';
-import { getUnitById } from '../api/units.api';
-import { getUserById } from '../api/users.api';
-import { OperationTimeline } from '../pages/master-data/components/page-scaffold';
+} from "../api/operation-logs.api";
+import { getPortById } from "../api/ports.api";
+import { getProductCategoryById } from "../api/product-categories.api";
+import { getSkuById } from "../api/skus.api";
+import { getSpuById } from "../api/spus.api";
+import { getSupplierById } from "../api/suppliers.api";
+import { getUnitById } from "../api/units.api";
+import { getUserById } from "../api/users.api";
+import { OperationTimeline } from "../pages/master-data/components/page-scaffold";
 
 const DISPLAY_COMPANION_FIELDS: Record<string, string> = {
-  countryId: 'countryName',
-  salesOrderId: 'sourceDocumentCode',
-  salespersonId: 'salespersonName',
-  supplierId: 'supplierName',
-  defaultCompanyId: 'defaultCompanyName',
-  chiefAccountantId: 'chiefAccountantName',
-  companyId: 'companyName',
-  customerId: 'customerName',
-  destinationCountryId: 'destinationCountryName',
-  shipmentOriginCountryId: 'shipmentOriginCountryName',
-  signingCompanyId: 'signingCompanyName',
-  currencyId: 'currencyName',
-  destinationPortId: 'destinationPortName',
-  extraViewerId: 'extraViewerName',
-  merchandiserId: 'merchandiserName',
-  shipperOtherInfoCompanyId: 'shipperOtherInfoCompanyName',
+  countryId: "countryName",
+  salesOrderId: "sourceDocumentCode",
+  salespersonId: "salespersonName",
+  supplierId: "supplierName",
+  defaultCompanyId: "defaultCompanyName",
+  chiefAccountantId: "chiefAccountantName",
+  companyId: "companyName",
+  customerId: "customerName",
+  destinationCountryId: "destinationCountryName",
+  shipmentOriginCountryId: "shipmentOriginCountryName",
+  signingCompanyId: "signingCompanyName",
+  currencyId: "currencyName",
+  destinationPortId: "destinationPortName",
+  extraViewerId: "extraViewerName",
+  merchandiserId: "merchandiserName",
+  shipperOtherInfoCompanyId: "shipperOtherInfoCompanyName",
 };
 
-
 const BOOLEAN_FIELDS = new Set([
-  'isDefault',
-  'requiresLegalReview',
-  'isBaseCurrency',
-  'isVirtual',
-  'annualRebateEnabled',
-  'hasPlug',
-  'isInspectionRequired',
-  'customsInfoMaintained',
-  'isSharedOrder',
-  'isSinosure',
-  'isPalletized',
-  'requiresCustomsCertificate',
-  'isSplitInAdvance',
-  'usesMarketingFund',
-  'requiresExportCustoms',
-  'requiresWarrantyCard',
-  'requiresMaternityHandover',
-  'isInsured',
-  'isAliTradeAssurance',
-  'usesDefaultShippingMark',
-  'needsInvoice',
+  "isDefault",
+  "requiresLegalReview",
+  "isBaseCurrency",
+  "isVirtual",
+  "annualRebateEnabled",
+  "hasPlug",
+  "isInspectionRequired",
+  "customsInfoMaintained",
+  "isSharedOrder",
+  "isSinosure",
+  "isPalletized",
+  "requiresCustomsCertificate",
+  "isSplitInAdvance",
+  "usesMarketingFund",
+  "requiresExportCustoms",
+  "requiresWarrantyCard",
+  "requiresMaternityHandover",
+  "isInsured",
+  "isAliTradeAssurance",
+  "usesDefaultShippingMark",
+  "needsInvoice",
 ]);
 
 const ENUM_VALUE_LABELS: Record<string, Record<string, string>> = {
   status: {
-    active: '启用',
-    inactive: '停用',
-    valid: '有效',
-    expired: '已过期',
-    cooperating: '合作',
-    eliminated: '淘汰',
-    pending_submit: '待提交',
-    in_review: '审核中',
-    approved: '审核通过',
-    rejected: '已拒绝',
-    voided: '已作废',
-    pending_allocation: '待分配库存',
-    pending_purchase_order: '待生成采购单',
-    purchasing: '采购中',
-    enabled: '启用',
-    disabled: '停用',
-    ACTIVE: '启用',
-    INACTIVE: '停用',
+    active: "启用",
+    inactive: "停用",
+    valid: "有效",
+    expired: "已过期",
+    cooperating: "合作",
+    eliminated: "淘汰",
+    pending_submit: "待提交",
+    in_review: "审核中",
+    approved: "审核通过",
+    rejected: "已拒绝",
+    voided: "已作废",
+    pending_allocation: "待分配库存",
+    pending_purchase_order: "待生成采购单",
+    purchasing: "采购中",
+    enabled: "启用",
+    disabled: "停用",
+    ACTIVE: "启用",
+    INACTIVE: "停用",
   },
   documentType: DOCUMENT_TYPE_LABELS,
   attributionType: {
     ...ATTRIBUTION_TYPE_LABELS,
-    通用归属: '通用归属',
-    产品SPU归属: '产品 SPU 归属',
-    产品分类归属: '产品分类归属',
+    通用归属: "通用归属",
+    产品SPU归属: "产品 SPU 归属",
+    产品分类归属: "产品分类归属",
   },
   portType: {
-    起运港: '起运港',
-    目的港: '目的港',
+    起运港: "起运港",
+    目的港: "目的港",
   },
   action: {
-    CREATE: '新增',
-    UPDATE: '更新',
-    DELETE: '删除',
+    CREATE: "新增",
+    UPDATE: "更新",
+    DELETE: "删除",
   },
   questionType: {
-    recommended_selection: '推荐选型',
-    information_providing: '资料提供',
-    general_knowledge: '通识类',
-    product_advantages: '产品优势',
-    functional_parameters: '功能参数',
-    solution: '解决方案',
-    configuration_info: '配置信息',
-    product_customization: '产品定制',
-    no_matching_product: '无匹配产品',
-    new_development_selection: '新拓选型',
-    operation_maintenance: '操作维护',
-    other: '其它类型',
+    recommended_selection: "推荐选型",
+    information_providing: "资料提供",
+    general_knowledge: "通识类",
+    product_advantages: "产品优势",
+    functional_parameters: "功能参数",
+    solution: "解决方案",
+    configuration_info: "配置信息",
+    product_customization: "产品定制",
+    no_matching_product: "无匹配产品",
+    new_development_selection: "新拓选型",
+    operation_maintenance: "操作维护",
+    other: "其它类型",
   },
   productType: {
-    主品: '主品',
-    配件: '配件',
-    耗材: '耗材',
+    主品: "主品",
+    配件: "配件",
+    耗材: "耗材",
   },
   warehouseType: {
-    成品仓: '成品仓',
-    原料仓: '原料仓',
-    中转仓: '中转仓',
-    退货仓: '退货仓',
+    成品仓: "成品仓",
+    原料仓: "原料仓",
+    中转仓: "中转仓",
+    退货仓: "退货仓",
   },
   ownership: {
-    INTERNAL: '自有',
-    EXTERNAL: '外协',
-    INTERNAL_LEASED: '自有租赁',
-    EXTERNAL_LEASED: '外部租赁',
-    自有: '自有',
-    外协: '外协',
+    INTERNAL: "自有",
+    EXTERNAL: "外协",
+    INTERNAL_LEASED: "自有租赁",
+    EXTERNAL_LEASED: "外部租赁",
+    自有: "自有",
+    外协: "外协",
   },
   certificateType: {
-    CE: 'CE',
-    FDA: 'FDA',
-    'IEC第三方检测报告': 'IEC 第三方检测报告',
-    DOC: 'DOC',
-    IS09001: 'ISO9001',
-    ISO14001: 'ISO14001',
-    ISO45001: 'ISO45001',
-    ISO13485: 'ISO13485',
-    其它: '其它',
+    CE: "CE",
+    FDA: "FDA",
+    IEC第三方检测报告: "IEC 第三方检测报告",
+    DOC: "DOC",
+    IS09001: "ISO9001",
+    ISO14001: "ISO14001",
+    ISO45001: "ISO45001",
+    ISO13485: "ISO13485",
+    其它: "其它",
   },
   orderSource: {
-    manual: '手工创建',
-    third_party: '第三方导入',
+    manual: "手工创建",
+    third_party: "第三方导入",
   },
   domesticTradeType: {
-    domestic: '内销',
-    foreign: '外销',
+    domestic: "内销",
+    foreign: "外销",
   },
   orderType: {
-    sales: '销售订单',
-    after_sales: '售后订单',
-    sample: '样品订单',
+    sales: "销售订单",
+    after_sales: "售后订单",
+    sample: "样品订单",
   },
   paymentTerm: {
-    '100_tt_in_advance': '100% TT预付',
-    '30_deposit_70_balance_before_delivery': '30%定金 + 70%发货前付清',
-    '40_deposit_60_balance_before_delivery': '40%定金 + 60%发货前付清',
-    '50_deposit_50_balance_before_delivery': '50%定金 + 50%发货前付清',
-    '60_deposit_40_balance_before_delivery': '60%定金 + 40%发货前付清',
-    '70_deposit_30_balance_before_delivery': '70%定金 + 30%发货前付清',
-    '100_payment_before_delivery': '100%发货前付清',
-    '40_deposit_60_balance_against_bl_copy': '40%定金 + 60%见提单副本付清',
-    '50_deposit_50_balance_against_bl_copy': '50%定金 + 50%见提单副本付清',
-    '70_deposit_30_balance_against_bl_copy': '70%定金 + 30%见提单副本付清',
-    lc_at_sight: '即期信用证',
-    cad: '交单付款(CAD)',
-    dp_at_sight: '即期付款交单(D/P)',
-    da_30_days: '30天承兑交单(D/A)',
-    oa_30_days: '30天赊账(OA)',
+    "100_tt_in_advance": "100% TT预付",
+    "30_deposit_70_balance_before_delivery": "30%定金 + 70%发货前付清",
+    "40_deposit_60_balance_before_delivery": "40%定金 + 60%发货前付清",
+    "50_deposit_50_balance_before_delivery": "50%定金 + 50%发货前付清",
+    "60_deposit_40_balance_before_delivery": "60%定金 + 40%发货前付清",
+    "70_deposit_30_balance_before_delivery": "70%定金 + 30%发货前付清",
+    "100_payment_before_delivery": "100%发货前付清",
+    "40_deposit_60_balance_against_bl_copy": "40%定金 + 60%见提单副本付清",
+    "50_deposit_50_balance_against_bl_copy": "50%定金 + 50%见提单副本付清",
+    "70_deposit_30_balance_against_bl_copy": "70%定金 + 30%见提单副本付清",
+    lc_at_sight: "即期信用证",
+    cad: "交单付款(CAD)",
+    dp_at_sight: "即期付款交单(D/P)",
+    da_30_days: "30天承兑交单(D/A)",
+    oa_30_days: "30天赊账(OA)",
   },
   tradeTerm: {
-    EXW: 'EXW 工厂交货',
-    FCA: 'FCA 货交承运人',
-    FOB: 'FOB 船上交货',
-    CFR: 'CFR 成本加运费',
-    CIF: 'CIF 成本保险加运费',
-    CIP: 'CIP 运费保险费付至',
-    CPT: 'CPT 运费付至',
+    EXW: "EXW 工厂交货",
+    FCA: "FCA 货交承运人",
+    FOB: "FOB 船上交货",
+    CFR: "CFR 成本加运费",
+    CIF: "CIF 成本保险加运费",
+    CIP: "CIP 运费保险费付至",
+    CPT: "CPT 运费付至",
   },
   transportationMethod: {
-    sea: '海运',
-    air: '空运',
-    road: '陆运',
-    rail: '铁路',
-    express: '快递',
-    other: '其它',
+    sea: "海运",
+    air: "空运",
+    road: "陆运",
+    rail: "铁路",
+    express: "快递",
+    other: "其它",
   },
   primaryIndustry: {
-    education: '教育',
-    government: '政府',
-    medical: '医疗',
-    enterprise: '企业',
+    education: "教育",
+    government: "政府",
+    medical: "医疗",
+    enterprise: "企业",
   },
   secondaryIndustry: {
-    agriculture_college: '农学院',
-    food: '食品',
-    animal_science: '动物科学',
-    pharmacy: '药学',
-    medical_college: '医学院',
-    public_health: '公共卫生',
-    life_science: '生命科学',
-    environment: '环境',
+    agriculture_college: "农学院",
+    food: "食品",
+    animal_science: "动物科学",
+    pharmacy: "药学",
+    medical_college: "医学院",
+    public_health: "公共卫生",
+    life_science: "生命科学",
+    environment: "环境",
   },
   orderNature: {
-    bidding: '招投标',
-    retail: '零售',
-    stock_prepare: '备货',
+    bidding: "招投标",
+    retail: "零售",
+    stock_prepare: "备货",
   },
   receiptStatus: {
-    unpaid: '未收款',
-    partially_paid: '部分收款',
-    paid: '已收款',
+    unpaid: "未收款",
+    partially_paid: "部分收款",
+    paid: "已收款",
   },
   customsDeclarationMethod: {
-    self: '自理报关',
-    ali_one_touch: '一达通',
+    self: "自理报关",
+    ali_one_touch: "一达通",
   },
   invoiceType: {
-    vat_special: '增值税专票',
-    vat_normal: '增值税普票',
+    vat_special: "增值税专票",
+    vat_normal: "增值税普票",
   },
   blType: {
-    telex_release: '电放',
-    original: '正本',
+    telex_release: "电放",
+    original: "正本",
   },
   fulfillmentType: {
-    full_purchase: '全部采购',
-    partial_purchase: '部分采购',
-    use_stock: '使用现有库存',
+    full_purchase: "全部采购",
+    partial_purchase: "部分采购",
+    use_stock: "使用现有库存",
   },
 };
 
-const RESOURCE_ENUM_VALUE_LABELS: Record<string, Record<string, Record<string, string>>> = {
+const RESOURCE_ENUM_VALUE_LABELS: Record<
+  string,
+  Record<string, Record<string, string>>
+> = {
   currencies: {
     status: {
-      enabled: '启用',
-      disabled: '停用',
+      enabled: "启用",
+      disabled: "停用",
     },
   },
   units: {
     status: {
-      enabled: '启用',
-      disabled: '停用',
+      enabled: "启用",
+      disabled: "停用",
     },
   },
   warehouses: {
     status: {
-      active: '启用',
-      inactive: '停用',
+      active: "启用",
+      inactive: "停用",
     },
   },
   certificates: {
     status: {
-      valid: '有效',
-      expired: '已过期',
+      valid: "有效",
+      expired: "已过期",
     },
     attributionType: {
-      通用归属: '通用归属',
-      产品SPU归属: '产品 SPU 归属',
-      产品分类归属: '产品分类归属',
+      通用归属: "通用归属",
+      产品SPU归属: "产品 SPU 归属",
+      产品分类归属: "产品分类归属",
     },
   },
-  'product-documents': {
+  "product-documents": {
     attributionType: ATTRIBUTION_TYPE_LABELS,
     documentType: DOCUMENT_TYPE_LABELS,
   },
-  'contract-templates': {
+  "contract-templates": {
     status: CONTRACT_TEMPLATE_STATUS_LABELS,
   },
-  'logistics-providers': {
+  "logistics-providers": {
     status: {
-      合作: '合作',
-      淘汰: '淘汰',
+      合作: "合作",
+      淘汰: "淘汰",
     },
   },
-  'sales-orders': {
+  "sales-orders": {
     orderSource: {
-      manual: '手工创建',
-      third_party: '第三方导入',
+      manual: "手工创建",
+      third_party: "第三方导入",
     },
     domesticTradeType: {
-      domestic: '内销',
-      foreign: '外销',
+      domestic: "内销",
+      foreign: "外销",
     },
     orderType: {
-      sales: '销售订单',
-      after_sales: '售后订单',
-      sample: '样品订单',
+      sales: "销售订单",
+      after_sales: "售后订单",
+      sample: "样品订单",
     },
     sourceDocumentType: {
-      sales_order: '销售订单',
+      sales_order: "销售订单",
     },
     paymentTerm: {
-      '100_tt_in_advance': '100% TT预付',
-      '30_deposit_70_balance_before_delivery': '30%定金 + 70%发货前付清',
-      '40_deposit_60_balance_before_delivery': '40%定金 + 60%发货前付清',
-      '50_deposit_50_balance_before_delivery': '50%定金 + 50%发货前付清',
-      '60_deposit_40_balance_before_delivery': '60%定金 + 40%发货前付清',
-      '70_deposit_30_balance_before_delivery': '70%定金 + 30%发货前付清',
-      '100_payment_before_delivery': '100%发货前付清',
-      '40_deposit_60_against_bl_copy': '40%定金 + 60%见提单副本付清',
-      '50_deposit_50_against_bl_copy': '50%定金 + 50%见提单副本付清',
-      '70_deposit_30_against_bl_copy': '70%定金 + 30%见提单副本付清',
-      lc_at_sight: '即期信用证',
-      cad: '交单付款(CAD)',
-      dp_at_sight: '即期付款交单(D/P)',
-      da_30_days: '30天承兑交单(D/A)',
-      oa_30_days: '30天赊账(OA)',
+      "100_tt_in_advance": "100% TT预付",
+      "30_deposit_70_balance_before_delivery": "30%定金 + 70%发货前付清",
+      "40_deposit_60_balance_before_delivery": "40%定金 + 60%发货前付清",
+      "50_deposit_50_balance_before_delivery": "50%定金 + 50%发货前付清",
+      "60_deposit_40_balance_before_delivery": "60%定金 + 40%发货前付清",
+      "70_deposit_30_balance_before_delivery": "70%定金 + 30%发货前付清",
+      "100_payment_before_delivery": "100%发货前付清",
+      "40_deposit_60_against_bl_copy": "40%定金 + 60%见提单副本付清",
+      "50_deposit_50_against_bl_copy": "50%定金 + 50%见提单副本付清",
+      "70_deposit_30_against_bl_copy": "70%定金 + 30%见提单副本付清",
+      lc_at_sight: "即期信用证",
+      cad: "交单付款(CAD)",
+      dp_at_sight: "即期付款交单(D/P)",
+      da_30_days: "30天承兑交单(D/A)",
+      oa_30_days: "30天赊账(OA)",
     },
     tradeTerm: {
-      EXW: 'EXW 工厂交货',
-      FCA: 'FCA 货交承运人',
-      FOB: 'FOB 船上交货',
-      CFR: 'CFR 成本加运费',
-      CIF: 'CIF 成本保险加运费',
-      CIP: 'CIP 运费保险费付至',
-      CPT: 'CPT 运费付至',
+      EXW: "EXW 工厂交货",
+      FCA: "FCA 货交承运人",
+      FOB: "FOB 船上交货",
+      CFR: "CFR 成本加运费",
+      CIF: "CIF 成本保险加运费",
+      CIP: "CIP 运费保险费付至",
+      CPT: "CPT 运费付至",
     },
     transportationMethod: {
-      sea: '海运',
-      air: '空运',
-      road: '陆运',
-      rail: '铁路',
-      express: '快递',
-      other: '其它',
+      sea: "海运",
+      air: "空运",
+      road: "陆运",
+      rail: "铁路",
+      express: "快递",
+      other: "其它",
     },
     primaryIndustry: {
-      education: '教育',
-      government: '政府',
-      medical: '医疗',
-      enterprise: '企业',
+      education: "教育",
+      government: "政府",
+      medical: "医疗",
+      enterprise: "企业",
     },
     secondaryIndustry: {
-      agriculture_college: '农学院',
-      food: '食品',
-      animal_science: '动物科学',
-      pharmacy: '药学',
-      medical_college: '医学院',
-      public_health: '公共卫生',
-      life_science: '生命科学',
-      environment: '环境',
+      agriculture_college: "农学院",
+      food: "食品",
+      animal_science: "动物科学",
+      pharmacy: "药学",
+      medical_college: "医学院",
+      public_health: "公共卫生",
+      life_science: "生命科学",
+      environment: "环境",
     },
     orderNature: {
-      bidding: '招投标',
-      retail: '零售',
-      stock_prepare: '备货',
+      bidding: "招投标",
+      retail: "零售",
+      stock_prepare: "备货",
     },
     receiptStatus: {
-      unpaid: '未收款',
-      partially_paid: '部分收款',
-      paid: '已收款',
+      unpaid: "未收款",
+      partially_paid: "部分收款",
+      paid: "已收款",
     },
     status: {
-      pending_submit: '待提交',
-      in_review: '审核中',
-      approved: '审核通过',
-      rejected: '已拒绝',
-      preparing: '备货中',
-      prepared: '已备货',
-      partially_shipped: '部分发货',
-      shipped: '已发货',
-      voided: '已作废',
+      pending_submit: "待提交",
+      in_review: "审核中",
+      approved: "审核通过",
+      rejected: "已拒绝",
+      preparing: "备货中",
+      prepared: "已备货",
+      partially_shipped: "部分发货",
+      shipped: "已发货",
+      voided: "已作废",
     },
     customsDeclarationMethod: {
-      self: '自理报关',
-      ali_one_touch: '一达通',
+      self: "自理报关",
+      ali_one_touch: "一达通",
     },
     invoiceType: {
-      vat_special: '增值税专票',
-      vat_normal: '增值税普票',
+      vat_special: "增值税专票",
+      vat_normal: "增值税普票",
     },
     blType: {
-      telex_release: '电放',
-      original: '正本',
+      telex_release: "电放",
+      original: "正本",
     },
     isSharedOrder: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isSinosure: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isPalletized: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     requiresCustomsCertificate: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isSplitInAdvance: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     usesMarketingFund: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     requiresExportCustoms: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     requiresWarrantyCard: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     requiresMaternityHandover: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isInsured: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isAliTradeAssurance: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     usesDefaultShippingMark: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     needsInvoice: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
   },
-  'shipping-demands': {
+  "shipping-demands": {
     sourceDocumentType: {
-      sales_order: '销售订单',
+      sales_order: "销售订单",
     },
     orderType: {
-      sales: '销售订单',
-      after_sales: '售后订单',
-      sample: '样品订单',
+      sales: "销售订单",
+      after_sales: "售后订单",
+      sample: "样品订单",
     },
     domesticTradeType: {
-      domestic: '内销',
-      foreign: '外销',
+      domestic: "内销",
+      foreign: "外销",
     },
     status: {
-      pending_allocation: '待分配库存',
-      pending_purchase_order: '待生成采购单',
-      purchasing: '采购中',
-      prepared: '备货完成',
-      partially_shipped: '部分发货',
-      shipped: '已发货',
-      voided: '已作废',
+      pending_allocation: "待分配库存",
+      pending_purchase_order: "待生成采购单",
+      purchasing: "采购中",
+      prepared: "备货完成",
+      partially_shipped: "部分发货",
+      shipped: "已发货",
+      voided: "已作废",
     },
     fulfillmentType: {
-      full_purchase: '全部采购',
-      partial_purchase: '部分采购',
-      use_stock: '使用现有库存',
+      full_purchase: "全部采购",
+      partial_purchase: "部分采购",
+      use_stock: "使用现有库存",
     },
     paymentTerm: {
-      '100_tt_in_advance': '100% TT预付',
-      '30_deposit_70_balance_before_delivery': '30%定金 + 70%发货前付清',
-      '40_deposit_60_balance_before_delivery': '40%定金 + 60%发货前付清',
-      '50_deposit_50_balance_before_delivery': '50%定金 + 50%发货前付清',
-      '60_deposit_40_balance_before_delivery': '60%定金 + 40%发货前付清',
-      '70_deposit_30_balance_before_delivery': '70%定金 + 30%发货前付清',
-      '100_payment_before_delivery': '100%发货前付清',
-      '40_deposit_60_balance_against_bl_copy': '40%定金 + 60%见提单副本付清',
-      '50_deposit_50_balance_against_bl_copy': '50%定金 + 50%见提单副本付清',
-      '70_deposit_30_balance_against_bl_copy': '70%定金 + 30%见提单副本付清',
-      lc_at_sight: '即期信用证',
-      cad: '交单付款(CAD)',
-      dp_at_sight: '即期付款交单(D/P)',
-      da_30_days: '30天承兑交单(D/A)',
-      oa_30_days: '30天赊账(OA)',
+      "100_tt_in_advance": "100% TT预付",
+      "30_deposit_70_balance_before_delivery": "30%定金 + 70%发货前付清",
+      "40_deposit_60_balance_before_delivery": "40%定金 + 60%发货前付清",
+      "50_deposit_50_balance_before_delivery": "50%定金 + 50%发货前付清",
+      "60_deposit_40_balance_before_delivery": "60%定金 + 40%发货前付清",
+      "70_deposit_30_balance_before_delivery": "70%定金 + 30%发货前付清",
+      "100_payment_before_delivery": "100%发货前付清",
+      "40_deposit_60_balance_against_bl_copy": "40%定金 + 60%见提单副本付清",
+      "50_deposit_50_balance_against_bl_copy": "50%定金 + 50%见提单副本付清",
+      "70_deposit_30_balance_against_bl_copy": "70%定金 + 30%见提单副本付清",
+      lc_at_sight: "即期信用证",
+      cad: "交单付款(CAD)",
+      dp_at_sight: "即期付款交单(D/P)",
+      da_30_days: "30天承兑交单(D/A)",
+      oa_30_days: "30天赊账(OA)",
     },
     tradeTerm: {
-      EXW: 'EXW 工厂交货',
-      FCA: 'FCA 货交承运人',
-      FOB: 'FOB 船上交货',
-      CFR: 'CFR 成本加运费',
-      CIF: 'CIF 成本保险加运费',
-      CIP: 'CIP 运费保险费付至',
-      CPT: 'CPT 运费付至',
+      EXW: "EXW 工厂交货",
+      FCA: "FCA 货交承运人",
+      FOB: "FOB 船上交货",
+      CFR: "CFR 成本加运费",
+      CIF: "CIF 成本保险加运费",
+      CIP: "CIP 运费保险费付至",
+      CPT: "CPT 运费付至",
     },
     transportationMethod: {
-      sea: '海运',
-      air: '空运',
-      road: '陆运',
-      rail: '铁路',
-      express: '快递',
-      other: '其它',
+      sea: "海运",
+      air: "空运",
+      road: "陆运",
+      rail: "铁路",
+      express: "快递",
+      other: "其它",
     },
     orderNature: {
-      bidding: '招投标',
-      retail: '零售',
-      stock_prepare: '备货',
+      bidding: "招投标",
+      retail: "零售",
+      stock_prepare: "备货",
     },
     receiptStatus: {
-      unpaid: '未收款',
-      partially_paid: '部分收款',
-      paid: '已收款',
+      unpaid: "未收款",
+      partially_paid: "部分收款",
+      paid: "已收款",
     },
     isSharedOrder: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isSinosure: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isPalletized: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     requiresCustomsCertificate: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     usesMarketingFund: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     requiresExportCustoms: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     requiresWarrantyCard: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isInsured: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
     },
     isAliTradeAssurance: {
-      yes: '是',
-      no: '否',
+      yes: "是",
+      no: "否",
+    },
+  },
+  "purchase-orders": {
+    orderType: {
+      requisition: "请购型",
+      stock: "备货型",
+    },
+    applicationType: {
+      stock_purchase: "采购备货",
+      sales_requisition: "销售请购",
+    },
+    demandType: {
+      sales_order: "销售订单",
+      after_sales_order: "售后单",
+      exhibition_sample_order: "展会样品单",
+    },
+    status: {
+      pending_confirm: "待确认",
+      supplier_confirming: "待供应商确认",
+      pending_receipt: "待收货",
+      partially_received: "部分收货",
+      received: "全部收货",
+      invoiced: "已开票",
+      cancelled: "已取消",
+    },
+    settlementDateType: {
+      order_date: "采购下单日期",
+      receipt_date: "采购入库日期",
+      invoice_date: "采购开票日期",
+    },
+    settlementType: {
+      monthly: "月结",
+      half_monthly: "半月结",
+      invoice_based: "票结",
+    },
+    receiptStatus: {
+      not_received: "未入库",
+      partially_received: "部分入库",
+      received: "全部入库",
+    },
+    isPrepaid: {
+      yes: "是",
+      no: "否",
+    },
+    isFullyPaid: {
+      yes: "是",
+      no: "否",
+    },
+    supplierContractUploaded: {
+      yes: "是",
+      no: "否",
+    },
+    bothContractUploaded: {
+      yes: "是",
+      no: "否",
     },
   },
 };
@@ -561,15 +621,15 @@ type FieldLookupResolver = {
 };
 
 function normalizeLookupId(value: unknown): string | null {
-  if (value === null || value === undefined || value === '') {
+  if (value === null || value === undefined || value === "") {
     return null;
   }
 
-  if (typeof value === 'number' && Number.isFinite(value)) {
+  if (typeof value === "number" && Number.isFinite(value)) {
     return String(value);
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     const normalized = value.trim();
     return normalized ? normalized : null;
   }
@@ -590,31 +650,34 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `country:${id}`,
-      queryKey: ['audit-lookup', 'country', id],
-      queryFn: () => safeLoadLabel(async () => (await getCountryById(Number(id))).name),
+      queryKey: ["audit-lookup", "country", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCountryById(Number(id))).name),
     }),
   },
   destinationCountryId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `country:${id}`,
-      queryKey: ['audit-lookup', 'country', id],
-      queryFn: () => safeLoadLabel(async () => (await getCountryById(Number(id))).name),
+      queryKey: ["audit-lookup", "country", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCountryById(Number(id))).name),
     }),
   },
   shipmentOriginCountryId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `country:${id}`,
-      queryKey: ['audit-lookup', 'country', id],
-      queryFn: () => safeLoadLabel(async () => (await getCountryById(Number(id))).name),
+      queryKey: ["audit-lookup", "country", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCountryById(Number(id))).name),
     }),
   },
   salespersonId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `user:${id}`,
-      queryKey: ['audit-lookup', 'user', id],
+      queryKey: ["audit-lookup", "user", id],
       queryFn: () =>
         safeLoadLabel(async () => {
           const user = await getUserById(id);
@@ -626,7 +689,7 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `user:${id}`,
-      queryKey: ['audit-lookup', 'user', id],
+      queryKey: ["audit-lookup", "user", id],
       queryFn: () =>
         safeLoadLabel(async () => {
           const user = await getUserById(id);
@@ -638,7 +701,7 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `user:${id}`,
-      queryKey: ['audit-lookup', 'user', id],
+      queryKey: ["audit-lookup", "user", id],
       queryFn: () =>
         safeLoadLabel(async () => {
           const user = await getUserById(id);
@@ -650,7 +713,7 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `user:${id}`,
-      queryKey: ['audit-lookup', 'user', id],
+      queryKey: ["audit-lookup", "user", id],
       queryFn: () =>
         safeLoadLabel(async () => {
           const user = await getUserById(id);
@@ -662,15 +725,16 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `unit:${id}`,
-      queryKey: ['audit-lookup', 'unit', id],
-      queryFn: () => safeLoadLabel(async () => (await getUnitById(Number(id))).name),
+      queryKey: ["audit-lookup", "unit", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getUnitById(Number(id))).name),
     }),
   },
   spuId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `spu:${id}`,
-      queryKey: ['audit-lookup', 'spu', id],
+      queryKey: ["audit-lookup", "spu", id],
       queryFn: () =>
         safeLoadLabel(async () => {
           const spu = await getSpuById(Number(id));
@@ -682,7 +746,7 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `sku:${id}`,
-      queryKey: ['audit-lookup', 'sku', id],
+      queryKey: ["audit-lookup", "sku", id],
       queryFn: () =>
         safeLoadLabel(async () => {
           const sku = await getSkuById(Number(id));
@@ -694,102 +758,131 @@ const FIELD_LOOKUP_RESOLVERS: Record<string, FieldLookupResolver> = {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `supplier:${id}`,
-      queryKey: ['audit-lookup', 'supplier', id],
-      queryFn: () => safeLoadLabel(async () => (await getSupplierById(Number(id))).name),
+      queryKey: ["audit-lookup", "supplier", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getSupplierById(Number(id))).name),
     }),
   },
   customerId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `customer:${id}`,
-      queryKey: ['audit-lookup', 'customer', id],
-      queryFn: () => safeLoadLabel(async () => (await getCustomerById(Number(id))).customerName),
+      queryKey: ["audit-lookup", "customer", id],
+      queryFn: () =>
+        safeLoadLabel(
+          async () => (await getCustomerById(Number(id))).customerName,
+        ),
     }),
   },
   companyId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `company:${id}`,
-      queryKey: ['audit-lookup', 'company', id],
-      queryFn: () => safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
+      queryKey: ["audit-lookup", "company", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
     }),
   },
   signingCompanyId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `company:${id}`,
-      queryKey: ['audit-lookup', 'company', id],
-      queryFn: () => safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
+      queryKey: ["audit-lookup", "company", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
     }),
   },
   shipperOtherInfoCompanyId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `company:${id}`,
-      queryKey: ['audit-lookup', 'company', id],
-      queryFn: () => safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
+      queryKey: ["audit-lookup", "company", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
     }),
   },
   defaultCompanyId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `company:${id}`,
-      queryKey: ['audit-lookup', 'company', id],
-      queryFn: () => safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
+      queryKey: ["audit-lookup", "company", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCompanyById(Number(id))).nameCn),
     }),
   },
   currencyId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `currency:${id}`,
-      queryKey: ['audit-lookup', 'currency', id],
-      queryFn: () => safeLoadLabel(async () => (await getCurrencyById(Number(id))).name),
+      queryKey: ["audit-lookup", "currency", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getCurrencyById(Number(id))).name),
     }),
   },
   destinationPortId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `port:${id}`,
-      queryKey: ['audit-lookup', 'port', id],
-      queryFn: () => safeLoadLabel(async () => (await getPortById(Number(id))).nameCn),
+      queryKey: ["audit-lookup", "port", id],
+      queryFn: () =>
+        safeLoadLabel(async () => (await getPortById(Number(id))).nameCn),
     }),
   },
   categoryId: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `category:${id}`,
-      queryKey: ['audit-lookup', 'category', id],
-      queryFn: () => safeLoadLabel(async () => (await getProductCategoryById(Number(id))).name),
+      queryKey: ["audit-lookup", "category", id],
+      queryFn: () =>
+        safeLoadLabel(
+          async () => (await getProductCategoryById(Number(id))).name,
+        ),
     }),
   },
   categoryLevel1Id: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `category:${id}`,
-      queryKey: ['audit-lookup', 'category', id],
-      queryFn: () => safeLoadLabel(async () => (await getProductCategoryById(Number(id))).name),
+      queryKey: ["audit-lookup", "category", id],
+      queryFn: () =>
+        safeLoadLabel(
+          async () => (await getProductCategoryById(Number(id))).name,
+        ),
     }),
   },
   categoryLevel2Id: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `category:${id}`,
-      queryKey: ['audit-lookup', 'category', id],
-      queryFn: () => safeLoadLabel(async () => (await getProductCategoryById(Number(id))).name),
+      queryKey: ["audit-lookup", "category", id],
+      queryFn: () =>
+        safeLoadLabel(
+          async () => (await getProductCategoryById(Number(id))).name,
+        ),
     }),
   },
   categoryLevel3Id: {
     resolveId: normalizeLookupId,
     buildRequest: (id) => ({
       cacheKey: `category:${id}`,
-      queryKey: ['audit-lookup', 'category', id],
-      queryFn: () => safeLoadLabel(async () => (await getProductCategoryById(Number(id))).name),
+      queryKey: ["audit-lookup", "category", id],
+      queryFn: () =>
+        safeLoadLabel(
+          async () => (await getProductCategoryById(Number(id))).name,
+        ),
     }),
   },
 };
 
-function resolveFieldLabel(resourceType: string, change: OperationLogChangeItem) {
-  return resolveOperationLogFieldLabel(resourceType, change.field, change.fieldLabel ?? change.field);
+function resolveFieldLabel(
+  resourceType: string,
+  change: OperationLogChangeItem,
+) {
+  return resolveOperationLogFieldLabel(
+    resourceType,
+    change.field,
+    change.fieldLabel ?? change.field,
+  );
 }
 
 function formatActionText(
@@ -798,20 +891,26 @@ function formatActionText(
   changes: OperationLogChangeItem[],
 ) {
   const fieldText = changes.length
-    ? action === 'CREATE' && changes[0]?.field === OPERATION_LOG_CREATE_SUMMARY_FIELD
+    ? action === "CREATE" &&
+      changes[0]?.field === OPERATION_LOG_CREATE_SUMMARY_FIELD
       ? resolveFieldLabel(resourceType, changes[0])
-      : `涉及 ${changes.slice(0, 3).map((item) => resolveFieldLabel(resourceType, item)).join('、')}${changes.length > 3 ? ' 等字段' : ''}`
-    : '无字段差异';
+      : `涉及 ${changes
+          .slice(0, 3)
+          .map((item) => resolveFieldLabel(resourceType, item))
+          .join("、")}${changes.length > 3 ? " 等字段" : ""}`
+    : "无字段差异";
 
-  if (action === 'CREATE') {
-    const createSummary = changes.find((item) => item.field === OPERATION_LOG_CREATE_SUMMARY_FIELD);
+  if (action === "CREATE") {
+    const createSummary = changes.find(
+      (item) => item.field === OPERATION_LOG_CREATE_SUMMARY_FIELD,
+    );
     if (createSummary) {
       return `${OPERATION_LOG_CREATE_SUMMARY_LABEL}：${formatFieldValue(createSummary.field, createSummary.newValue)}`;
     }
     return `创建记录，${fieldText}`;
   }
 
-  if (action === 'DELETE') {
+  if (action === "DELETE") {
     return `删除记录，删除前${fieldText}`;
   }
 
@@ -819,85 +918,93 @@ function formatActionText(
 }
 
 function formatChangeValue(value: unknown): string {
-  if (value === null || value === undefined || value === '') {
-    return '—';
+  if (value === null || value === undefined || value === "") {
+    return "—";
   }
 
-  if (typeof value === 'boolean') {
-    return value ? '是' : '否';
+  if (typeof value === "boolean") {
+    return value ? "是" : "否";
   }
 
-  if (typeof value === 'string') {
+  if (typeof value === "string") {
     return value;
   }
 
-  if (typeof value === 'number') {
+  if (typeof value === "number") {
     return String(value);
   }
 
   if (Array.isArray(value)) {
     if (!value.length) {
-      return '—';
+      return "—";
     }
-    return value.map((item) => formatChangeValue(item)).join('，');
+    return value.map((item) => formatChangeValue(item)).join("，");
   }
 
   return JSON.stringify(value);
 }
 
-function readRecordValue(
-  value: Record<string, unknown>,
-  key: string,
-): unknown {
+function readRecordValue(value: Record<string, unknown>, key: string): unknown {
   return value[key];
 }
 
 function formatFulfillmentType(value: unknown): string {
   const normalizedValue = normalizeLookupId(value);
   if (!normalizedValue) {
-    return '未设置';
+    return "未设置";
   }
 
   return ENUM_VALUE_LABELS.fulfillmentType[normalizedValue] ?? normalizedValue;
 }
 
-function formatAllocationObject(value: Record<string, unknown>, index: number): string {
-  const skuCode = readRecordValue(value, 'skuCode');
+function formatAllocationObject(
+  value: Record<string, unknown>,
+  index: number,
+): string {
+  const skuCode = readRecordValue(value, "skuCode");
   const productName =
-    readRecordValue(value, 'productNameCn') ??
-    readRecordValue(value, 'productNameEn') ??
-    readRecordValue(value, 'productName');
-  const itemId = readRecordValue(value, 'itemId');
-  const stockQuantity = readRecordValue(value, 'stockQuantity');
-  const purchaseQuantity = readRecordValue(value, 'purchaseQuantity');
-  const warehouseId = readRecordValue(value, 'warehouseId');
+    readRecordValue(value, "productNameCn") ??
+    readRecordValue(value, "productNameEn") ??
+    readRecordValue(value, "productName");
+  const itemId = readRecordValue(value, "itemId");
+  const stockQuantity = readRecordValue(value, "stockQuantity");
+  const purchaseQuantity = readRecordValue(value, "purchaseQuantity");
+  const warehouseId = readRecordValue(value, "warehouseId");
   const skuText = skuCode ? String(skuCode) : `明细 ${itemId ?? index + 1}`;
-  const productText = productName ? ` / ${String(productName)}` : '';
-  const warehouseText = warehouseId ? `，仓库 ID ${String(warehouseId)}` : '';
+  const productText = productName ? ` / ${String(productName)}` : "";
+  const warehouseText = warehouseId ? `，仓库 ID ${String(warehouseId)}` : "";
 
-  return `${index + 1}. ${skuText}${productText}：${formatFulfillmentType(readRecordValue(value, 'fulfillmentType'))}，锁定库存 ${formatChangeValue(stockQuantity)}，需采购 ${formatChangeValue(purchaseQuantity)}${warehouseText}`;
+  return `${index + 1}. ${skuText}${productText}：${formatFulfillmentType(readRecordValue(value, "fulfillmentType"))}，锁定库存 ${formatChangeValue(stockQuantity)}，需采购 ${formatChangeValue(purchaseQuantity)}${warehouseText}`;
 }
 
 function formatAllocationValue(value: unknown): string | null {
   if (Array.isArray(value)) {
     const allocationRows = value.filter(
       (item): item is Record<string, unknown> =>
-        typeof item === 'object' &&
+        typeof item === "object" &&
         item !== null &&
-        ('skuCode' in item || 'fulfillmentType' in item || 'stockQuantity' in item || 'purchaseQuantity' in item),
+        ("skuCode" in item ||
+          "fulfillmentType" in item ||
+          "stockQuantity" in item ||
+          "purchaseQuantity" in item),
     );
 
     if (!allocationRows.length) {
       return null;
     }
 
-    return allocationRows.map((item, index) => formatAllocationObject(item, index)).join('\n');
+    return allocationRows
+      .map((item, index) => formatAllocationObject(item, index))
+      .join("\n");
   }
 
   if (
-    typeof value === 'object' &&
+    typeof value === "object" &&
     value !== null &&
-    ('skuCode' in value || 'fulfillmentType' in value || 'stockQuantity' in value || 'purchaseQuantity' in value)
+    ("skuCode" in value ||
+      "fulfillmentType" in value ||
+      "stockQuantity" in value ||
+      "purchaseQuantity" in value)
   ) {
     return formatAllocationObject(value as Record<string, unknown>, 0);
   }
@@ -911,7 +1018,7 @@ function readFirstKnownValue(
 ): unknown {
   for (const key of keys) {
     const entryValue = readRecordValue(value, key);
-    if (entryValue !== null && entryValue !== undefined && entryValue !== '') {
+    if (entryValue !== null && entryValue !== undefined && entryValue !== "") {
       return entryValue;
     }
   }
@@ -919,34 +1026,54 @@ function readFirstKnownValue(
   return null;
 }
 
-function formatBusinessItemObject(value: Record<string, unknown>, index: number): string {
-  const skuCode = readFirstKnownValue(value, ['skuCode', 'sku_code']);
+function formatBusinessItemObject(
+  value: Record<string, unknown>,
+  index: number,
+): string {
+  const skuCode = readFirstKnownValue(value, ["skuCode", "sku_code"]);
   const productName = readFirstKnownValue(value, [
-    'productNameCn',
-    'productNameEn',
-    'productName',
-    'nameCn',
-    'nameEn',
+    "productNameCn",
+    "productNameEn",
+    "productName",
+    "nameCn",
+    "nameEn",
   ]);
-  const itemId = readFirstKnownValue(value, ['itemId', 'id']);
+  const itemId = readFirstKnownValue(value, ["itemId", "id"]);
   const skuText = skuCode ? String(skuCode) : `明细 ${itemId ?? index + 1}`;
-  const productText = productName ? ` / ${String(productName)}` : '';
+  const productText = productName ? ` / ${String(productName)}` : "";
   const segments = [
-    { label: '应发', value: readFirstKnownValue(value, ['requiredQuantity', 'quantity']) },
-    { label: '履行', value: readFirstKnownValue(value, ['fulfillmentType']) },
-    { label: '使用库存', value: readRecordValue(value, 'stockRequiredQuantity') },
-    { label: '需采购', value: readRecordValue(value, 'purchaseRequiredQuantity') },
-    { label: '已锁定', value: readRecordValue(value, 'lockedRemainingQuantity') },
-    { label: '已发货', value: readRecordValue(value, 'shippedQuantity') },
+    {
+      label: "应发",
+      value: readFirstKnownValue(value, ["requiredQuantity", "quantity"]),
+    },
+    { label: "履行", value: readFirstKnownValue(value, ["fulfillmentType"]) },
+    {
+      label: "使用库存",
+      value: readRecordValue(value, "stockRequiredQuantity"),
+    },
+    {
+      label: "需采购",
+      value: readRecordValue(value, "purchaseRequiredQuantity"),
+    },
+    {
+      label: "已锁定",
+      value: readRecordValue(value, "lockedRemainingQuantity"),
+    },
+    { label: "已发货", value: readRecordValue(value, "shippedQuantity") },
   ]
-    .filter(({ value: segmentValue }) => segmentValue !== null && segmentValue !== undefined && segmentValue !== '')
+    .filter(
+      ({ value: segmentValue }) =>
+        segmentValue !== null &&
+        segmentValue !== undefined &&
+        segmentValue !== "",
+    )
     .map(({ label, value: segmentValue }) =>
-      label === '履行'
+      label === "履行"
         ? `${label} ${formatFulfillmentType(segmentValue)}`
         : `${label} ${formatChangeValue(segmentValue)}`,
     );
 
-  return `${index + 1}. ${skuText}${productText}${segments.length ? `：${segments.join('，')}` : ''}`;
+  return `${index + 1}. ${skuText}${productText}${segments.length ? `：${segments.join("，")}` : ""}`;
 }
 
 function formatBusinessItemsValue(value: unknown): string | null {
@@ -956,38 +1083,47 @@ function formatBusinessItemsValue(value: unknown): string | null {
 
   const rows = value.filter(
     (item): item is Record<string, unknown> =>
-      typeof item === 'object' &&
+      typeof item === "object" &&
       item !== null &&
-      ('skuCode' in item || 'skuId' in item || 'productNameCn' in item || 'requiredQuantity' in item || 'quantity' in item),
+      ("skuCode" in item ||
+        "skuId" in item ||
+        "productNameCn" in item ||
+        "requiredQuantity" in item ||
+        "quantity" in item),
   );
 
   if (!rows.length) {
     return null;
   }
 
-  const visibleRows = rows.slice(0, 8).map((item, index) => formatBusinessItemObject(item, index));
+  const visibleRows = rows
+    .slice(0, 8)
+    .map((item, index) => formatBusinessItemObject(item, index));
   const remainingCount = rows.length - visibleRows.length;
 
   return [
     `共 ${rows.length} 行`,
     ...visibleRows,
     ...(remainingCount > 0 ? [`其余 ${remainingCount} 行未展开`] : []),
-  ].join('\n');
+  ].join("\n");
 }
 
 function formatFieldValue(field: string, value: unknown): string {
-  if (BOOLEAN_FIELDS.has(field) && (value === 0 || value === 1 || typeof value === 'boolean')) {
-    return value === 1 || value === true ? '是' : '否';
+  if (
+    BOOLEAN_FIELDS.has(field) &&
+    (value === 0 || value === 1 || typeof value === "boolean")
+  ) {
+    return value === 1 || value === true ? "是" : "否";
   }
 
-  if (field === 'items') {
+  if (field === "items") {
     const itemsValue = formatBusinessItemsValue(value);
     if (itemsValue) {
       return itemsValue;
     }
   }
 
-  if (field === 'allocation' || field === 'allocationDetails') {
+  if (field === "allocation" || field === "allocationDetails") {
     const allocationValue = formatAllocationValue(value);
     if (allocationValue) {
       return allocationValue;
@@ -1056,7 +1192,9 @@ function normalizeChanges(
     }
 
     const companionField = DISPLAY_COMPANION_FIELDS[change.field];
-    const companionChange = companionField ? changeMap.get(companionField) : undefined;
+    const companionChange = companionField
+      ? changeMap.get(companionField)
+      : undefined;
 
     if (companionChange) {
       consumedFields.add(change.field);
@@ -1066,10 +1204,8 @@ function normalizeChanges(
         {
           key: `${change.field}-${index}`,
           fieldLabel: resolveFieldLabel(resourceType, change),
-          oldValue:
-            formatFieldValue(companionField, companionChange.oldValue),
-          newValue:
-            formatFieldValue(companionField, companionChange.newValue),
+          oldValue: formatFieldValue(companionField, companionChange.oldValue),
+          newValue: formatFieldValue(companionField, companionChange.newValue),
         },
       ];
     }
@@ -1101,7 +1237,7 @@ export function ActivityTimeline({
   resourceId: string | number;
 }) {
   const query = useQuery({
-    queryKey: ['operation-logs', resourceType, resourceId],
+    queryKey: ["operation-logs", resourceType, resourceId],
     queryFn: () =>
       getOperationLogs({
         resourceType,
@@ -1158,11 +1294,19 @@ export function ActivityTimeline({
 
   const records = (query.data?.list ?? []).map((record) => ({
     key: String(record.id),
-    operator: record.operator || 'system',
+    operator: record.operator || "system",
     actionType: record.action,
-    action: formatActionText(record.action, resourceType, record.changeSummary ?? []),
+    action: formatActionText(
+      record.action,
+      resourceType,
+      record.changeSummary ?? [],
+    ),
     time: record.createdAt,
-    changes: normalizeChanges(resourceType, record.changeSummary ?? [], lookupValueMap).map((change) => ({
+    changes: normalizeChanges(
+      resourceType,
+      record.changeSummary ?? [],
+      lookupValueMap,
+    ).map((change) => ({
       key: `${record.id}-${change.key}`,
       fieldLabel: change.fieldLabel,
       oldValue: change.oldValue,

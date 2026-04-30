@@ -38,6 +38,9 @@ export class PurchaseOrdersRepository {
       supplierId,
       shippingDemandId,
       orderType,
+      applicationType,
+      demandType,
+      receiptStatus,
       status,
       page = 1,
       pageSize = 20,
@@ -47,7 +50,7 @@ export class PurchaseOrdersRepository {
     const normalizedKeyword = keyword?.trim();
     if (normalizedKeyword) {
       qb.andWhere(
-        '(purchaseOrder.po_code LIKE :kw OR purchaseOrder.supplier_name LIKE :kw OR purchaseOrder.shipping_demand_code LIKE :kw OR purchaseOrder.sales_order_code LIKE :kw)',
+        '(purchaseOrder.po_code LIKE :kw OR purchaseOrder.supplier_code LIKE :kw OR purchaseOrder.supplier_name LIKE :kw OR purchaseOrder.shipping_demand_code LIKE :kw OR purchaseOrder.sales_order_code LIKE :kw)',
         { kw: `%${escapeLike(normalizedKeyword)}%` },
       );
     }
@@ -62,6 +65,19 @@ export class PurchaseOrdersRepository {
     }
     if (orderType) {
       qb.andWhere('purchaseOrder.order_type = :orderType', { orderType });
+    }
+    if (applicationType) {
+      qb.andWhere('purchaseOrder.application_type = :applicationType', {
+        applicationType,
+      });
+    }
+    if (demandType) {
+      qb.andWhere('purchaseOrder.demand_type = :demandType', { demandType });
+    }
+    if (receiptStatus) {
+      qb.andWhere('purchaseOrder.receipt_status = :receiptStatus', {
+        receiptStatus,
+      });
     }
     if (status) {
       qb.andWhere('purchaseOrder.status = :status', { status });

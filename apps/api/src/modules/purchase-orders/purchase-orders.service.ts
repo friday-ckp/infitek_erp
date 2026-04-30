@@ -7,18 +7,27 @@ import {
 import {
   ContractTemplateStatus,
   FulfillmentType,
+  PurchaseOrderApplicationType,
+  PurchaseOrderDemandType,
+  PurchaseOrderReceiptStatus,
+  PurchaseOrderSettlementDateType,
   PurchaseOrderStatus,
   PurchaseOrderType,
+  SalesOrderType,
   ShippingDemandStatus,
+  YesNo,
 } from '@infitek/shared';
 import { In, QueryRunner } from 'typeorm';
 import {
   OperationLog,
   OperationLogAction,
 } from '../operation-logs/entities/operation-log.entity';
+import { Company } from '../master-data/companies/entities/company.entity';
 import { ContractTemplate } from '../master-data/contract-templates/entities/contract-template.entity';
+import { Currency } from '../master-data/currencies/entities/currency.entity';
 import { Sku } from '../master-data/skus/entities/sku.entity';
 import { Supplier } from '../master-data/suppliers/entities/supplier.entity';
+import { User } from '../users/entities/user.entity';
 import { ShippingDemandItem } from '../shipping-demands/entities/shipping-demand-item.entity';
 import { ShippingDemand } from '../shipping-demands/entities/shipping-demand.entity';
 import { CreatePurchaseOrdersFromShippingDemandDto } from './dto/create-from-shipping-demand.dto';
@@ -47,6 +56,22 @@ interface PreparedStockLine {
 interface SupplierSnapshot {
   supplier: Supplier;
   paymentTermName: string | null;
+}
+
+interface CompanySnapshot {
+  id: number;
+  name: string;
+  addressCn: string | null;
+  signingLocation: string | null;
+  contactPerson: string | null;
+  contactPhone: string | null;
+}
+
+interface CurrencySnapshot {
+  id: number;
+  code: string;
+  name: string;
+  symbol: string | null;
 }
 
 @Injectable()
@@ -88,9 +113,10 @@ export class PurchaseOrdersService {
     dto: CreatePurchaseOrdersFromShippingDemandDto,
     operator?: string,
   ): Promise<PurchaseOrder[]> {
-    const existing = await this.purchaseOrdersRepository.findBySourceActionKeyPrefix(
-      dto.requestKey,
-    );
+    const existing =
+      await this.purchaseOrdersRepository.findBySourceActionKeyPrefix(
+        dto.requestKey,
+      );
     if (existing.length) {
       return existing;
     }
@@ -175,6 +201,10 @@ export class PurchaseOrdersService {
       demand,
       dto,
     );
+    const companySnapshot = await this.resolveCompanySnapshot(
+      queryRunner,
+      demand.signingCompanyId ?? undefined,
+    );
     const oldDemandStatus = demand.status;
     const savedOrders: PurchaseOrder[] = [];
 
@@ -183,25 +213,68 @@ export class PurchaseOrdersService {
       const sourceActionKey = `${dto.requestKey}:supplier:${supplierSnapshot.supplier.id}`;
       const poCode = await this.generateOrderCode(queryRunner);
       const totalAmount = this.sumLineAmounts(lines);
+      const totalQuantity = this.sumLineQuantities(lines);
       const savedOrder = await orderRepo.save(
         orderRepo.create({
           poCode,
           supplierId: Number(supplierSnapshot.supplier.id),
           supplierName: supplierSnapshot.supplier.name,
+          supplierCode: supplierSnapshot.supplier.supplierCode,
+          supplierNameText: supplierSnapshot.supplier.name,
           supplierContactPerson: supplierSnapshot.supplier.contactPerson,
           supplierContactPhone: supplierSnapshot.supplier.contactPhone,
           supplierContactEmail: supplierSnapshot.supplier.contactEmail,
           supplierPaymentTermName: supplierSnapshot.paymentTermName,
+          supplierAddress: supplierSnapshot.supplier.address,
+          poDeliveryDate: null,
+          arrivalDate: null,
+          isPrepaid: YesNo.NO,
+          prepaidRatio: null,
+          plugPhotoKeys: demand.plugPhotoKeys,
           shippingDemandId: Number(demand.id),
           shippingDemandCode: demand.demandCode,
           salesOrderId: Number(demand.salesOrderId),
           salesOrderCode: demand.sourceDocumentCode,
+          purchaseCompanyId: companySnapshot?.id ?? demand.signingCompanyId,
+          purchaseCompanyName:
+            companySnapshot?.name ?? demand.signingCompanyName,
+          companyAddressCn: companySnapshot?.addressCn ?? null,
+          companySigningLocation: companySnapshot?.signingLocation ?? null,
+          companyContactPerson: companySnapshot?.contactPerson ?? null,
+          companyContactPhone: companySnapshot?.contactPhone ?? null,
           contractTermId: contract ? Number(contract.id) : null,
           contractTermName: contract?.name ?? null,
+          contractTemplateIdText: contract ? String(contract.id) : null,
           orderType: PurchaseOrderType.REQUISITION,
+          applicationType: PurchaseOrderApplicationType.SALES_REQUISITION,
+          demandType: this.mapDemandType(demand.orderType),
           status: PurchaseOrderStatus.PENDING_CONFIRM,
+          currencyId: demand.currencyId,
+          currencyCode: demand.currencyCode,
+          currencyName: demand.currencyName,
+          currencySymbol: demand.currencySymbol,
+          settlementDateType: PurchaseOrderSettlementDateType.ORDER_DATE,
+          settlementType: null,
+          purchaserId: lines[0]?.item.purchaserId ?? null,
+          purchaserName: lines[0]?.item.purchaserName ?? null,
+          salespersonName: demand.salespersonName,
+          purchaseDate: this.currentDateString(),
+          totalQuantity,
           totalAmount: this.decimal(totalAmount),
+          paidAmount: this.decimal(0),
+          receivedTotalQuantity: 0,
+          receiptStatus: PurchaseOrderReceiptStatus.NOT_RECEIVED,
+          isFullyPaid: YesNo.NO,
+          supplierStampedContractKeys: null,
+          bothStampedContractKeys: null,
+          supplierContractUploaded: YesNo.NO,
+          bothContractUploaded: YesNo.NO,
           remark: group.remark,
+          businessRectificationRequirement: null,
+          commercialRectificationRequirement: null,
+          formErrorMessage: null,
+          invoiceCompletedAt: null,
+          paymentCompletedAt: null,
           sourceActionKey,
           createdBy: operator,
           updatedBy: operator,
@@ -219,13 +292,25 @@ export class PurchaseOrdersService {
             skuCode: line.item.skuCode,
             productNameCn: line.item.productNameCn,
             productNameEn: line.item.productNameEn,
+            productType: line.item.lineType,
+            manufacturerModel: null,
+            plugType: line.item.plugType,
             skuSpecification: line.item.skuSpecification,
             unitId: line.item.unitId,
             unitName: line.item.unitName,
+            listPrice: line.item.unitPrice,
+            isInvoiced: YesNo.NO,
             quantity: line.quantity,
             receivedQuantity: 0,
+            isFullyReceived: YesNo.NO,
             unitPrice: this.decimal(line.unitPrice),
             amount: this.decimal(line.quantity * line.unitPrice),
+            spuId: line.item.spuId,
+            spuName: line.item.spuName,
+            electricalParams: line.item.electricalParams,
+            coreParams: null,
+            hasPlugText: this.formatYesNoText(line.item.hasPlug),
+            specialAttributeNote: null,
             createdBy: operator,
             updatedBy: operator,
           }),
@@ -274,9 +359,22 @@ export class PurchaseOrdersService {
       queryRunner,
       dto.contractTermId,
     );
+    const companySnapshot = await this.resolveCompanySnapshot(
+      queryRunner,
+      dto.purchaseCompanyId,
+    );
+    const currencySnapshot = await this.resolveCurrencySnapshot(
+      queryRunner,
+      dto.currencyId,
+    );
+    const purchaser = await this.resolveUserSnapshot(
+      queryRunner,
+      dto.purchaserId,
+    );
     const lines = await this.prepareStockLines(queryRunner, dto);
     const poCode = await this.generateOrderCode(queryRunner);
     const totalAmount = this.sumLineAmounts(lines);
+    const totalQuantity = this.sumLineQuantities(lines);
     const sourceActionKey = dto.requestKey
       ? `${dto.requestKey}:stock:${dto.supplierId}`
       : null;
@@ -294,20 +392,63 @@ export class PurchaseOrdersService {
         poCode,
         supplierId: Number(supplierSnapshot.supplier.id),
         supplierName: supplierSnapshot.supplier.name,
+        supplierCode: supplierSnapshot.supplier.supplierCode,
+        supplierNameText: supplierSnapshot.supplier.name,
         supplierContactPerson: supplierSnapshot.supplier.contactPerson,
         supplierContactPhone: supplierSnapshot.supplier.contactPhone,
         supplierContactEmail: supplierSnapshot.supplier.contactEmail,
         supplierPaymentTermName: supplierSnapshot.paymentTermName,
+        supplierAddress: supplierSnapshot.supplier.address,
+        poDeliveryDate: dto.poDeliveryDate ?? null,
+        arrivalDate: dto.arrivalDate ?? null,
+        isPrepaid: dto.isPrepaid ?? YesNo.NO,
+        prepaidRatio: dto.prepaidRatio ?? null,
+        plugPhotoKeys: null,
         shippingDemandId: null,
         shippingDemandCode: null,
         salesOrderId: null,
         salesOrderCode: null,
+        purchaseCompanyId: companySnapshot?.id ?? null,
+        purchaseCompanyName: companySnapshot?.name ?? null,
+        companyAddressCn: companySnapshot?.addressCn ?? null,
+        companySigningLocation: companySnapshot?.signingLocation ?? null,
+        companyContactPerson: companySnapshot?.contactPerson ?? null,
+        companyContactPhone: companySnapshot?.contactPhone ?? null,
         contractTermId: contract ? Number(contract.id) : null,
         contractTermName: contract?.name ?? null,
+        contractTemplateIdText: contract ? String(contract.id) : null,
         orderType: PurchaseOrderType.STOCK,
+        applicationType:
+          dto.applicationType ?? PurchaseOrderApplicationType.STOCK_PURCHASE,
+        demandType: dto.demandType ?? null,
         status: PurchaseOrderStatus.PENDING_CONFIRM,
+        currencyId: currencySnapshot?.id ?? null,
+        currencyCode: currencySnapshot?.code ?? null,
+        currencyName: currencySnapshot?.name ?? null,
+        currencySymbol: currencySnapshot?.symbol ?? null,
+        settlementDateType:
+          dto.settlementDateType ?? PurchaseOrderSettlementDateType.ORDER_DATE,
+        settlementType: dto.settlementType ?? null,
+        purchaserId: purchaser?.id ?? null,
+        purchaserName: purchaser?.name ?? null,
+        salespersonName: null,
+        purchaseDate: dto.purchaseDate ?? this.currentDateString(),
+        totalQuantity,
         totalAmount: this.decimal(totalAmount),
+        paidAmount: this.decimal(0),
+        receivedTotalQuantity: 0,
+        receiptStatus: PurchaseOrderReceiptStatus.NOT_RECEIVED,
+        isFullyPaid: YesNo.NO,
+        supplierStampedContractKeys: null,
+        bothStampedContractKeys: null,
+        supplierContractUploaded: YesNo.NO,
+        bothContractUploaded: YesNo.NO,
         remark: dto.remark?.trim() || null,
+        businessRectificationRequirement: null,
+        commercialRectificationRequirement: null,
+        formErrorMessage: null,
+        invoiceCompletedAt: null,
+        paymentCompletedAt: null,
         sourceActionKey,
         createdBy: operator,
         updatedBy: operator,
@@ -325,13 +466,26 @@ export class PurchaseOrdersService {
           skuCode: line.sku.skuCode,
           productNameCn: line.sku.nameCn,
           productNameEn: line.sku.nameEn,
+          productType: line.sku.productType,
+          manufacturerModel: line.sku.productModel,
+          plugType: null,
           skuSpecification: line.sku.specification,
           unitId: line.sku.unitId,
           unitName: null,
+          listPrice: null,
+          isInvoiced: YesNo.NO,
           quantity: line.quantity,
           receivedQuantity: 0,
+          isFullyReceived: YesNo.NO,
           unitPrice: this.decimal(line.unitPrice),
           amount: this.decimal(line.quantity * line.unitPrice),
+          spuId: line.sku.spuId,
+          spuName: null,
+          electricalParams: line.sku.electricalParams,
+          coreParams: line.sku.coreParams,
+          hasPlugText:
+            line.sku.hasPlug == null ? null : line.sku.hasPlug ? '是' : '否',
+          specialAttributeNote: line.sku.specialAttributesNote,
           createdBy: operator,
           updatedBy: operator,
         }),
@@ -439,7 +593,9 @@ export class PurchaseOrdersService {
         const purchaseRequiredQuantity = Number(
           item.purchaseRequiredQuantity ?? 0,
         );
-        const purchaseOrderedQuantity = Number(item.purchaseOrderedQuantity ?? 0);
+        const purchaseOrderedQuantity = Number(
+          item.purchaseOrderedQuantity ?? 0,
+        );
         const availableToOrder = Math.max(
           0,
           purchaseRequiredQuantity - purchaseOrderedQuantity,
@@ -464,8 +620,7 @@ export class PurchaseOrdersService {
           purchaseSupplierContactPerson: item.purchaseSupplierContactPerson,
           purchaseSupplierContactPhone: item.purchaseSupplierContactPhone,
           purchaseSupplierContactEmail: item.purchaseSupplierContactEmail,
-          purchaseSupplierPaymentTermName:
-            item.purchaseSupplierPaymentTermName,
+          purchaseSupplierPaymentTermName: item.purchaseSupplierPaymentTermName,
         };
       })
       .filter(
@@ -551,7 +706,8 @@ export class PurchaseOrdersService {
             purchaseOrderedByItemId.get(Number(item.id)) ?? 0,
           );
           const availableToOrder =
-            Number(item.purchaseRequiredQuantity ?? 0) - purchaseOrderedQuantity;
+            Number(item.purchaseRequiredQuantity ?? 0) -
+            purchaseOrderedQuantity;
           if (availableToOrder <= 0) {
             throw new BadRequestException({
               code: 'NO_PURCHASE_QUANTITY_TO_ORDER',
@@ -726,7 +882,7 @@ export class PurchaseOrdersService {
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    const prefix = `PO${year}${month}${day}`;
+    const prefix = `XCPO${year}${month}${day}`;
     const latest = await queryRunner.manager
       .getRepository(PurchaseOrder)
       .createQueryBuilder('purchaseOrder')
@@ -737,11 +893,105 @@ export class PurchaseOrdersService {
     const lastNumber = latest?.poCode
       ? Number(latest.poCode.slice(prefix.length))
       : 0;
-    return `${prefix}${String(lastNumber + 1).padStart(5, '0')}`;
+    return `${prefix}${String(lastNumber + 1).padStart(4, '0')}`;
   }
 
-  private sumLineAmounts(lines: Array<{ quantity: number; unitPrice: number }>) {
+  private sumLineAmounts(
+    lines: Array<{ quantity: number; unitPrice: number }>,
+  ) {
     return lines.reduce((sum, line) => sum + line.quantity * line.unitPrice, 0);
+  }
+
+  private sumLineQuantities(lines: Array<{ quantity: number }>) {
+    return lines.reduce((sum, line) => sum + Number(line.quantity ?? 0), 0);
+  }
+
+  private currentDateString(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  private mapDemandType(
+    orderType?: SalesOrderType | null,
+  ): PurchaseOrderDemandType | null {
+    if (orderType === SalesOrderType.SALES)
+      return PurchaseOrderDemandType.SALES_ORDER;
+    if (orderType === SalesOrderType.AFTER_SALES)
+      return PurchaseOrderDemandType.AFTER_SALES_ORDER;
+    if (orderType === SalesOrderType.SAMPLE)
+      return PurchaseOrderDemandType.EXHIBITION_SAMPLE_ORDER;
+    return null;
+  }
+
+  private formatYesNoText(value?: YesNo | null): string | null {
+    if (value === YesNo.YES) return '是';
+    if (value === YesNo.NO) return '否';
+    return null;
+  }
+
+  private async resolveCompanySnapshot(
+    queryRunner: QueryRunner,
+    companyId?: number,
+  ): Promise<CompanySnapshot | null> {
+    if (!companyId) return null;
+    const company = await queryRunner.manager.getRepository(Company).findOne({
+      where: { id: companyId },
+    });
+    if (!company) {
+      throw new BadRequestException({
+        code: 'PURCHASE_ORDER_COMPANY_NOT_FOUND',
+        message: '采购主体不存在',
+      });
+    }
+    return {
+      id: Number(company.id),
+      name: company.nameCn,
+      addressCn: company.addressCn,
+      signingLocation: company.signingLocation,
+      contactPerson: company.contactPerson,
+      contactPhone: company.contactPhone,
+    };
+  }
+
+  private async resolveCurrencySnapshot(
+    queryRunner: QueryRunner,
+    currencyId?: number,
+  ): Promise<CurrencySnapshot | null> {
+    if (!currencyId) return null;
+    const currency = await queryRunner.manager.getRepository(Currency).findOne({
+      where: { id: currencyId },
+    });
+    if (!currency) {
+      throw new BadRequestException({
+        code: 'PURCHASE_ORDER_CURRENCY_NOT_FOUND',
+        message: '币种不存在',
+      });
+    }
+    return {
+      id: Number(currency.id),
+      code: currency.code,
+      name: currency.name,
+      symbol: currency.symbol,
+    };
+  }
+
+  private async resolveUserSnapshot(
+    queryRunner: QueryRunner,
+    userId?: number,
+  ): Promise<{ id: number; name: string } | null> {
+    if (!userId) return null;
+    const user = await queryRunner.manager.getRepository(User).findOne({
+      where: { id: userId },
+    });
+    if (!user) {
+      throw new BadRequestException({
+        code: 'PURCHASE_ORDER_PURCHASER_NOT_FOUND',
+        message: '采购员不存在',
+      });
+    }
+    return {
+      id: Number(user.id),
+      name: user.name,
+    };
   }
 
   private decimal(value: number): string {

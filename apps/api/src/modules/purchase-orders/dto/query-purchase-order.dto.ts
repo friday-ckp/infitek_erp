@@ -1,6 +1,12 @@
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, Min } from 'class-validator';
-import { PurchaseOrderStatus, PurchaseOrderType } from '@infitek/shared';
+import {
+  PurchaseOrderApplicationType,
+  PurchaseOrderDemandType,
+  PurchaseOrderReceiptStatus,
+  PurchaseOrderStatus,
+  PurchaseOrderType,
+} from '@infitek/shared';
 import { BaseQueryDto } from '../../../common/dto/base-query.dto';
 
 export class QueryPurchaseOrderDto extends BaseQueryDto {
@@ -11,6 +17,18 @@ export class QueryPurchaseOrderDto extends BaseQueryDto {
   @IsOptional()
   @IsIn(Object.values(PurchaseOrderType))
   orderType?: PurchaseOrderType;
+
+  @IsOptional()
+  @IsIn(Object.values(PurchaseOrderApplicationType))
+  applicationType?: PurchaseOrderApplicationType;
+
+  @IsOptional()
+  @IsIn(Object.values(PurchaseOrderDemandType))
+  demandType?: PurchaseOrderDemandType;
+
+  @IsOptional()
+  @IsIn(Object.values(PurchaseOrderReceiptStatus))
+  receiptStatus?: PurchaseOrderReceiptStatus;
 
   @Type(() => Number)
   @IsInt()
