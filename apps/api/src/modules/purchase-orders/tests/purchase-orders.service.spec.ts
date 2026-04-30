@@ -1,17 +1,27 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   ContractTemplateStatus,
   FulfillmentType,
+  PurchaseOrderApplicationType,
+  PurchaseOrderDemandType,
+  PurchaseOrderReceiptStatus,
+  PurchaseOrderSettlementDateType,
+  PurchaseOrderSettlementType,
   PurchaseOrderStatus,
   PurchaseOrderType,
+  SalesOrderType,
   ShippingDemandStatus,
+  YesNo,
 } from '@infitek/shared';
 import { OperationLog } from '../../operation-logs/entities/operation-log.entity';
+import { Company } from '../../master-data/companies/entities/company.entity';
 import { ContractTemplate } from '../../master-data/contract-templates/entities/contract-template.entity';
+import { Currency } from '../../master-data/currencies/entities/currency.entity';
 import { Sku } from '../../master-data/skus/entities/sku.entity';
 import { Supplier } from '../../master-data/suppliers/entities/supplier.entity';
 import { ShippingDemandItem } from '../../shipping-demands/entities/shipping-demand-item.entity';
 import { ShippingDemand } from '../../shipping-demands/entities/shipping-demand.entity';
+import { User } from '../../users/entities/user.entity';
 import { PurchaseOrderItem } from '../entities/purchase-order-item.entity';
 import { PurchaseOrder } from '../entities/purchase-order.entity';
 import { PurchaseOrdersService } from '../purchase-orders.service';
@@ -31,6 +41,15 @@ describe('PurchaseOrdersService', () => {
     demandCode: 'SD2026042900001',
     salesOrderId: 10,
     sourceDocumentCode: 'SO2026042900001',
+    orderType: SalesOrderType.SALES,
+    currencyId: 3,
+    currencyCode: 'USD',
+    currencyName: '美元',
+    currencySymbol: '$',
+    signingCompanyId: 2,
+    signingCompanyName: '信达主体',
+    salespersonName: 'Mia',
+    plugPhotoKeys: ['plug-a.jpg'],
     status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
     items: [
       {
@@ -42,8 +61,14 @@ describe('PurchaseOrdersService', () => {
         productNameCn: '离心机',
         productNameEn: 'Centrifuge',
         skuSpecification: '220V',
+        unitPrice: '12.50',
         unitId: 6,
         unitName: '台',
+        lineType: 'main',
+        spuId: 300,
+        spuName: 'SPU001',
+        electricalParams: '220V',
+        hasPlug: YesNo.YES,
         fulfillmentType: FulfillmentType.FULL_PURCHASE,
         purchaseRequiredQuantity: 5,
         purchaseOrderedQuantity: 1,
@@ -81,6 +106,7 @@ describe('PurchaseOrdersService', () => {
     contactPerson: 'Lily',
     contactPhone: '13800000000',
     contactEmail: 'lily@example.com',
+    address: '深圳市南山区',
     paymentTerms: [{ paymentTermName: '月结30天' }],
   };
 
@@ -97,6 +123,34 @@ describe('PurchaseOrdersService', () => {
     nameEn: 'Centrifuge',
     specification: '220V',
     unitId: 6,
+    productType: '主品',
+    productModel: 'X-100',
+    spuId: 300,
+    electricalParams: '220V',
+    coreParams: '8000rpm',
+    hasPlug: true,
+    specialAttributesNote: '带欧规插头',
+  };
+
+  const company = {
+    id: 2,
+    nameCn: '信达主体',
+    addressCn: '深圳市南山区科技园',
+    signingLocation: '深圳',
+    contactPerson: '陈经理',
+    contactPhone: '0755-00000000',
+  };
+
+  const currency = {
+    id: 3,
+    code: 'USD',
+    name: '美元',
+    symbol: '$',
+  };
+
+  const user = {
+    id: 4,
+    name: '采购员小赵',
   };
 
   const makeDemandQueryBuilder = (state: Record<string, any>) => {
@@ -157,10 +211,12 @@ describe('PurchaseOrdersService', () => {
               Number(item.quantity ?? 0),
           );
         }
-        return [...totals.entries()].map(([shippingDemandItemId, quantity]) => ({
-          shippingDemandItemId: String(shippingDemandItemId),
-          quantity: String(quantity),
-        }));
+        return [...totals.entries()].map(
+          ([shippingDemandItemId, quantity]) => ({
+            shippingDemandItemId: String(shippingDemandItemId),
+            quantity: String(quantity),
+          }),
+        );
       }),
     };
     return qb;
@@ -219,6 +275,30 @@ describe('PurchaseOrdersService', () => {
         }),
       };
     }
+    if (entity === Company) {
+      return {
+        findOne: jest.fn().mockImplementation(async ({ where }) => {
+          const companyId = Number(where?.id);
+          return state.companiesById?.[companyId] ?? state.company ?? null;
+        }),
+      };
+    }
+    if (entity === Currency) {
+      return {
+        findOne: jest.fn().mockImplementation(async ({ where }) => {
+          const currencyId = Number(where?.id);
+          return state.currenciesById?.[currencyId] ?? state.currency ?? null;
+        }),
+      };
+    }
+    if (entity === User) {
+      return {
+        findOne: jest.fn().mockImplementation(async ({ where }) => {
+          const userId = Number(where?.id);
+          return state.usersById?.[userId] ?? state.user ?? null;
+        }),
+      };
+    }
     if (entity === ContractTemplate) {
       return { findOne: jest.fn().mockResolvedValue(state.contract) };
     }
@@ -259,6 +339,44 @@ describe('PurchaseOrdersService', () => {
     purchaseOrdersRepository.findBySourceActionKeyPrefix.mockResolvedValue([]);
   });
 
+  it('delegates list query to repository', async () => {
+    const query = {
+      status: PurchaseOrderStatus.PENDING_CONFIRM,
+      supplierId: 88,
+      page: 1,
+      pageSize: 20,
+    };
+    const pageResult = {
+      list: [],
+      total: 0,
+      page: 1,
+      pageSize: 20,
+      totalPages: 0,
+    };
+    purchaseOrdersRepository.findAll.mockResolvedValue(pageResult);
+
+    await expect(service.findAll(query as any)).resolves.toBe(pageResult);
+    expect(purchaseOrdersRepository.findAll).toHaveBeenCalledWith(query);
+  });
+
+  it('returns purchase order detail with repository ordered items', async () => {
+    const order = {
+      id: 901,
+      poCode: 'XCPO202604300001',
+      items: [{ id: 1 }, { id: 2 }],
+    };
+    purchaseOrdersRepository.findById.mockResolvedValue(order);
+
+    await expect(service.findById(901)).resolves.toBe(order);
+    expect(purchaseOrdersRepository.findById).toHaveBeenCalledWith(901);
+  });
+
+  it('throws when purchase order detail does not exist', async () => {
+    purchaseOrdersRepository.findById.mockResolvedValue(null);
+
+    await expect(service.findById(999)).rejects.toThrow(NotFoundException);
+  });
+
   it('builds requisition purchase prefill from demand purchase gap', async () => {
     const state: Record<string, any> = { demand: makeDemand() };
     const queryRunner = makeQueryRunner(state);
@@ -286,14 +404,17 @@ describe('PurchaseOrdersService', () => {
       demand: makeDemand(),
       supplier,
       contract,
+      company,
       purchaseRowsBefore: [{ shippingDemandItemId: '700', quantity: '1' }],
     };
     const queryRunner = makeQueryRunner(state);
     purchaseOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
-    purchaseOrdersRepository.findById.mockImplementation(async (id: number) => ({
-      ...state.savedOrders.find((order: any) => Number(order.id) === id),
-      items: state.savedItems,
-    }));
+    purchaseOrdersRepository.findById.mockImplementation(
+      async (id: number) => ({
+        ...state.savedOrders.find((order: any) => Number(order.id) === id),
+        items: state.savedItems,
+      }),
+    );
 
     const result = await service.createFromShippingDemand(
       {
@@ -323,6 +444,24 @@ describe('PurchaseOrdersService', () => {
         status: PurchaseOrderStatus.PENDING_CONFIRM,
         shippingDemandId: 500,
         totalAmount: '50.00',
+        totalQuantity: 4,
+        supplierCode: 'SUP0088',
+        supplierNameText: '信达供应商',
+        supplierPaymentTermName: '月结30天',
+        plugPhotoKeys: ['plug-a.jpg'],
+        purchaseCompanyId: 2,
+        purchaseCompanyName: '信达主体',
+        companyAddressCn: '深圳市南山区科技园',
+        applicationType: PurchaseOrderApplicationType.SALES_REQUISITION,
+        demandType: PurchaseOrderDemandType.SALES_ORDER,
+        currencyCode: 'USD',
+        settlementDateType: PurchaseOrderSettlementDateType.ORDER_DATE,
+        purchaserId: null,
+        salespersonName: 'Mia',
+        paidAmount: '0.00',
+        receivedTotalQuantity: 0,
+        receiptStatus: PurchaseOrderReceiptStatus.NOT_RECEIVED,
+        isFullyPaid: YesNo.NO,
         sourceActionKey: 'req-001:supplier:88',
       }),
     );
@@ -332,6 +471,10 @@ describe('PurchaseOrdersService', () => {
         quantity: 4,
         unitPrice: '12.50',
         amount: '50.00',
+        listPrice: '12.50',
+        isInvoiced: YesNo.NO,
+        isFullyReceived: YesNo.NO,
+        hasPlugText: '是',
       }),
     );
     expect(state.savedDemand.status).toBe(ShippingDemandStatus.PURCHASING);
@@ -374,16 +517,19 @@ describe('PurchaseOrdersService', () => {
         },
       },
       contract,
+      company,
       purchaseRowsBefore: [{ shippingDemandItemId: '700', quantity: '1' }],
     };
     const queryRunner = makeQueryRunner(state);
     purchaseOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
-    purchaseOrdersRepository.findById.mockImplementation(async (id: number) => ({
-      ...state.savedOrders.find((order: any) => Number(order.id) === id),
-      items: state.savedItems.filter(
-        (item: any) => Number(item.purchaseOrderId) === Number(id),
-      ),
-    }));
+    purchaseOrdersRepository.findById.mockImplementation(
+      async (id: number) => ({
+        ...state.savedOrders.find((order: any) => Number(order.id) === id),
+        items: state.savedItems.filter(
+          (item: any) => Number(item.purchaseOrderId) === Number(id),
+        ),
+      }),
+    );
 
     const result = await service.createFromShippingDemand(
       {
@@ -419,12 +565,12 @@ describe('PurchaseOrdersService', () => {
     expect(state.savedOrders).toEqual([
       expect.objectContaining({
         supplierId: 88,
-        poCode: expect.stringMatching(/^PO\d{8}00001$/),
+        poCode: expect.stringMatching(/^XCPO\d{8}0001$/),
         sourceActionKey: 'req-grouped:supplier:88',
       }),
       expect.objectContaining({
         supplierId: 89,
-        poCode: expect.stringMatching(/^PO\d{8}00002$/),
+        poCode: expect.stringMatching(/^XCPO\d{8}0002$/),
         sourceActionKey: 'req-grouped:supplier:89',
       }),
     ]);
@@ -629,17 +775,34 @@ describe('PurchaseOrdersService', () => {
       supplier,
       contract,
       sku,
+      company,
+      currency,
+      user,
     };
     const queryRunner = makeQueryRunner(state);
     purchaseOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
-    purchaseOrdersRepository.findById.mockImplementation(async (id: number) => ({
-      ...state.savedOrders.find((order: any) => Number(order.id) === id),
-      items: state.savedItems,
-    }));
+    purchaseOrdersRepository.findById.mockImplementation(
+      async (id: number) => ({
+        ...state.savedOrders.find((order: any) => Number(order.id) === id),
+        items: state.savedItems,
+      }),
+    );
 
     const result = await service.create(
       {
         supplierId: 88,
+        purchaseCompanyId: 2,
+        currencyId: 3,
+        purchaserId: 4,
+        purchaseDate: '2026-04-30',
+        poDeliveryDate: '2026-05-15',
+        arrivalDate: '2026-05-20',
+        isPrepaid: YesNo.YES,
+        prepaidRatio: 30,
+        applicationType: PurchaseOrderApplicationType.STOCK_PURCHASE,
+        demandType: PurchaseOrderDemandType.SALES_ORDER,
+        settlementDateType: PurchaseOrderSettlementDateType.RECEIPT_DATE,
+        settlementType: PurchaseOrderSettlementType.MONTHLY,
         items: [{ skuId: 11, quantity: 3, unitPrice: 9 }],
       },
       'admin',
@@ -650,7 +813,23 @@ describe('PurchaseOrdersService', () => {
       expect.objectContaining({
         shippingDemandId: null,
         status: PurchaseOrderStatus.PENDING_CONFIRM,
+        purchaseCompanyName: '信达主体',
+        currencyCode: 'USD',
+        purchaserName: '采购员小赵',
+        poDeliveryDate: '2026-05-15',
+        arrivalDate: '2026-05-20',
+        isPrepaid: YesNo.YES,
+        prepaidRatio: 30,
+        settlementType: PurchaseOrderSettlementType.MONTHLY,
+        totalQuantity: 3,
         totalAmount: '27.00',
+      }),
+    );
+    expect(state.savedItems[0]).toEqual(
+      expect.objectContaining({
+        hasPlugText: '是',
+        coreParams: '8000rpm',
+        specialAttributeNote: '带欧规插头',
       }),
     );
     expect(state.savedDemand).toBeUndefined();
@@ -666,7 +845,9 @@ describe('PurchaseOrdersService', () => {
     };
     const queryRunner = makeQueryRunner(state);
     purchaseOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
-    purchaseOrdersRepository.findById.mockImplementation(async () => state.order);
+    purchaseOrdersRepository.findById.mockImplementation(
+      async () => state.order,
+    );
 
     const internal = await service.confirmInternal(901, 'admin');
     expect(internal.status).toBe(PurchaseOrderStatus.SUPPLIER_CONFIRMING);

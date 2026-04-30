@@ -43,6 +43,7 @@ export const PurchaseOrderStatus = {
   PENDING_RECEIPT: 'pending_receipt',
   PARTIALLY_RECEIVED: 'partially_received',
   RECEIVED: 'received',
+  INVOICED: 'invoiced',
   CANCELLED: 'cancelled',
 } as const;
 
@@ -56,6 +57,50 @@ export const PurchaseOrderType = {
 
 export type PurchaseOrderType =
   (typeof PurchaseOrderType)[keyof typeof PurchaseOrderType];
+
+export const PurchaseOrderApplicationType = {
+  STOCK_PURCHASE: 'stock_purchase',
+  SALES_REQUISITION: 'sales_requisition',
+} as const;
+
+export type PurchaseOrderApplicationType =
+  (typeof PurchaseOrderApplicationType)[keyof typeof PurchaseOrderApplicationType];
+
+export const PurchaseOrderDemandType = {
+  SALES_ORDER: 'sales_order',
+  AFTER_SALES_ORDER: 'after_sales_order',
+  EXHIBITION_SAMPLE_ORDER: 'exhibition_sample_order',
+} as const;
+
+export type PurchaseOrderDemandType =
+  (typeof PurchaseOrderDemandType)[keyof typeof PurchaseOrderDemandType];
+
+export const PurchaseOrderSettlementDateType = {
+  ORDER_DATE: 'order_date',
+  RECEIPT_DATE: 'receipt_date',
+  INVOICE_DATE: 'invoice_date',
+} as const;
+
+export type PurchaseOrderSettlementDateType =
+  (typeof PurchaseOrderSettlementDateType)[keyof typeof PurchaseOrderSettlementDateType];
+
+export const PurchaseOrderSettlementType = {
+  MONTHLY: 'monthly',
+  HALF_MONTHLY: 'half_monthly',
+  INVOICE_BASED: 'invoice_based',
+} as const;
+
+export type PurchaseOrderSettlementType =
+  (typeof PurchaseOrderSettlementType)[keyof typeof PurchaseOrderSettlementType];
+
+export const PurchaseOrderReceiptStatus = {
+  NOT_RECEIVED: 'not_received',
+  PARTIALLY_RECEIVED: 'partially_received',
+  RECEIVED: 'received',
+} as const;
+
+export type PurchaseOrderReceiptStatus =
+  (typeof PurchaseOrderReceiptStatus)[keyof typeof PurchaseOrderReceiptStatus];
 
 export const SalesOrderStatus = {
   PENDING_SUBMIT: 'pending_submit',

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { App, Button, Result } from "antd";
+import { App, Button } from "antd";
 import {
   ProForm,
   ProFormDigit,
@@ -9,7 +9,14 @@ import {
   ProFormTextArea,
   type ProFormInstance,
 } from "@ant-design/pro-components";
-import { ContractTemplateStatus } from "@infitek/shared";
+import {
+  ContractTemplateStatus,
+  PurchaseOrderApplicationType,
+  PurchaseOrderDemandType,
+  PurchaseOrderSettlementDateType,
+  PurchaseOrderSettlementType,
+  YesNo,
+} from "@infitek/shared";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
@@ -17,8 +24,11 @@ import {
   type CreatePurchaseOrderPayload,
 } from "../../api/purchase-orders.api";
 import { getContractTemplates } from "../../api/contract-templates.api";
+import { getCompanies, type Company } from "../../api/companies.api";
+import { getCurrencies } from "../../api/currencies.api";
 import { getSkus } from "../../api/skus.api";
 import { getSuppliers, type Supplier } from "../../api/suppliers.api";
+import { getUsers, type User } from "../../api/users.api";
 import {
   AnchorNav,
   SectionCard,
@@ -30,6 +40,19 @@ interface PurchaseOrderFormValues {
   supplierName?: string;
   supplierContact?: string;
   supplierPaymentTermName?: string;
+  purchaseCompanyId?: number;
+  purchaseCompanyName?: string;
+  currencyId?: number;
+  purchaserId?: number;
+  purchaseDate?: string;
+  poDeliveryDate?: string;
+  arrivalDate?: string;
+  isPrepaid?: YesNo;
+  prepaidRatio?: number;
+  applicationType?: PurchaseOrderApplicationType;
+  demandType?: PurchaseOrderDemandType;
+  settlementDateType?: PurchaseOrderSettlementDateType;
+  settlementType?: PurchaseOrderSettlementType;
   contractTermId?: number;
   remark?: string;
   items: Array<{
@@ -63,12 +86,15 @@ export default function PurchaseOrderFormPage() {
         description: `${created.poCode} 已创建为待确认状态。`,
         duration: 5,
       });
-      navigate("/purchase-orders/new");
+      navigate("/purchase-orders/create");
     },
   });
 
   const initialValues = useMemo<Partial<PurchaseOrderFormValues>>(
     () => ({
+      applicationType: PurchaseOrderApplicationType.STOCK_PURCHASE,
+      isPrepaid: YesNo.NO,
+      settlementDateType: PurchaseOrderSettlementDateType.ORDER_DATE,
       items: [{ quantity: 1, unitPrice: 0 }],
     }),
     [],
@@ -76,6 +102,7 @@ export default function PurchaseOrderFormPage() {
 
   const anchors = [
     { key: "basic", label: "基本信息" },
+    { key: "settlement", label: "商务结算" },
     { key: "items", label: "订单行项" },
     { key: "remark", label: "备注" },
   ];
@@ -105,6 +132,27 @@ export default function PurchaseOrderFormPage() {
             contractTermId: values.contractTermId
               ? Number(values.contractTermId)
               : undefined,
+            purchaseCompanyId: values.purchaseCompanyId
+              ? Number(values.purchaseCompanyId)
+              : undefined,
+            currencyId: values.currencyId
+              ? Number(values.currencyId)
+              : undefined,
+            purchaserId: values.purchaserId
+              ? Number(values.purchaserId)
+              : undefined,
+            purchaseDate: values.purchaseDate,
+            poDeliveryDate: values.poDeliveryDate,
+            arrivalDate: values.arrivalDate,
+            isPrepaid: values.isPrepaid,
+            prepaidRatio:
+              values.prepaidRatio != null
+                ? Number(values.prepaidRatio)
+                : undefined,
+            applicationType: values.applicationType,
+            demandType: values.demandType,
+            settlementDateType: values.settlementDateType,
+            settlementType: values.settlementType,
             remark: values.remark,
             requestKey: `stock-po:${Date.now()}`,
             items: items.map((item) => ({
@@ -186,6 +234,177 @@ export default function PurchaseOrderFormPage() {
                   }}
                   fieldProps={{ allowClear: true, optionFilterProp: "label" }}
                 />
+                <ProFormSelect
+                  name="purchaseCompanyId"
+                  label="采购主体"
+                  placeholder="请选择公司主体"
+                  showSearch
+                  request={async (params) => {
+                    const res = await getCompanies({
+                      keyword: params.keyWords,
+                      pageSize: 20,
+                    });
+                    return res.list.map((company: Company) => ({
+                      label: company.nameCn,
+                      value: Number(company.id),
+                      company,
+                    }));
+                  }}
+                  fieldProps={{
+                    allowClear: true,
+                    optionFilterProp: "label",
+                    onChange: (_value, option: any) => {
+                      formRef.current?.setFieldsValue({
+                        purchaseCompanyName: option?.company?.nameCn,
+                      });
+                    },
+                  }}
+                />
+                <ProFormText
+                  name="purchaseCompanyName"
+                  label="采购主体名称"
+                  readonly
+                />
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              id="settlement"
+              title="商务结算"
+              description="补充采购日期、交期、币种和结算方式。"
+            >
+              <div className="master-form-grid">
+                <ProFormSelect
+                  name="applicationType"
+                  label="申请类型"
+                  options={[
+                    {
+                      label: "采购备货",
+                      value: PurchaseOrderApplicationType.STOCK_PURCHASE,
+                    },
+                    {
+                      label: "销售请购",
+                      value: PurchaseOrderApplicationType.SALES_REQUISITION,
+                    },
+                  ]}
+                />
+                <ProFormSelect
+                  name="demandType"
+                  label="需求类型"
+                  fieldProps={{ allowClear: true }}
+                  options={[
+                    {
+                      label: "销售订单",
+                      value: PurchaseOrderDemandType.SALES_ORDER,
+                    },
+                    {
+                      label: "售后单",
+                      value: PurchaseOrderDemandType.AFTER_SALES_ORDER,
+                    },
+                    {
+                      label: "展会样品单",
+                      value: PurchaseOrderDemandType.EXHIBITION_SAMPLE_ORDER,
+                    },
+                  ]}
+                />
+                <ProFormText
+                  name="purchaseDate"
+                  label="采购日期"
+                  fieldProps={{ type: "date" }}
+                />
+                <ProFormText
+                  name="poDeliveryDate"
+                  label="PO交期"
+                  fieldProps={{ type: "date" }}
+                />
+                <ProFormText
+                  name="arrivalDate"
+                  label="到货日期"
+                  fieldProps={{ type: "date" }}
+                />
+                <ProFormSelect
+                  name="currencyId"
+                  label="币种"
+                  placeholder="请选择币种"
+                  showSearch
+                  request={async (params) => {
+                    const res = await getCurrencies({
+                      keyword: params.keyWords,
+                      pageSize: 20,
+                    });
+                    return res.list.map((currency) => ({
+                      label: `${currency.code} / ${currency.name}`,
+                      value: Number(currency.id),
+                    }));
+                  }}
+                  fieldProps={{ allowClear: true, optionFilterProp: "label" }}
+                />
+                <ProFormSelect
+                  name="purchaserId"
+                  label="采购员"
+                  placeholder="请选择采购员"
+                  showSearch
+                  request={async (params) => {
+                    const res = await getUsers(1, 20, params.keyWords);
+                    return res.list.map((user: User) => ({
+                      label: user.name,
+                      value: Number(user.id),
+                    }));
+                  }}
+                  fieldProps={{ allowClear: true, optionFilterProp: "label" }}
+                />
+                <ProFormSelect
+                  name="isPrepaid"
+                  label="是否预付"
+                  options={[
+                    { label: "是", value: YesNo.YES },
+                    { label: "否", value: YesNo.NO },
+                  ]}
+                />
+                <ProFormDigit
+                  name="prepaidRatio"
+                  label="预付比例%"
+                  min={0}
+                  max={100}
+                  fieldProps={{ precision: 0 }}
+                />
+                <ProFormSelect
+                  name="settlementDateType"
+                  label="结算日期类型"
+                  options={[
+                    {
+                      label: "采购下单日期",
+                      value: PurchaseOrderSettlementDateType.ORDER_DATE,
+                    },
+                    {
+                      label: "采购入库日期",
+                      value: PurchaseOrderSettlementDateType.RECEIPT_DATE,
+                    },
+                    {
+                      label: "采购开票日期",
+                      value: PurchaseOrderSettlementDateType.INVOICE_DATE,
+                    },
+                  ]}
+                />
+                <ProFormSelect
+                  name="settlementType"
+                  label="结算类型"
+                  fieldProps={{ allowClear: true }}
+                  options={[
+                    {
+                      label: "月结",
+                      value: PurchaseOrderSettlementType.MONTHLY,
+                    },
+                    {
+                      label: "半月结",
+                      value: PurchaseOrderSettlementType.HALF_MONTHLY,
+                    },
+                    {
+                      label: "票结",
+                      value: PurchaseOrderSettlementType.INVOICE_BASED,
+                    },
+                  ]}
+                />
               </div>
             </SectionCard>
 
@@ -262,16 +481,5 @@ export default function PurchaseOrderFormPage() {
 }
 
 export function PurchaseOrdersPlaceholderPage() {
-  const navigate = useNavigate();
-  return (
-    <Result
-      status="info"
-      title="采购订单列表将在 Story 6.4 完整上线"
-      extra={
-        <Button type="primary" onClick={() => navigate("/purchase-orders/new")}>
-          创建采购订单
-        </Button>
-      }
-    />
-  );
+  return null;
 }

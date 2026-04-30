@@ -44,7 +44,7 @@ import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { ActivityTimeline } from "../../components/ActivityTimeline";
 import {
   confirmShippingDemandAllocation,
@@ -423,9 +423,7 @@ function FlowProgress({
       case ShippingDemandStatus.PREPARED:
         return {
           activeIndex: 4,
-          doneIndexes: new Set(
-            hasPurchaseRequirement ? [0, 1, 2, 3] : [0, 1],
-          ),
+          doneIndexes: new Set(hasPurchaseRequirement ? [0, 1, 2, 3] : [0, 1]),
         };
       case ShippingDemandStatus.PARTIALLY_SHIPPED:
         return {
@@ -552,7 +550,9 @@ export default function ShippingDemandDetailPage() {
     data?.status === ShippingDemandStatus.PENDING_ALLOCATION;
   const canVoidDemand =
     data?.status === ShippingDemandStatus.PENDING_ALLOCATION;
-  const canEditDemand = Boolean(data && data.status !== ShippingDemandStatus.VOIDED);
+  const canEditDemand = Boolean(
+    data && data.status !== ShippingDemandStatus.VOIDED,
+  );
   const isPurchaseOrderEntryStatus =
     data?.status === ShippingDemandStatus.PENDING_PURCHASE_ORDER ||
     data?.status === ShippingDemandStatus.PURCHASING;
@@ -564,8 +564,7 @@ export default function ShippingDemandDetailPage() {
   const purchaseSupplierMissingItemCount = items.filter(
     (item) =>
       numberValue(item.purchaseRequiredQuantity) >
-        numberValue(item.purchaseOrderedQuantity) &&
-      !item.purchaseSupplierId,
+        numberValue(item.purchaseOrderedQuantity) && !item.purchaseSupplierId,
   ).length;
   const canGeneratePurchaseOrder =
     isPurchaseOrderEntryStatus &&
@@ -793,7 +792,15 @@ export default function ShippingDemandDetailPage() {
       setPurchaseDrawerOpen(false);
       notification.success({
         message: `已创建 ${createdOrders.length} 个采购订单`,
-        description: createdOrders.map((order) => order.poCode).join("、"),
+        description: (
+          <Space wrap size={8}>
+            {createdOrders.map((order) => (
+              <Link key={order.id} to={`/purchase-orders/${order.id}`}>
+                {order.poCode}
+              </Link>
+            ))}
+          </Space>
+        ),
         duration: 5,
       });
     },
@@ -861,16 +868,16 @@ export default function ShippingDemandDetailPage() {
     }));
   };
 
-  const handleItemSupplierChange = useCallback((
-    item: ShippingDemandItem,
-    purchaseSupplierId?: number,
-  ) => {
-    if (!purchaseSupplierId) return;
-    updateItemSupplierMutation.mutate({
-      itemId: item.id,
-      purchaseSupplierId,
-    });
-  }, [updateItemSupplierMutation]);
+  const handleItemSupplierChange = useCallback(
+    (item: ShippingDemandItem, purchaseSupplierId?: number) => {
+      if (!purchaseSupplierId) return;
+      updateItemSupplierMutation.mutate({
+        itemId: item.id,
+        purchaseSupplierId,
+      });
+    },
+    [updateItemSupplierMutation],
+  );
 
   const openPurchaseDrawer = () => {
     if (purchaseSupplierMissingItemCount > 0) {
@@ -881,31 +888,31 @@ export default function ShippingDemandDetailPage() {
     setPurchaseDrawerOpen(true);
   };
 
-  const updatePurchaseDraft = useCallback((
-    itemId: number,
-    patch: Partial<PurchaseOrderDraft>,
-  ) => {
-    setPurchaseDrafts((prev) => ({
-      ...prev,
-      [itemId]: {
-        ...(prev[itemId] ?? { quantity: 0, unitPrice: 0 }),
-        ...patch,
-      },
-    }));
-  }, []);
+  const updatePurchaseDraft = useCallback(
+    (itemId: number, patch: Partial<PurchaseOrderDraft>) => {
+      setPurchaseDrafts((prev) => ({
+        ...prev,
+        [itemId]: {
+          ...(prev[itemId] ?? { quantity: 0, unitPrice: 0 }),
+          ...patch,
+        },
+      }));
+    },
+    [],
+  );
 
-  const updatePurchaseGroupDraft = useCallback((
-    supplierId: number,
-    patch: Partial<PurchaseOrderGroupDraft>,
-  ) => {
-    setPurchaseGroupDrafts((prev) => ({
-      ...prev,
-      [supplierId]: {
-        ...(prev[supplierId] ?? {}),
-        ...patch,
-      },
-    }));
-  }, []);
+  const updatePurchaseGroupDraft = useCallback(
+    (supplierId: number, patch: Partial<PurchaseOrderGroupDraft>) => {
+      setPurchaseGroupDrafts((prev) => ({
+        ...prev,
+        [supplierId]: {
+          ...(prev[supplierId] ?? {}),
+          ...patch,
+        },
+      }));
+    },
+    [],
+  );
 
   const buildPurchasePayload =
     (): CreatePurchaseOrdersFromShippingDemandPayload | null => {
@@ -1333,19 +1340,17 @@ export default function ShippingDemandDetailPage() {
       const draft = purchaseDrafts[item.shippingDemandItemId];
       const quantity = numberValue(draft?.quantity);
       const unitPrice = numberValue(draft?.unitPrice);
-      const summary =
-        summaries.get(supplierId) ??
-        {
-          supplierId,
-          supplierName: item.purchaseSupplierName,
-          supplierCode: item.purchaseSupplierCode,
-          contactPerson: item.purchaseSupplierContactPerson,
-          contactPhone: item.purchaseSupplierContactPhone,
-          contactEmail: item.purchaseSupplierContactEmail,
-          paymentTermName: item.purchaseSupplierPaymentTermName,
-          itemCount: 0,
-          totalAmount: 0,
-        };
+      const summary = summaries.get(supplierId) ?? {
+        supplierId,
+        supplierName: item.purchaseSupplierName,
+        supplierCode: item.purchaseSupplierCode,
+        contactPerson: item.purchaseSupplierContactPerson,
+        contactPhone: item.purchaseSupplierContactPhone,
+        contactEmail: item.purchaseSupplierContactEmail,
+        paymentTermName: item.purchaseSupplierPaymentTermName,
+        itemCount: 0,
+        totalAmount: 0,
+      };
       summary.itemCount += 1;
       summary.totalAmount += quantity * unitPrice;
       summaries.set(supplierId, summary);
@@ -1795,7 +1800,11 @@ export default function ShippingDemandDetailPage() {
                     返回列表
                   </Button>
                   {canEditDemand ? (
-                    <Button onClick={() => navigate(`/shipping-demands/${demandId}/edit`)}>
+                    <Button
+                      onClick={() =>
+                        navigate(`/shipping-demands/${demandId}/edit`)
+                      }
+                    >
                       编辑发货需求
                     </Button>
                   ) : null}
@@ -1872,7 +1881,9 @@ export default function ShippingDemandDetailPage() {
               count={purchaseOrderGapItemCount}
               disabled={!canGeneratePurchaseOrder}
               disabledTooltip={purchaseOrderDisabledTooltip}
-              onClick={canGeneratePurchaseOrder ? openPurchaseDrawer : undefined}
+              onClick={
+                canGeneratePurchaseOrder ? openPurchaseDrawer : undefined
+              }
             />
             <SmartButton
               icon={<ExportOutlined />}
@@ -2491,7 +2502,8 @@ export default function ShippingDemandDetailPage() {
                           loading={contractTemplatesQuery.isLoading}
                           options={contractTemplateOptions}
                           value={
-                            purchaseGroupDrafts[group.supplierId]?.contractTermId
+                            purchaseGroupDrafts[group.supplierId]
+                              ?.contractTermId
                           }
                           onChange={(contractTermId) =>
                             updatePurchaseGroupDraft(group.supplierId, {
@@ -2524,9 +2536,7 @@ export default function ShippingDemandDetailPage() {
               </div>
             )}
           </div>
-          <div className="shipping-demand-purchase-section-title">
-            采购明细
-          </div>
+          <div className="shipping-demand-purchase-section-title">采购明细</div>
           <Table
             rowKey="shippingDemandItemId"
             pagination={false}

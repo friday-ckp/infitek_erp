@@ -62,9 +62,9 @@ import ShippingDemandsListPage from "./pages/shipping-demands/index";
 import ShippingDemandDetailPage from "./pages/shipping-demands/detail";
 import ShippingDemandFormPage from "./pages/shipping-demands/form";
 import LogisticsOrderFormPage from "./pages/logistics-orders/form";
-import PurchaseOrderFormPage, {
-  PurchaseOrdersPlaceholderPage,
-} from "./pages/purchase-orders/form";
+import PurchaseOrdersListPage from "./pages/purchase-orders/index";
+import PurchaseOrderDetailPage from "./pages/purchase-orders/detail";
+import PurchaseOrderFormPage from "./pages/purchase-orders/form";
 import InventoryPage from "./pages/inventory/index";
 import InventoryTransactionsPage from "./pages/inventory/transactions";
 import HomePage from "./pages/home/index";
@@ -460,7 +460,11 @@ function App() {
                   />
                   <Route
                     path="/purchase-orders"
-                    element={<PurchaseOrdersPlaceholderPage />}
+                    element={<PurchaseOrdersListPage />}
+                  />
+                  <Route
+                    path="/purchase-orders/:id"
+                    element={<PurchaseOrderDetailPage />}
                   />
                   <Route
                     path="/purchase-orders/new"
