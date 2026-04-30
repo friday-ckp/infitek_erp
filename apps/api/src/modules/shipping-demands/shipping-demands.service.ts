@@ -23,10 +23,12 @@ import {
   OperationLog,
   OperationLogAction,
 } from '../operation-logs/entities/operation-log.entity';
+import { Supplier } from '../master-data/suppliers/entities/supplier.entity';
 import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
 import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
+import { UpdateShippingDemandItemSupplierDto } from './dto/update-shipping-demand-item-supplier.dto';
 import { UpdateShippingDemandDto } from './dto/update-shipping-demand.dto';
 import { ShippingDemandInventoryAllocation } from './entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
@@ -95,6 +97,17 @@ interface PreparedAllocationLine {
   stockQuantity: number;
   purchaseQuantity: number;
   warehouseId: number | null;
+  purchaseSupplier: PurchaseSupplierSnapshot | null;
+}
+
+interface PurchaseSupplierSnapshot {
+  supplierId: number;
+  supplierName: string;
+  supplierCode: string;
+  contactPerson: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  paymentTermName: string | null;
 }
 
 interface ActiveAllocationGroup {
@@ -154,6 +167,28 @@ export class ShippingDemandsService {
     return this.withSignedUrls(
       await this.shippingDemandsRepository.update(id, updateData),
     );
+  }
+
+  async updateItemPurchaseSupplier(
+    id: number,
+    itemId: number,
+    dto: UpdateShippingDemandItemSupplierDto,
+    operator?: string,
+  ): Promise<ShippingDemand & Record<string, unknown>> {
+    const demandId = await this.executeWithConfirmAllocationRetry(
+      async (queryRunner) => {
+        await this.updateItemPurchaseSupplierInTransaction(
+          queryRunner,
+          id,
+          itemId,
+          dto.purchaseSupplierId,
+          operator,
+        );
+        return id;
+      },
+    );
+
+    return this.findById(demandId);
   }
 
   async generateFromSalesOrder(
@@ -400,7 +435,11 @@ export class ShippingDemandsService {
     operator?: string,
   ): Promise<void> {
     const demand = await this.findShippingDemandForAllocation(queryRunner, id);
-    const preparedLines = this.prepareAllocationLines(demand, dto);
+    const preparedLines = await this.prepareAllocationLines(
+      queryRunner,
+      demand,
+      dto,
+    );
     const oldStatus = demand.status;
     const hasPurchaseQuantity = preparedLines.some(
       (line) => line.purchaseQuantity > 0,
@@ -421,6 +460,19 @@ export class ShippingDemandsService {
       line.item.stockRequiredQuantity = line.stockQuantity;
       line.item.purchaseRequiredQuantity = line.purchaseQuantity;
       line.item.lockedRemainingQuantity = line.stockQuantity;
+      line.item.purchaseSupplierId = line.purchaseSupplier?.supplierId ?? null;
+      line.item.purchaseSupplierName =
+        line.purchaseSupplier?.supplierName ?? null;
+      line.item.purchaseSupplierCode =
+        line.purchaseSupplier?.supplierCode ?? null;
+      line.item.purchaseSupplierContactPerson =
+        line.purchaseSupplier?.contactPerson ?? null;
+      line.item.purchaseSupplierContactPhone =
+        line.purchaseSupplier?.contactPhone ?? null;
+      line.item.purchaseSupplierContactEmail =
+        line.purchaseSupplier?.contactEmail ?? null;
+      line.item.purchaseSupplierPaymentTermName =
+        line.purchaseSupplier?.paymentTermName ?? null;
       if (operator !== undefined) {
         line.item.updatedBy = operator;
       }
@@ -506,6 +558,70 @@ export class ShippingDemandsService {
       oldStatus,
       nextStatus,
       preparedLines,
+      operator,
+    );
+  }
+
+  private async updateItemPurchaseSupplierInTransaction(
+    queryRunner: QueryRunner,
+    id: number,
+    itemId: number,
+    purchaseSupplierId: number,
+    operator?: string,
+  ): Promise<void> {
+    const demand = await queryRunner.manager
+      .getRepository(ShippingDemand)
+      .createQueryBuilder('demand')
+      .leftJoinAndSelect('demand.items', 'items')
+      .setLock('pessimistic_write')
+      .where('demand.id = :id', { id })
+      .orderBy('items.id', 'ASC')
+      .getOne();
+
+    if (!demand) {
+      throw new NotFoundException('发货需求不存在');
+    }
+    if (demand.status === ShippingDemandStatus.VOIDED) {
+      throw new BadRequestException({
+        code: 'SHIPPING_DEMAND_ITEM_SUPPLIER_UPDATE_NOT_ALLOWED',
+        message: '已作废发货需求不允许编辑采购供应商',
+      });
+    }
+
+    const item = (demand.items ?? []).find(
+      (line) => Number(line.id) === itemId,
+    );
+    if (!item) {
+      throw new BadRequestException({
+        code: 'SHIPPING_DEMAND_ITEM_NOT_FOUND',
+        message: '发货需求明细不存在',
+      });
+    }
+
+    const oldSupplierName = item.purchaseSupplierName;
+    const supplierSnapshot = await this.getPurchaseSupplierSnapshot(
+      queryRunner,
+      purchaseSupplierId,
+      new Map(),
+      item,
+    );
+    item.purchaseSupplierId = supplierSnapshot.supplierId;
+    item.purchaseSupplierName = supplierSnapshot.supplierName;
+    item.purchaseSupplierCode = supplierSnapshot.supplierCode;
+    item.purchaseSupplierContactPerson = supplierSnapshot.contactPerson;
+    item.purchaseSupplierContactPhone = supplierSnapshot.contactPhone;
+    item.purchaseSupplierContactEmail = supplierSnapshot.contactEmail;
+    item.purchaseSupplierPaymentTermName = supplierSnapshot.paymentTermName;
+    if (operator !== undefined) {
+      item.updatedBy = operator;
+    }
+    await queryRunner.manager.getRepository(ShippingDemandItem).save(item);
+    await this.writeShippingDemandItemSupplierOperationLog(
+      queryRunner,
+      demand,
+      item,
+      oldSupplierName,
+      supplierSnapshot.supplierName,
       operator,
     );
   }
@@ -795,10 +911,11 @@ export class ShippingDemandsService {
     return value;
   }
 
-  private prepareAllocationLines(
+  private async prepareAllocationLines(
+    queryRunner: QueryRunner,
     demand: ShippingDemand,
     dto: ConfirmShippingDemandAllocationDto,
-  ): PreparedAllocationLine[] {
+  ): Promise<PreparedAllocationLine[]> {
     const items = demand.items ?? [];
     const dtoByItemId = new Map<
       number,
@@ -820,49 +937,104 @@ export class ShippingDemandsService {
       });
     }
 
-    return items.map((item) => {
-      const input = dtoByItemId.get(Number(item.id));
-      if (!input) {
-        throw new BadRequestException({
-          code: 'ALLOCATION_ITEM_MISSING',
-          message: `${item.skuCode} 未设置履行类型`,
-        });
-      }
-      const requiredQuantity = Number(item.requiredQuantity ?? 0);
-      if (!Number.isInteger(requiredQuantity) || requiredQuantity <= 0) {
-        throw new BadRequestException({
-          code: 'INVALID_REQUIRED_QUANTITY',
-          message: `${item.skuCode} 应发数量必须为正整数`,
-        });
-      }
-      const stockQuantity = Number(input.stockQuantity ?? 0);
-      if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
-        throw new BadRequestException({
-          code: 'INVALID_STOCK_QUANTITY',
-          message: `${item.skuCode} 使用库存数量必须为非负整数`,
-        });
-      }
-      if (stockQuantity > requiredQuantity) {
-        throw new BadRequestException({
-          code: 'STOCK_QUANTITY_EXCEEDS_REQUIRED',
-          message: `${item.skuCode} 使用库存数量不能超过应发数量`,
-        });
-      }
-      const purchaseQuantity = requiredQuantity - stockQuantity;
-      this.assertFulfillmentQuantity(
-        item,
-        input.fulfillmentType,
-        stockQuantity,
-        purchaseQuantity,
-      );
-      return {
-        item,
-        fulfillmentType: input.fulfillmentType,
-        stockQuantity,
-        purchaseQuantity,
-        warehouseId: stockQuantity > 0 ? Number(input.warehouseId) : null,
-      };
+    const supplierSnapshots = new Map<number, PurchaseSupplierSnapshot>();
+
+    return Promise.all(
+      items.map(async (item) => {
+        const input = dtoByItemId.get(Number(item.id));
+        if (!input) {
+          throw new BadRequestException({
+            code: 'ALLOCATION_ITEM_MISSING',
+            message: `${item.skuCode} 未设置履行类型`,
+          });
+        }
+        const requiredQuantity = Number(item.requiredQuantity ?? 0);
+        if (!Number.isInteger(requiredQuantity) || requiredQuantity <= 0) {
+          throw new BadRequestException({
+            code: 'INVALID_REQUIRED_QUANTITY',
+            message: `${item.skuCode} 应发数量必须为正整数`,
+          });
+        }
+        const stockQuantity = Number(input.stockQuantity ?? 0);
+        if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
+          throw new BadRequestException({
+            code: 'INVALID_STOCK_QUANTITY',
+            message: `${item.skuCode} 使用库存数量必须为非负整数`,
+          });
+        }
+        if (stockQuantity > requiredQuantity) {
+          throw new BadRequestException({
+            code: 'STOCK_QUANTITY_EXCEEDS_REQUIRED',
+            message: `${item.skuCode} 使用库存数量不能超过应发数量`,
+          });
+        }
+        const purchaseQuantity = requiredQuantity - stockQuantity;
+        this.assertFulfillmentQuantity(
+          item,
+          input.fulfillmentType,
+          stockQuantity,
+          purchaseQuantity,
+        );
+        const purchaseSupplier =
+          purchaseQuantity > 0
+            ? await this.getPurchaseSupplierSnapshot(
+                queryRunner,
+                input.purchaseSupplierId,
+                supplierSnapshots,
+                item,
+              )
+            : null;
+        return {
+          item,
+          fulfillmentType: input.fulfillmentType,
+          stockQuantity,
+          purchaseQuantity,
+          warehouseId: stockQuantity > 0 ? Number(input.warehouseId) : null,
+          purchaseSupplier,
+        };
+      }),
+    );
+  }
+
+  private async getPurchaseSupplierSnapshot(
+    queryRunner: QueryRunner,
+    supplierId: number | undefined,
+    cache: Map<number, PurchaseSupplierSnapshot>,
+    item: ShippingDemandItem,
+  ): Promise<PurchaseSupplierSnapshot> {
+    if (!supplierId) {
+      throw new BadRequestException({
+        code: 'PURCHASE_SUPPLIER_REQUIRED',
+        message: `${item.skuCode} 涉及采购时必须选择采购供应商`,
+      });
+    }
+
+    const cached = cache.get(supplierId);
+    if (cached) return cached;
+
+    const supplier = await queryRunner.manager.getRepository(Supplier).findOne({
+      where: { id: supplierId },
+      relations: { paymentTerms: true },
+      order: { paymentTerms: { createdAt: 'ASC' } },
     });
+    if (!supplier) {
+      throw new BadRequestException({
+        code: 'PURCHASE_SUPPLIER_NOT_FOUND',
+        message: `${item.skuCode} 选择的采购供应商不存在`,
+      });
+    }
+
+    const snapshot = {
+      supplierId: Number(supplier.id),
+      supplierName: supplier.name,
+      supplierCode: supplier.supplierCode,
+      contactPerson: supplier.contactPerson,
+      contactPhone: supplier.contactPhone,
+      contactEmail: supplier.contactEmail,
+      paymentTermName: supplier.paymentTerms?.[0]?.paymentTermName ?? null,
+    };
+    cache.set(supplierId, snapshot);
+    return snapshot;
   }
 
   private assertFulfillmentQuantity(
@@ -1150,6 +1322,40 @@ export class ShippingDemandsService {
     );
   }
 
+  private async writeShippingDemandItemSupplierOperationLog(
+    queryRunner: QueryRunner,
+    demand: ShippingDemand,
+    item: ShippingDemandItem,
+    oldSupplierName: string | null,
+    newSupplierName: string,
+    operator?: string,
+  ): Promise<void> {
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    await operationLogRepo.save(
+      operationLogRepo.create({
+        operator: operator ?? 'system',
+        operatorId: null,
+        action: OperationLogAction.UPDATE,
+        resourceType: 'shipping-demands',
+        resourceId: String(demand.id),
+        resourcePath: `/api/shipping-demands/${demand.id}/items/${item.id}/purchase-supplier`,
+        requestSummary: {
+          sourceAction: 'update_shipping_demand_item_purchase_supplier',
+          shippingDemandItemId: Number(item.id),
+          skuCode: item.skuCode,
+        },
+        changeSummary: [
+          {
+            field: 'purchaseSupplier',
+            fieldLabel: '采购供应商',
+            oldValue: oldSupplierName,
+            newValue: newSupplierName,
+          },
+        ],
+      }),
+    );
+  }
+
   private async writeShippingDemandVoidOperationLog(
     queryRunner: QueryRunner,
     demand: ShippingDemand,
@@ -1262,8 +1468,11 @@ export class ShippingDemandsService {
         const warehouseText = line.warehouseId
           ? `，仓库 ${line.warehouseId}`
           : '';
+        const supplierText = line.purchaseSupplier
+          ? `，采购供应商 ${line.purchaseSupplier.supplierName}`
+          : '';
 
-        return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}`;
+        return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}${supplierText}`;
       })
       .join('\n');
   }

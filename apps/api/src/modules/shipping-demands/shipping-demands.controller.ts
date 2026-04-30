@@ -11,6 +11,7 @@ import {
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
+import { UpdateShippingDemandItemSupplierDto } from './dto/update-shipping-demand-item-supplier.dto';
 import { UpdateShippingDemandDto } from './dto/update-shipping-demand.dto';
 import { ShippingDemandsService } from './shipping-demands.service';
 
@@ -47,6 +48,21 @@ export class ShippingDemandsController {
   ) {
     return this.shippingDemandsService.confirmAllocation(
       id,
+      dto,
+      user?.username,
+    );
+  }
+
+  @Patch(':id/items/:itemId/purchase-supplier')
+  updateItemPurchaseSupplier(
+    @Param('id', ParseIntPipe) id: number,
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() dto: UpdateShippingDemandItemSupplierDto,
+    @CurrentUser() user: { username?: string },
+  ) {
+    return this.shippingDemandsService.updateItemPurchaseSupplier(
+      id,
+      itemId,
       dto,
       user?.username,
     );

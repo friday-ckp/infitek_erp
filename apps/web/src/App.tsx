@@ -62,6 +62,9 @@ import ShippingDemandsListPage from "./pages/shipping-demands/index";
 import ShippingDemandDetailPage from "./pages/shipping-demands/detail";
 import ShippingDemandFormPage from "./pages/shipping-demands/form";
 import LogisticsOrderFormPage from "./pages/logistics-orders/form";
+import PurchaseOrderFormPage, {
+  PurchaseOrdersPlaceholderPage,
+} from "./pages/purchase-orders/form";
 import InventoryPage from "./pages/inventory/index";
 import InventoryTransactionsPage from "./pages/inventory/transactions";
 import HomePage from "./pages/home/index";
@@ -454,6 +457,18 @@ function App() {
                   <Route
                     path="/logistics-orders/create"
                     element={<LogisticsOrderFormPage />}
+                  />
+                  <Route
+                    path="/purchase-orders"
+                    element={<PurchaseOrdersPlaceholderPage />}
+                  />
+                  <Route
+                    path="/purchase-orders/new"
+                    element={<PurchaseOrderFormPage />}
+                  />
+                  <Route
+                    path="/purchase-orders/create"
+                    element={<PurchaseOrderFormPage />}
                   />
                   <Route
                     path="/inventory/transactions"

@@ -42,6 +42,13 @@ export interface ShippingDemandItem {
   purchaserId?: number | null;
   purchaserName?: string | null;
   needsPurchase?: YesNo | null;
+  purchaseSupplierId?: number | null;
+  purchaseSupplierName?: string | null;
+  purchaseSupplierCode?: string | null;
+  purchaseSupplierContactPerson?: string | null;
+  purchaseSupplierContactPhone?: string | null;
+  purchaseSupplierContactEmail?: string | null;
+  purchaseSupplierPaymentTermName?: string | null;
   requiredQuantity: number;
   availableStockSnapshot?: Array<{
     skuId: number;
@@ -192,10 +199,15 @@ export interface ConfirmShippingDemandAllocationItemPayload {
   fulfillmentType: FulfillmentType;
   stockQuantity: number;
   warehouseId?: number;
+  purchaseSupplierId?: number;
 }
 
 export interface ConfirmShippingDemandAllocationPayload {
   items: ConfirmShippingDemandAllocationItemPayload[];
+}
+
+export interface UpdateShippingDemandItemSupplierPayload {
+  purchaseSupplierId: number;
 }
 
 export interface UpdateShippingDemandPayload {
@@ -282,6 +294,18 @@ export const updateShippingDemand = (
 ): Promise<ShippingDemand> =>
   request
     .patch<unknown, ShippingDemand>(`/shipping-demands/${id}`, payload)
+    .catch(normalizeApiError);
+
+export const updateShippingDemandItemSupplier = (
+  id: number,
+  itemId: number,
+  payload: UpdateShippingDemandItemSupplierPayload,
+): Promise<ShippingDemand> =>
+  request
+    .patch<unknown, ShippingDemand>(
+      `/shipping-demands/${id}/items/${itemId}/purchase-supplier`,
+      payload,
+    )
     .catch(normalizeApiError);
 
 export const confirmShippingDemandAllocation = (

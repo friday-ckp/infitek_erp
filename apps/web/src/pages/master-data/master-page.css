@@ -1040,6 +1040,102 @@
   padding: 6px 10px;
 }
 
+.shipping-demand-purchase-source,
+.shipping-demand-purchase-meta-grid,
+.shipping-demand-purchase-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.shipping-demand-purchase-source > div,
+.shipping-demand-purchase-meta-grid > div {
+  min-width: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 9px 10px;
+}
+
+.shipping-demand-purchase-source span,
+.shipping-demand-purchase-meta-grid span,
+.shipping-demand-purchase-form-grid label > span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.shipping-demand-purchase-source strong,
+.shipping-demand-purchase-meta-grid strong {
+  display: block;
+  min-width: 0;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shipping-demand-purchase-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shipping-demand-purchase-section-title {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.shipping-demand-purchase-group-card {
+  border: 1px solid #dbe4f0;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.shipping-demand-purchase-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.shipping-demand-purchase-group-head strong {
+  display: block;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.shipping-demand-purchase-group-head span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.shipping-demand-purchase-form-grid {
+  margin-top: 10px;
+}
+
+.shipping-demand-purchase-form-grid label {
+  min-width: 0;
+}
+
+.shipping-demand-purchase-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 14px;
+}
+
 .shipping-demand-allocation-sku {
   display: flex;
   flex-direction: column;

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { FilesModule } from '../../files/files.module';
 import { InventoryModule } from '../inventory/inventory.module';
 import { InventoryTransaction } from '../inventory/entities/inventory-transaction.entity';
+import { Supplier } from '../master-data/suppliers/entities/supplier.entity';
 import { ShippingDemandInventoryAllocation } from './entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
 import { ShippingDemand } from './entities/shipping-demand.entity';
@@ -17,6 +18,7 @@ import { ShippingDemandsService } from './shipping-demands.service';
       ShippingDemandItem,
       ShippingDemandInventoryAllocation,
       InventoryTransaction,
+      Supplier,
     ]),
     FilesModule,
     InventoryModule,

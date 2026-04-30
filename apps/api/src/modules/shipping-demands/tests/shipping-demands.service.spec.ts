@@ -15,6 +15,7 @@ import {
   OperationLog,
   OperationLogAction,
 } from '../../operation-logs/entities/operation-log.entity';
+import { Supplier } from '../../master-data/suppliers/entities/supplier.entity';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../../sales-orders/entities/sales-order-item.entity';
 import { ShippingDemandInventoryAllocation } from '../entities/shipping-demand-inventory-allocation.entity';
@@ -215,6 +216,16 @@ describe('ShippingDemandsService', () => {
     ...overrides,
   });
 
+  const supplier = {
+    id: 88,
+    name: '信达供应商',
+    supplierCode: 'SUP0088',
+    contactPerson: 'Lily',
+    contactPhone: '13800000000',
+    contactEmail: 'lily@example.com',
+    paymentTerms: [{ paymentTermName: '月结30天' }],
+  };
+
   const makeQueryBuilder = (result: unknown) => {
     const qb = {
       leftJoinAndSelect: jest.fn(() => qb),
@@ -279,6 +290,7 @@ describe('ShippingDemandsService', () => {
               ...((state.savedAllocationItems as unknown[]) ?? []),
               { ...data },
             ];
+            state.savedDemandItem = { ...data };
           }
           return data;
         }),
@@ -309,6 +321,16 @@ describe('ShippingDemandsService', () => {
         save: jest.fn().mockImplementation(async (data) => {
           state.savedInventoryTransactions = data;
           return data;
+        }),
+      };
+    }
+    if (entity === Supplier) {
+      return {
+        findOne: jest.fn().mockImplementation(async ({ where }) => {
+          const supplierId = Number(where?.id);
+          return (state.suppliersById as Record<number, unknown>)?.[
+            supplierId
+          ] ?? state.supplier;
         }),
       };
     }
@@ -570,6 +592,95 @@ describe('ShippingDemandsService', () => {
     expect(shippingDemandsRepository.update).not.toHaveBeenCalled();
   });
 
+  it('updates shipping demand item purchase supplier snapshot', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+        items: [
+          {
+            ...(makeDemandForAllocation().items?.[0] as ShippingDemandItem),
+            purchaseSupplierId: null,
+            purchaseSupplierName: null,
+          } as ShippingDemandItem,
+        ],
+      } as ShippingDemand),
+      supplier,
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+      items: [
+        {
+          id: 700,
+          purchaseSupplierId: 88,
+          purchaseSupplierName: '信达供应商',
+        },
+      ],
+    });
+
+    const result = await service.updateItemPurchaseSupplier(
+      500,
+      700,
+      { purchaseSupplierId: 88 },
+      'admin',
+    );
+
+    expect(result.items?.[0].purchaseSupplierName).toBe('信达供应商');
+    expect(state.savedDemandItem).toEqual(
+      expect.objectContaining({
+        id: 700,
+        purchaseSupplierId: 88,
+        purchaseSupplierName: '信达供应商',
+        purchaseSupplierCode: 'SUP0088',
+        purchaseSupplierContactPerson: 'Lily',
+        purchaseSupplierContactPhone: '13800000000',
+        purchaseSupplierContactEmail: 'lily@example.com',
+        purchaseSupplierPaymentTermName: '月结30天',
+        updatedBy: 'admin',
+      }),
+    );
+    expect(state.savedOperationLog).toEqual(
+      expect.objectContaining({
+        resourceType: 'shipping-demands',
+        resourceId: '500',
+        changeSummary: [
+          {
+            field: 'purchaseSupplier',
+            fieldLabel: '采购供应商',
+            oldValue: null,
+            newValue: '信达供应商',
+          },
+        ],
+      }),
+    );
+  });
+
+  it('rejects purchase supplier edit for voided shipping demand', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.VOIDED,
+      }),
+      supplier,
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.updateItemPurchaseSupplier(
+        500,
+        700,
+        { purchaseSupplierId: 88 },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedDemandItem).toBeUndefined();
+  });
+
   it('generates shipping demand from approved sales order', async () => {
     const state: Record<string, unknown> = { order: makeOrder() };
     const queryRunner = makeQueryRunner(state);
@@ -772,6 +883,7 @@ describe('ShippingDemandsService', () => {
   it('confirms allocation and keeps demand pending purchase order when purchase quantity remains', async () => {
     const state: Record<string, unknown> = {
       demand: makeDemandForAllocation(),
+      supplier,
     };
     const queryRunner = makeQueryRunner(state);
     shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
@@ -800,6 +912,7 @@ describe('ShippingDemandsService', () => {
             fulfillmentType: FulfillmentType.PARTIAL_PURCHASE,
             stockQuantity: 1,
             warehouseId: 22,
+            purchaseSupplierId: 88,
           },
         ],
       },
@@ -812,6 +925,13 @@ describe('ShippingDemandsService', () => {
         stockRequiredQuantity: 1,
         purchaseRequiredQuantity: 1,
         lockedRemainingQuantity: 1,
+        purchaseSupplierId: 88,
+        purchaseSupplierName: '信达供应商',
+        purchaseSupplierCode: 'SUP0088',
+        purchaseSupplierContactPerson: 'Lily',
+        purchaseSupplierContactPhone: '13800000000',
+        purchaseSupplierContactEmail: 'lily@example.com',
+        purchaseSupplierPaymentTermName: '月结30天',
       }),
     ]);
     expect(state.savedDemand).toEqual(
@@ -820,6 +940,33 @@ describe('ShippingDemandsService', () => {
       }),
     );
     expect(state.salesOrderUpdate).toBeUndefined();
+  });
+
+  it('rejects allocation purchase line without supplier', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.confirmAllocation(
+        500,
+        {
+          items: [
+            {
+              itemId: 700,
+              fulfillmentType: FulfillmentType.FULL_PURCHASE,
+              stockQuantity: 0,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedAllocationItems).toBeUndefined();
   });
 
   it.each([

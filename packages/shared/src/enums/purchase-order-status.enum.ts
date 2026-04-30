@@ -1,7 +1,11 @@
-export enum PurchaseOrderStatus {
-  // 待实现（Story 后续补全）
-  DRAFT = 'draft',
-  CONFIRMED = 'confirmed',
-  RECEIVED = 'received',
-  CANCELLED = 'cancelled',
-}
+export const PurchaseOrderStatus = {
+  PENDING_CONFIRM: 'pending_confirm',
+  SUPPLIER_CONFIRMING: 'supplier_confirming',
+  PENDING_RECEIPT: 'pending_receipt',
+  PARTIALLY_RECEIVED: 'partially_received',
+  RECEIVED: 'received',
+  CANCELLED: 'cancelled',
+} as const;
+
+export type PurchaseOrderStatus =
+  (typeof PurchaseOrderStatus)[keyof typeof PurchaseOrderStatus];

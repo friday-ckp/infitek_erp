@@ -1,7 +1,9 @@
 import {
   App,
   Button,
+  Drawer,
   Image,
+  Input,
   InputNumber,
   Modal,
   Result,
@@ -13,6 +15,7 @@ import {
 } from "antd";
 import {
   BlType,
+  ContractTemplateStatus,
   CustomsDeclarationMethod,
   DomesticTradeType,
   FulfillmentType,
@@ -40,12 +43,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import type { ColumnsType } from "antd/es/table";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ActivityTimeline } from "../../components/ActivityTimeline";
 import {
   confirmShippingDemandAllocation,
   getShippingDemandById,
+  updateShippingDemandItemSupplier,
   voidShippingDemand,
   type ConfirmShippingDemandAllocationPayload,
   type ShippingDemandItem,
@@ -55,6 +59,7 @@ import {
   type InventoryBatchItem,
 } from "../../api/inventory.api";
 import { getWarehouses, type Warehouse } from "../../api/warehouses.api";
+import { getContractTemplates } from "../../api/contract-templates.api";
 import {
   AnchorNav,
   MetaItem,
@@ -63,6 +68,13 @@ import {
   displayOrDash,
 } from "../master-data/components/page-scaffold";
 import { getLogisticsOrderCreatePrefill } from "../../api/logistics-orders.api";
+import {
+  createPurchaseOrdersFromShippingDemand,
+  getPurchaseOrderCreatePrefill,
+  type CreatePurchaseOrdersFromShippingDemandPayload,
+  type PurchaseOrderPrefillItem,
+} from "../../api/purchase-orders.api";
+import { getSuppliers, type Supplier } from "../../api/suppliers.api";
 import "../master-data/master-page.css";
 
 const STATUS_STYLE_MAP: Record<string, { className: string; text: string }> = {
@@ -116,6 +128,17 @@ interface AllocationDraft {
   fulfillmentType?: FulfillmentType;
   stockQuantity: number;
   warehouseId?: number;
+  purchaseSupplierId?: number;
+}
+
+interface PurchaseOrderDraft {
+  quantity: number;
+  unitPrice: number;
+}
+
+interface PurchaseOrderGroupDraft {
+  contractTermId?: number;
+  remark?: string;
 }
 
 interface WarehouseOption {
@@ -262,6 +285,19 @@ function getWarehouseAvailable(
   );
 }
 
+function getSupplierDisplayName(item: {
+  purchaseSupplierName?: string | null;
+  purchaseSupplierCode?: string | null;
+  purchaseSupplierId?: number | null;
+}) {
+  if (item.purchaseSupplierName) {
+    return item.purchaseSupplierCode
+      ? `${item.purchaseSupplierName} (${item.purchaseSupplierCode})`
+      : item.purchaseSupplierName;
+  }
+  return item.purchaseSupplierId ? `供应商 #${item.purchaseSupplierId}` : "—";
+}
+
 function getFifoPreviewBatches(
   batches: InventoryBatchItem[],
   item: ShippingDemandItem,
@@ -298,6 +334,7 @@ function defaultAllocationDraft(
         stockQuantity > 0
           ? selectWarehouse(item, stockQuantity, warehouseMap)?.value
           : undefined,
+      purchaseSupplierId: item.purchaseSupplierId ?? undefined,
     };
   }
   const warehouse = selectWarehouse(item, required, warehouseMap);
@@ -306,6 +343,7 @@ function defaultAllocationDraft(
       fulfillmentType: FulfillmentType.USE_STOCK,
       stockQuantity: required,
       warehouseId: warehouse.value,
+      purchaseSupplierId: undefined,
     };
   }
   if (warehouse && warehouse.availableQuantity > 0 && required > 0) {
@@ -313,11 +351,13 @@ function defaultAllocationDraft(
       fulfillmentType: FulfillmentType.PARTIAL_PURCHASE,
       stockQuantity: Math.min(warehouse.availableQuantity, required - 1),
       warehouseId: warehouse.value,
+      purchaseSupplierId: item.purchaseSupplierId ?? undefined,
     };
   }
   return {
     fulfillmentType: FulfillmentType.FULL_PURCHASE,
     stockQuantity: 0,
+    purchaseSupplierId: item.purchaseSupplierId ?? undefined,
   };
 }
 
@@ -491,6 +531,14 @@ export default function ShippingDemandDetailPage() {
     Record<number, AllocationDraft>
   >({});
   const [allocationModalOpen, setAllocationModalOpen] = useState(false);
+  const [purchaseDrawerOpen, setPurchaseDrawerOpen] = useState(false);
+  const [purchaseRequestKey, setPurchaseRequestKey] = useState("");
+  const [purchaseDrafts, setPurchaseDrafts] = useState<
+    Record<number, PurchaseOrderDraft>
+  >({});
+  const [purchaseGroupDrafts, setPurchaseGroupDrafts] = useState<
+    Record<number, PurchaseOrderGroupDraft>
+  >({});
 
   const query = useQuery({
     queryKey: ["shipping-demand-detail", demandId],
@@ -505,8 +553,31 @@ export default function ShippingDemandDetailPage() {
   const canVoidDemand =
     data?.status === ShippingDemandStatus.PENDING_ALLOCATION;
   const canEditDemand = Boolean(data && data.status !== ShippingDemandStatus.VOIDED);
+  const isPurchaseOrderEntryStatus =
+    data?.status === ShippingDemandStatus.PENDING_PURCHASE_ORDER ||
+    data?.status === ShippingDemandStatus.PURCHASING;
+  const purchaseOrderGapItemCount = items.filter(
+    (item) =>
+      numberValue(item.purchaseRequiredQuantity) >
+      numberValue(item.purchaseOrderedQuantity),
+  ).length;
+  const purchaseSupplierMissingItemCount = items.filter(
+    (item) =>
+      numberValue(item.purchaseRequiredQuantity) >
+        numberValue(item.purchaseOrderedQuantity) &&
+      !item.purchaseSupplierId,
+  ).length;
   const canGeneratePurchaseOrder =
-    data?.status === ShippingDemandStatus.PENDING_PURCHASE_ORDER;
+    isPurchaseOrderEntryStatus &&
+    purchaseOrderGapItemCount > 0 &&
+    purchaseSupplierMissingItemCount === 0;
+  const purchaseOrderDisabledTooltip = canGeneratePurchaseOrder
+    ? undefined
+    : purchaseSupplierMissingItemCount > 0
+      ? `${purchaseSupplierMissingItemCount} 行采购明细缺少采购供应商`
+      : data?.status === ShippingDemandStatus.PURCHASING
+        ? "当前没有可补单的采购缺口"
+        : "确认分配产生采购缺口后可生成采购单";
   const isLogisticsEligibleStatus =
     data?.status === ShippingDemandStatus.PREPARED ||
     data?.status === ShippingDemandStatus.PARTIALLY_SHIPPED;
@@ -559,6 +630,30 @@ export default function ShippingDemandDetailPage() {
       Boolean(data) &&
       isLogisticsEligibleStatus,
   });
+  const purchasePrefillQuery = useQuery({
+    queryKey: ["purchase-order-create-prefill", demandId],
+    queryFn: () => getPurchaseOrderCreatePrefill(demandId),
+    enabled:
+      Number.isInteger(demandId) &&
+      demandId > 0 &&
+      purchaseDrawerOpen &&
+      Boolean(canGeneratePurchaseOrder),
+  });
+  const suppliersQuery = useQuery({
+    queryKey: ["purchase-order-suppliers"],
+    queryFn: () => getSuppliers({ page: 1, pageSize: 500 }),
+    enabled: Boolean(data && data.status !== ShippingDemandStatus.VOIDED),
+  });
+  const contractTemplatesQuery = useQuery({
+    queryKey: ["purchase-order-contract-templates", purchaseDrawerOpen],
+    queryFn: () =>
+      getContractTemplates({
+        status: ContractTemplateStatus.APPROVED,
+        page: 1,
+        pageSize: 500,
+      }),
+    enabled: purchaseDrawerOpen,
+  });
   const canCreateLogisticsOrder =
     isLogisticsEligibleStatus &&
     (logisticsPrefillQuery.data?.planItems ?? []).some(
@@ -584,6 +679,38 @@ export default function ShippingDemandDetailPage() {
       ),
     );
   }, [data?.id, data?.status, data?.items]);
+
+  useEffect(() => {
+    const prefillItems = purchasePrefillQuery.data?.items ?? [];
+    if (!purchaseDrawerOpen || !prefillItems.length) {
+      setPurchaseDrafts({});
+      setPurchaseGroupDrafts({});
+      return;
+    }
+    setPurchaseDrafts(
+      Object.fromEntries(
+        prefillItems.map((item) => [
+          item.shippingDemandItemId,
+          {
+            quantity: item.quantity,
+            unitPrice: 0,
+          },
+        ]),
+      ),
+    );
+    const supplierIds = [
+      ...new Set(
+        prefillItems
+          .map((item) => numberValue(item.purchaseSupplierId))
+          .filter((supplierId) => supplierId > 0),
+      ),
+    ];
+    setPurchaseGroupDrafts((prev) =>
+      Object.fromEntries(
+        supplierIds.map((supplierId) => [supplierId, prev[supplierId] ?? {}]),
+      ),
+    );
+  }, [purchaseDrawerOpen, purchasePrefillQuery.data]);
 
   const confirmAllocationMutation = useMutation({
     mutationFn: (payload: ConfirmShippingDemandAllocationPayload) =>
@@ -651,6 +778,67 @@ export default function ShippingDemandDetailPage() {
     },
   });
 
+  const createPurchaseOrdersMutation = useMutation({
+    mutationFn: (payload: CreatePurchaseOrdersFromShippingDemandPayload) =>
+      createPurchaseOrdersFromShippingDemand(payload),
+    onSuccess: (createdOrders) => {
+      queryClient.invalidateQueries({
+        queryKey: ["shipping-demand-detail", demandId],
+      });
+      queryClient.invalidateQueries({ queryKey: ["shipping-demands"] });
+      queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["operation-logs", "shipping-demands", demandId],
+      });
+      setPurchaseDrawerOpen(false);
+      notification.success({
+        message: `已创建 ${createdOrders.length} 个采购订单`,
+        description: createdOrders.map((order) => order.poCode).join("、"),
+        duration: 5,
+      });
+    },
+    onError: (error: unknown) => {
+      const err = error as {
+        message?: string;
+        response?: { data?: { message?: string } };
+      };
+      message.error(
+        err.response?.data?.message ?? err.message ?? "生成采购单失败",
+      );
+    },
+  });
+
+  const updateItemSupplierMutation = useMutation({
+    mutationFn: ({
+      itemId,
+      purchaseSupplierId,
+    }: {
+      itemId: number;
+      purchaseSupplierId: number;
+    }) =>
+      updateShippingDemandItemSupplier(demandId, itemId, {
+        purchaseSupplierId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["shipping-demand-detail", demandId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["operation-logs", "shipping-demands", demandId],
+      });
+      message.success("采购供应商已更新");
+    },
+    onError: (error: unknown) => {
+      const err = error as {
+        message?: string;
+        response?: { data?: { message?: string } };
+      };
+      message.error(
+        err.response?.data?.message ?? err.message ?? "更新采购供应商失败",
+      );
+    },
+  });
+
   const handleVoidDemand = () => {
     modal.confirm({
       title: "确认作废此发货需求？",
@@ -673,6 +861,117 @@ export default function ShippingDemandDetailPage() {
     }));
   };
 
+  const handleItemSupplierChange = useCallback((
+    item: ShippingDemandItem,
+    purchaseSupplierId?: number,
+  ) => {
+    if (!purchaseSupplierId) return;
+    updateItemSupplierMutation.mutate({
+      itemId: item.id,
+      purchaseSupplierId,
+    });
+  }, [updateItemSupplierMutation]);
+
+  const openPurchaseDrawer = () => {
+    if (purchaseSupplierMissingItemCount > 0) {
+      message.error("存在采购明细缺少采购供应商，请先补充分配结果");
+      return;
+    }
+    setPurchaseRequestKey(`shipping-demand:${demandId}:purchase:${Date.now()}`);
+    setPurchaseDrawerOpen(true);
+  };
+
+  const updatePurchaseDraft = useCallback((
+    itemId: number,
+    patch: Partial<PurchaseOrderDraft>,
+  ) => {
+    setPurchaseDrafts((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...(prev[itemId] ?? { quantity: 0, unitPrice: 0 }),
+        ...patch,
+      },
+    }));
+  }, []);
+
+  const updatePurchaseGroupDraft = useCallback((
+    supplierId: number,
+    patch: Partial<PurchaseOrderGroupDraft>,
+  ) => {
+    setPurchaseGroupDrafts((prev) => ({
+      ...prev,
+      [supplierId]: {
+        ...(prev[supplierId] ?? {}),
+        ...patch,
+      },
+    }));
+  }, []);
+
+  const buildPurchasePayload =
+    (): CreatePurchaseOrdersFromShippingDemandPayload | null => {
+      const prefillItems = purchasePrefillQuery.data?.items ?? [];
+      if (!prefillItems.length) {
+        message.error("当前没有可生成采购单的明细");
+        return null;
+      }
+      const groupsBySupplier = new Map<
+        number,
+        CreatePurchaseOrdersFromShippingDemandPayload["groups"][number]
+      >();
+
+      for (const item of prefillItems) {
+        const draft = purchaseDrafts[item.shippingDemandItemId];
+        const supplierId = numberValue(item.purchaseSupplierId);
+        if (!supplierId) {
+          message.error(`${item.skuCode} 缺少采购供应商，请先回到分配库存补充`);
+          return null;
+        }
+        const quantity = numberValue(draft?.quantity);
+        if (
+          !Number.isInteger(quantity) ||
+          quantity <= 0 ||
+          quantity > item.availableToOrder
+        ) {
+          message.error(
+            `${item.skuCode} 本次数量必须在 1 到 ${item.availableToOrder} 之间`,
+          );
+          return null;
+        }
+        const unitPrice = numberValue(draft?.unitPrice);
+        if (unitPrice < 0) {
+          message.error(`${item.skuCode} 单价不能小于 0`);
+          return null;
+        }
+        const group =
+          groupsBySupplier.get(supplierId) ??
+          ({
+            supplierId,
+            contractTermId: purchaseGroupDrafts[supplierId]?.contractTermId,
+            remark:
+              purchaseGroupDrafts[supplierId]?.remark?.trim() || undefined,
+            items: [],
+          } satisfies CreatePurchaseOrdersFromShippingDemandPayload["groups"][number]);
+        group.items.push({
+          shippingDemandItemId: item.shippingDemandItemId,
+          quantity,
+          unitPrice,
+        });
+        groupsBySupplier.set(supplierId, group);
+      }
+
+      return {
+        shippingDemandId: demandId,
+        requestKey: purchaseRequestKey,
+        groups: [...groupsBySupplier.values()],
+      };
+    };
+
+  const submitPurchaseOrders = () => {
+    const payload = buildPurchasePayload();
+    if (!payload) return;
+    createPurchaseOrdersMutation.mutate(payload);
+  };
+
   const handleFulfillmentChange = (
     item: ShippingDemandItem,
     fulfillmentType: FulfillmentType,
@@ -684,6 +983,10 @@ export default function ShippingDemandDetailPage() {
         fulfillmentType,
         stockQuantity: 0,
         warehouseId: undefined,
+        purchaseSupplierId:
+          allocationDrafts[item.id]?.purchaseSupplierId ??
+          item.purchaseSupplierId ??
+          undefined,
       });
       return;
     }
@@ -692,6 +995,7 @@ export default function ShippingDemandDetailPage() {
         fulfillmentType,
         stockQuantity: required,
         warehouseId: warehouse?.value,
+        purchaseSupplierId: undefined,
       });
       return;
     }
@@ -701,6 +1005,10 @@ export default function ShippingDemandDetailPage() {
         ? Math.max(1, Math.min(warehouse.availableQuantity, required - 1))
         : 0,
       warehouseId: warehouse?.value,
+      purchaseSupplierId:
+        allocationDrafts[item.id]?.purchaseSupplierId ??
+        item.purchaseSupplierId ??
+        undefined,
     });
   };
 
@@ -767,11 +1075,18 @@ export default function ShippingDemandDetailPage() {
           );
           return null;
         }
+        const purchaseQuantity = required - stockQuantity;
+        if (purchaseQuantity > 0 && !draft.purchaseSupplierId) {
+          message.error(`${item.skuCode} 涉及采购时必须选择采购供应商`);
+          return null;
+        }
         payloadItems.push({
           itemId: item.id,
           fulfillmentType: draft.fulfillmentType,
           stockQuantity,
           warehouseId: stockQuantity > 0 ? draft.warehouseId : undefined,
+          purchaseSupplierId:
+            purchaseQuantity > 0 ? draft.purchaseSupplierId : undefined,
         });
       }
       return { items: payloadItems };
@@ -782,6 +1097,15 @@ export default function ShippingDemandDetailPage() {
     if (!payload) return;
     confirmAllocationMutation.mutate(payload);
   };
+
+  const supplierOptions = useMemo(
+    () =>
+      (suppliersQuery.data?.list ?? []).map((supplier: Supplier) => ({
+        label: `${supplier.name} (${supplier.supplierCode})`,
+        value: Number(supplier.id),
+      })),
+    [suppliersQuery.data],
+  );
 
   const allocationColumns = useMemo<ColumnsType<ShippingDemandItem>>(
     () => [
@@ -901,6 +1225,34 @@ export default function ShippingDemandDetailPage() {
           ),
       },
       {
+        title: "采购供应商",
+        key: "purchaseSupplierId",
+        width: 260,
+        render: (_: unknown, record) => {
+          const draft = allocationDrafts[record.id];
+          const purchaseQuantity = Math.max(
+            0,
+            numberValue(record.requiredQuantity) -
+              numberValue(draft?.stockQuantity),
+          );
+          return (
+            <Select<number>
+              className="shipping-demand-allocation-control"
+              showSearch
+              placeholder={purchaseQuantity > 0 ? "选择供应商" : "无需采购"}
+              optionFilterProp="label"
+              loading={suppliersQuery.isLoading}
+              disabled={purchaseQuantity <= 0}
+              options={supplierOptions}
+              value={draft?.purchaseSupplierId}
+              onChange={(purchaseSupplierId: number | undefined) =>
+                updateDraft(record.id, { purchaseSupplierId })
+              }
+            />
+          );
+        },
+      },
+      {
         title: "FIFO 批次预览",
         key: "fifoBatchPreview",
         width: 310,
@@ -934,7 +1286,182 @@ export default function ShippingDemandDetailPage() {
         },
       },
     ],
-    [allocationDrafts, batchesQuery.data, batchesQuery.isLoading, warehouseMap],
+    [
+      allocationDrafts,
+      batchesQuery.data,
+      batchesQuery.isLoading,
+      supplierOptions,
+      suppliersQuery.isLoading,
+      warehouseMap,
+    ],
+  );
+
+  const supplierMap = useMemo(() => {
+    const map = new Map<number, Supplier>();
+    for (const supplier of suppliersQuery.data?.list ?? []) {
+      map.set(Number(supplier.id), supplier);
+    }
+    return map;
+  }, [suppliersQuery.data]);
+  const contractTemplateOptions = useMemo(
+    () =>
+      (contractTemplatesQuery.data?.list ?? []).map((template) => ({
+        label: `${template.name}${template.isDefault ? "（默认）" : ""}`,
+        value: Number(template.id),
+      })),
+    [contractTemplatesQuery.data],
+  );
+  const purchaseGroupSummaries = useMemo(() => {
+    const summaries = new Map<
+      number,
+      {
+        supplierId: number;
+        supplierName?: string | null;
+        supplierCode?: string | null;
+        contactPerson?: string | null;
+        contactPhone?: string | null;
+        contactEmail?: string | null;
+        paymentTermName?: string | null;
+        itemCount: number;
+        totalAmount: number;
+      }
+    >();
+    const prefillItems = purchasePrefillQuery.data?.items ?? [];
+    for (const item of prefillItems) {
+      const supplierId = numberValue(item.purchaseSupplierId);
+      if (!supplierId) continue;
+      const draft = purchaseDrafts[item.shippingDemandItemId];
+      const quantity = numberValue(draft?.quantity);
+      const unitPrice = numberValue(draft?.unitPrice);
+      const summary =
+        summaries.get(supplierId) ??
+        {
+          supplierId,
+          supplierName: item.purchaseSupplierName,
+          supplierCode: item.purchaseSupplierCode,
+          contactPerson: item.purchaseSupplierContactPerson,
+          contactPhone: item.purchaseSupplierContactPhone,
+          contactEmail: item.purchaseSupplierContactEmail,
+          paymentTermName: item.purchaseSupplierPaymentTermName,
+          itemCount: 0,
+          totalAmount: 0,
+        };
+      summary.itemCount += 1;
+      summary.totalAmount += quantity * unitPrice;
+      summaries.set(supplierId, summary);
+    }
+    return [...summaries.values()].sort((a, b) => a.supplierId - b.supplierId);
+  }, [purchaseDrafts, purchasePrefillQuery.data]);
+  const sortedPurchasePrefillItems = useMemo(
+    () =>
+      [...(purchasePrefillQuery.data?.items ?? [])].sort((a, b) => {
+        const supplierCompare =
+          numberValue(a.purchaseSupplierId) - numberValue(b.purchaseSupplierId);
+        return (
+          supplierCompare ||
+          String(a.skuCode ?? "").localeCompare(String(b.skuCode ?? ""))
+        );
+      }),
+    [purchasePrefillQuery.data],
+  );
+
+  const purchaseColumns = useMemo<ColumnsType<PurchaseOrderPrefillItem>>(
+    () => [
+      {
+        title: "SKU",
+        dataIndex: "skuCode",
+        key: "skuCode",
+        width: 140,
+        fixed: "left" as const,
+      },
+      {
+        title: "产品",
+        key: "productName",
+        width: 220,
+        render: (_: unknown, record) =>
+          displayOrDash(record.productNameCn ?? record.productNameEn),
+      },
+      {
+        title: "规格",
+        dataIndex: "skuSpecification",
+        key: "skuSpecification",
+        width: 180,
+        render: displayOrDash,
+      },
+      {
+        title: "需采购",
+        dataIndex: "purchaseRequiredQuantity",
+        key: "purchaseRequiredQuantity",
+        width: 100,
+      },
+      {
+        title: "已下单",
+        dataIndex: "purchaseOrderedQuantity",
+        key: "purchaseOrderedQuantity",
+        width: 100,
+      },
+      {
+        title: "可下单",
+        dataIndex: "availableToOrder",
+        key: "availableToOrder",
+        width: 100,
+      },
+      {
+        title: "采购供应商",
+        key: "purchaseSupplier",
+        width: 240,
+        render: (_: unknown, record) => getSupplierDisplayName(record),
+      },
+      {
+        title: "本次数量",
+        key: "quantity",
+        width: 130,
+        render: (_: unknown, record) => (
+          <InputNumber
+            className="shipping-demand-allocation-control"
+            min={1}
+            max={record.availableToOrder}
+            precision={0}
+            value={purchaseDrafts[record.shippingDemandItemId]?.quantity}
+            onChange={(value) =>
+              updatePurchaseDraft(record.shippingDemandItemId, {
+                quantity: numberValue(value),
+              })
+            }
+          />
+        ),
+      },
+      {
+        title: "采购单价",
+        key: "unitPrice",
+        width: 130,
+        render: (_: unknown, record) => (
+          <InputNumber
+            className="shipping-demand-allocation-control"
+            min={0}
+            precision={2}
+            value={purchaseDrafts[record.shippingDemandItemId]?.unitPrice}
+            onChange={(value) =>
+              updatePurchaseDraft(record.shippingDemandItemId, {
+                unitPrice: numberValue(value),
+              })
+            }
+          />
+        ),
+      },
+      {
+        title: "金额",
+        key: "amount",
+        width: 120,
+        render: (_: unknown, record) => {
+          const draft = purchaseDrafts[record.shippingDemandItemId];
+          return (
+            numberValue(draft?.quantity) * numberValue(draft?.unitPrice)
+          ).toFixed(2);
+        },
+      },
+    ],
+    [purchaseDrafts, updatePurchaseDraft],
   );
 
   const columns = useMemo<ColumnsType<ShippingDemandItem>>(
@@ -1069,6 +1596,29 @@ export default function ShippingDemandDetailPage() {
         render: displayOrDash,
       },
       {
+        title: "采购供应商",
+        key: "purchaseSupplier",
+        width: 260,
+        render: (_: unknown, record) => (
+          <Select<number>
+            className="shipping-demand-allocation-control"
+            showSearch
+            placeholder="选择供应商"
+            optionFilterProp="label"
+            loading={suppliersQuery.isLoading}
+            options={supplierOptions}
+            value={record.purchaseSupplierId ?? undefined}
+            disabled={
+              updateItemSupplierMutation.isPending ||
+              data?.status === ShippingDemandStatus.VOIDED
+            }
+            onChange={(purchaseSupplierId: number | undefined) =>
+              handleItemSupplierChange(record, purchaseSupplierId)
+            }
+          />
+        ),
+      },
+      {
         title: "使用现有库存数量",
         dataIndex: "stockRequiredQuantity",
         key: "stockRequiredQuantity",
@@ -1161,7 +1711,14 @@ export default function ShippingDemandDetailPage() {
           ),
       },
     ],
-    [warehouseMap],
+    [
+      data?.status,
+      handleItemSupplierChange,
+      supplierOptions,
+      suppliersQuery.isLoading,
+      updateItemSupplierMutation.isPending,
+      warehouseMap,
+    ],
   );
 
   if (!Number.isInteger(demandId) || demandId <= 0) {
@@ -1250,6 +1807,19 @@ export default function ShippingDemandDetailPage() {
                       分配库存
                     </Button>
                   ) : null}
+                  {isPurchaseOrderEntryStatus ? (
+                    <Tooltip title={purchaseOrderDisabledTooltip}>
+                      <span>
+                        <Button
+                          type="primary"
+                          disabled={!canGeneratePurchaseOrder}
+                          onClick={openPurchaseDrawer}
+                        >
+                          生成采购单
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  ) : null}
                   {canVoidDemand ? (
                     <Button
                       danger
@@ -1298,16 +1868,11 @@ export default function ShippingDemandDetailPage() {
           <div className="shipping-demand-smart-row">
             <SmartButton
               icon={<FileProtectOutlined />}
-              label={canGeneratePurchaseOrder ? "生成采购单" : "采购订单"}
-              count={0}
-              disabled
-              disabledTooltip={
-                canGeneratePurchaseOrder
-                  ? "采购订单功能将在 Epic 6 启用"
-                  : data?.status === ShippingDemandStatus.PURCHASING
-                    ? "采购订单已生成后进入采购中，补单入口将在 Epic 6 启用"
-                    : "确认分配产生采购缺口后可生成采购单，功能将在 Epic 6 启用"
-              }
+              label="生成采购单"
+              count={purchaseOrderGapItemCount}
+              disabled={!canGeneratePurchaseOrder}
+              disabledTooltip={purchaseOrderDisabledTooltip}
+              onClick={canGeneratePurchaseOrder ? openPurchaseDrawer : undefined}
             />
             <SmartButton
               icon={<ExportOutlined />}
@@ -1803,6 +2368,175 @@ export default function ShippingDemandDetailPage() {
           </SectionCard>
         </div>
       </div>
+      <Drawer
+        title={
+          <div className="shipping-demand-allocation-title">
+            <span>生成采购单</span>
+            <small>
+              {displayOrDash(data?.demandCode)} /{" "}
+              {displayOrDash(data?.sourceDocumentCode)}
+            </small>
+          </div>
+        }
+        open={purchaseDrawerOpen}
+        width={720}
+        destroyOnHidden
+        onClose={() => setPurchaseDrawerOpen(false)}
+        extra={
+          <Space>
+            <Button onClick={() => setPurchaseDrawerOpen(false)}>取消</Button>
+            <Button
+              type="primary"
+              loading={createPurchaseOrdersMutation.isPending}
+              onClick={submitPurchaseOrders}
+            >
+              确认创建采购单
+            </Button>
+          </Space>
+        }
+      >
+        <div className="shipping-demand-allocation-modal">
+          <div className="shipping-demand-allocation-summary">
+            <span>
+              可下单 SKU {purchasePrefillQuery.data?.items.length ?? 0}
+            </span>
+            <span>
+              本次将按供应商分组创建采购订单，创建后发货需求进入采购中
+            </span>
+          </div>
+          <div className="shipping-demand-purchase-source">
+            <div>
+              <span>订单类型</span>
+              <strong>请购型采购订单</strong>
+            </div>
+            <div>
+              <span>来源发货需求</span>
+              <strong>{displayOrDash(data?.demandCode)}</strong>
+            </div>
+            <div>
+              <span>来源销售订单</span>
+              <strong>{displayOrDash(data?.sourceDocumentCode)}</strong>
+            </div>
+            <div>
+              <span>创建后状态</span>
+              <strong>待确认</strong>
+            </div>
+          </div>
+          <div className="shipping-demand-purchase-groups">
+            <div className="shipping-demand-purchase-section-title">
+              采购订单信息
+            </div>
+            {purchaseGroupSummaries.length ? (
+              purchaseGroupSummaries.map((group) => {
+                const supplier = supplierMap.get(group.supplierId);
+                const paymentTermName =
+                  supplier?.paymentTerms?.[0]?.paymentTermName ??
+                  group.paymentTermName;
+                return (
+                  <div
+                    className="shipping-demand-purchase-group-card"
+                    key={group.supplierId}
+                  >
+                    <div className="shipping-demand-purchase-group-head">
+                      <div>
+                        <strong>
+                          {displayOrDash(supplier?.name ?? group.supplierName)}
+                        </strong>
+                        <span>
+                          {displayOrDash(
+                            supplier?.supplierCode ?? group.supplierCode,
+                          )}
+                        </span>
+                      </div>
+                      <span>
+                        {group.itemCount} 行 / {group.totalAmount.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="shipping-demand-purchase-meta-grid">
+                      <div>
+                        <span>联系人</span>
+                        <strong>
+                          {displayOrDash(
+                            supplier?.contactPerson ?? group.contactPerson,
+                          )}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>电话</span>
+                        <strong>
+                          {displayOrDash(
+                            supplier?.contactPhone ?? group.contactPhone,
+                          )}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>邮箱</span>
+                        <strong>
+                          {displayOrDash(
+                            supplier?.contactEmail ?? group.contactEmail,
+                          )}
+                        </strong>
+                      </div>
+                      <div>
+                        <span>账期</span>
+                        <strong>{displayOrDash(paymentTermName)}</strong>
+                      </div>
+                    </div>
+                    <div className="shipping-demand-purchase-form-grid">
+                      <label>
+                        <span>合同条款</span>
+                        <Select<number>
+                          allowClear
+                          placeholder="不选择则使用默认已审批范本"
+                          loading={contractTemplatesQuery.isLoading}
+                          options={contractTemplateOptions}
+                          value={
+                            purchaseGroupDrafts[group.supplierId]?.contractTermId
+                          }
+                          onChange={(contractTermId) =>
+                            updatePurchaseGroupDraft(group.supplierId, {
+                              contractTermId,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        <span>采购备注</span>
+                        <Input.TextArea
+                          rows={2}
+                          maxLength={500}
+                          placeholder="填写本供应商采购订单备注"
+                          value={purchaseGroupDrafts[group.supplierId]?.remark}
+                          onChange={(event) =>
+                            updatePurchaseGroupDraft(group.supplierId, {
+                              remark: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="shipping-demand-purchase-empty">
+                采购明细缺少采购供应商，请回到明细补充后再生成采购单。
+              </div>
+            )}
+          </div>
+          <div className="shipping-demand-purchase-section-title">
+            采购明细
+          </div>
+          <Table
+            rowKey="shippingDemandItemId"
+            pagination={false}
+            columns={purchaseColumns as any}
+            dataSource={sortedPurchasePrefillItems}
+            loading={purchasePrefillQuery.isLoading}
+            scroll={{ x: 1120, y: "calc(100vh - 260px)" }}
+          />
+        </div>
+      </Drawer>
       <Modal
         title={
           <div className="shipping-demand-allocation-title">
@@ -1839,8 +2573,12 @@ export default function ShippingDemandDetailPage() {
             pagination={false}
             columns={allocationColumns as any}
             dataSource={items}
-            loading={batchesQuery.isLoading || warehousesQuery.isLoading}
-            scroll={{ x: 1280, y: "calc(100vh - 360px)" }}
+            loading={
+              batchesQuery.isLoading ||
+              warehousesQuery.isLoading ||
+              suppliersQuery.isLoading
+            }
+            scroll={{ x: 1540, y: "calc(100vh - 360px)" }}
           />
         </div>
       </Modal>

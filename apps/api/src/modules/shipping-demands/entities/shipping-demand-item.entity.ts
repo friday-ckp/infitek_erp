@@ -100,6 +100,64 @@ export class ShippingDemandItem extends BaseEntity {
   @Expose()
   needsPurchase: YesNo | null;
 
+  @Column({ name: 'purchase_supplier_id', type: 'bigint', nullable: true })
+  @Expose()
+  purchaseSupplierId: number | null;
+
+  @Column({
+    name: 'purchase_supplier_name',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  @Expose()
+  purchaseSupplierName: string | null;
+
+  @Column({
+    name: 'purchase_supplier_code',
+    type: 'varchar',
+    length: 20,
+    nullable: true,
+  })
+  @Expose()
+  purchaseSupplierCode: string | null;
+
+  @Column({
+    name: 'purchase_supplier_contact_person',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  @Expose()
+  purchaseSupplierContactPerson: string | null;
+
+  @Column({
+    name: 'purchase_supplier_contact_phone',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
+  })
+  @Expose()
+  purchaseSupplierContactPhone: string | null;
+
+  @Column({
+    name: 'purchase_supplier_contact_email',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  @Expose()
+  purchaseSupplierContactEmail: string | null;
+
+  @Column({
+    name: 'purchase_supplier_payment_term_name',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  @Expose()
+  purchaseSupplierPaymentTermName: string | null;
+
   @Column({ name: 'required_quantity', type: 'int', default: 0 })
   @Expose()
   requiredQuantity: number;

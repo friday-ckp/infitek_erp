@@ -22,6 +22,8 @@ export * from "./enums/product-document-attribution-type.enum";
 export * from "./enums/port-type.enum";
 export * from "./enums/logistics-provider-status.enum";
 export * from "./enums/logistics-order-status.enum";
+export * from "./enums/purchase-order-status.enum";
+export * from "./enums/purchase-order-type.enum";
 export * from "./enums/contract-template-status.enum";
 export * from "./enums/sales-order-status.enum";
 export * from "./enums/sales-order-type.enum";
