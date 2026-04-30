@@ -206,6 +206,10 @@ export interface ConfirmShippingDemandAllocationPayload {
   items: ConfirmShippingDemandAllocationItemPayload[];
 }
 
+export interface UpdateShippingDemandItemSupplierPayload {
+  purchaseSupplierId: number;
+}
+
 export interface UpdateShippingDemandPayload {
   afterSalesProductSummary?: string | null;
   tradeTerm?: TradeTerm | null;
@@ -290,6 +294,18 @@ export const updateShippingDemand = (
 ): Promise<ShippingDemand> =>
   request
     .patch<unknown, ShippingDemand>(`/shipping-demands/${id}`, payload)
+    .catch(normalizeApiError);
+
+export const updateShippingDemandItemSupplier = (
+  id: number,
+  itemId: number,
+  payload: UpdateShippingDemandItemSupplierPayload,
+): Promise<ShippingDemand> =>
+  request
+    .patch<unknown, ShippingDemand>(
+      `/shipping-demands/${id}/items/${itemId}/purchase-supplier`,
+      payload,
+    )
     .catch(normalizeApiError);
 
 export const confirmShippingDemandAllocation = (

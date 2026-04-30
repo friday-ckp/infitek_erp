@@ -28,6 +28,7 @@ import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
 import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
+import { UpdateShippingDemandItemSupplierDto } from './dto/update-shipping-demand-item-supplier.dto';
 import { UpdateShippingDemandDto } from './dto/update-shipping-demand.dto';
 import { ShippingDemandInventoryAllocation } from './entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
@@ -166,6 +167,28 @@ export class ShippingDemandsService {
     return this.withSignedUrls(
       await this.shippingDemandsRepository.update(id, updateData),
     );
+  }
+
+  async updateItemPurchaseSupplier(
+    id: number,
+    itemId: number,
+    dto: UpdateShippingDemandItemSupplierDto,
+    operator?: string,
+  ): Promise<ShippingDemand & Record<string, unknown>> {
+    const demandId = await this.executeWithConfirmAllocationRetry(
+      async (queryRunner) => {
+        await this.updateItemPurchaseSupplierInTransaction(
+          queryRunner,
+          id,
+          itemId,
+          dto.purchaseSupplierId,
+          operator,
+        );
+        return id;
+      },
+    );
+
+    return this.findById(demandId);
   }
 
   async generateFromSalesOrder(
@@ -535,6 +558,70 @@ export class ShippingDemandsService {
       oldStatus,
       nextStatus,
       preparedLines,
+      operator,
+    );
+  }
+
+  private async updateItemPurchaseSupplierInTransaction(
+    queryRunner: QueryRunner,
+    id: number,
+    itemId: number,
+    purchaseSupplierId: number,
+    operator?: string,
+  ): Promise<void> {
+    const demand = await queryRunner.manager
+      .getRepository(ShippingDemand)
+      .createQueryBuilder('demand')
+      .leftJoinAndSelect('demand.items', 'items')
+      .setLock('pessimistic_write')
+      .where('demand.id = :id', { id })
+      .orderBy('items.id', 'ASC')
+      .getOne();
+
+    if (!demand) {
+      throw new NotFoundException('发货需求不存在');
+    }
+    if (demand.status === ShippingDemandStatus.VOIDED) {
+      throw new BadRequestException({
+        code: 'SHIPPING_DEMAND_ITEM_SUPPLIER_UPDATE_NOT_ALLOWED',
+        message: '已作废发货需求不允许编辑采购供应商',
+      });
+    }
+
+    const item = (demand.items ?? []).find(
+      (line) => Number(line.id) === itemId,
+    );
+    if (!item) {
+      throw new BadRequestException({
+        code: 'SHIPPING_DEMAND_ITEM_NOT_FOUND',
+        message: '发货需求明细不存在',
+      });
+    }
+
+    const oldSupplierName = item.purchaseSupplierName;
+    const supplierSnapshot = await this.getPurchaseSupplierSnapshot(
+      queryRunner,
+      purchaseSupplierId,
+      new Map(),
+      item,
+    );
+    item.purchaseSupplierId = supplierSnapshot.supplierId;
+    item.purchaseSupplierName = supplierSnapshot.supplierName;
+    item.purchaseSupplierCode = supplierSnapshot.supplierCode;
+    item.purchaseSupplierContactPerson = supplierSnapshot.contactPerson;
+    item.purchaseSupplierContactPhone = supplierSnapshot.contactPhone;
+    item.purchaseSupplierContactEmail = supplierSnapshot.contactEmail;
+    item.purchaseSupplierPaymentTermName = supplierSnapshot.paymentTermName;
+    if (operator !== undefined) {
+      item.updatedBy = operator;
+    }
+    await queryRunner.manager.getRepository(ShippingDemandItem).save(item);
+    await this.writeShippingDemandItemSupplierOperationLog(
+      queryRunner,
+      demand,
+      item,
+      oldSupplierName,
+      supplierSnapshot.supplierName,
       operator,
     );
   }
@@ -918,7 +1005,7 @@ export class ShippingDemandsService {
     if (!supplierId) {
       throw new BadRequestException({
         code: 'PURCHASE_SUPPLIER_REQUIRED',
-        message: `${item.skuCode} 涉及采购时必须选择拟采购供应商`,
+        message: `${item.skuCode} 涉及采购时必须选择采购供应商`,
       });
     }
 
@@ -933,7 +1020,7 @@ export class ShippingDemandsService {
     if (!supplier) {
       throw new BadRequestException({
         code: 'PURCHASE_SUPPLIER_NOT_FOUND',
-        message: `${item.skuCode} 选择的拟采购供应商不存在`,
+        message: `${item.skuCode} 选择的采购供应商不存在`,
       });
     }
 
@@ -1235,6 +1322,40 @@ export class ShippingDemandsService {
     );
   }
 
+  private async writeShippingDemandItemSupplierOperationLog(
+    queryRunner: QueryRunner,
+    demand: ShippingDemand,
+    item: ShippingDemandItem,
+    oldSupplierName: string | null,
+    newSupplierName: string,
+    operator?: string,
+  ): Promise<void> {
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    await operationLogRepo.save(
+      operationLogRepo.create({
+        operator: operator ?? 'system',
+        operatorId: null,
+        action: OperationLogAction.UPDATE,
+        resourceType: 'shipping-demands',
+        resourceId: String(demand.id),
+        resourcePath: `/api/shipping-demands/${demand.id}/items/${item.id}/purchase-supplier`,
+        requestSummary: {
+          sourceAction: 'update_shipping_demand_item_purchase_supplier',
+          shippingDemandItemId: Number(item.id),
+          skuCode: item.skuCode,
+        },
+        changeSummary: [
+          {
+            field: 'purchaseSupplier',
+            fieldLabel: '采购供应商',
+            oldValue: oldSupplierName,
+            newValue: newSupplierName,
+          },
+        ],
+      }),
+    );
+  }
+
   private async writeShippingDemandVoidOperationLog(
     queryRunner: QueryRunner,
     demand: ShippingDemand,
@@ -1348,7 +1469,7 @@ export class ShippingDemandsService {
           ? `，仓库 ${line.warehouseId}`
           : '';
         const supplierText = line.purchaseSupplier
-          ? `，拟采购供应商 ${line.purchaseSupplier.supplierName}`
+          ? `，采购供应商 ${line.purchaseSupplier.supplierName}`
           : '';
 
         return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}${supplierText}`;

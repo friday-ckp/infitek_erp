@@ -290,6 +290,7 @@ describe('ShippingDemandsService', () => {
               ...((state.savedAllocationItems as unknown[]) ?? []),
               { ...data },
             ];
+            state.savedDemandItem = { ...data };
           }
           return data;
         }),
@@ -589,6 +590,95 @@ describe('ShippingDemandsService', () => {
       service.update(500, { consigneeCompany: 'New consignee' }, 'admin'),
     ).rejects.toThrow('已作废发货需求不允许编辑');
     expect(shippingDemandsRepository.update).not.toHaveBeenCalled();
+  });
+
+  it('updates shipping demand item purchase supplier snapshot', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+        items: [
+          {
+            ...(makeDemandForAllocation().items?.[0] as ShippingDemandItem),
+            purchaseSupplierId: null,
+            purchaseSupplierName: null,
+          } as ShippingDemandItem,
+        ],
+      } as ShippingDemand),
+      supplier,
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+    shippingDemandsRepository.findById.mockResolvedValue({
+      id: 500,
+      demandCode: 'SD2026042800001',
+      status: ShippingDemandStatus.PENDING_PURCHASE_ORDER,
+      items: [
+        {
+          id: 700,
+          purchaseSupplierId: 88,
+          purchaseSupplierName: '信达供应商',
+        },
+      ],
+    });
+
+    const result = await service.updateItemPurchaseSupplier(
+      500,
+      700,
+      { purchaseSupplierId: 88 },
+      'admin',
+    );
+
+    expect(result.items?.[0].purchaseSupplierName).toBe('信达供应商');
+    expect(state.savedDemandItem).toEqual(
+      expect.objectContaining({
+        id: 700,
+        purchaseSupplierId: 88,
+        purchaseSupplierName: '信达供应商',
+        purchaseSupplierCode: 'SUP0088',
+        purchaseSupplierContactPerson: 'Lily',
+        purchaseSupplierContactPhone: '13800000000',
+        purchaseSupplierContactEmail: 'lily@example.com',
+        purchaseSupplierPaymentTermName: '月结30天',
+        updatedBy: 'admin',
+      }),
+    );
+    expect(state.savedOperationLog).toEqual(
+      expect.objectContaining({
+        resourceType: 'shipping-demands',
+        resourceId: '500',
+        changeSummary: [
+          {
+            field: 'purchaseSupplier',
+            fieldLabel: '采购供应商',
+            oldValue: null,
+            newValue: '信达供应商',
+          },
+        ],
+      }),
+    );
+  });
+
+  it('rejects purchase supplier edit for voided shipping demand', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation({
+        status: ShippingDemandStatus.VOIDED,
+      }),
+      supplier,
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.updateItemPurchaseSupplier(
+        500,
+        700,
+        { purchaseSupplierId: 88 },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedDemandItem).toBeUndefined();
   });
 
   it('generates shipping demand from approved sales order', async () => {

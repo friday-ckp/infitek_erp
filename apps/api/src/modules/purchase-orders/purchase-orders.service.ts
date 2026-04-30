@@ -537,13 +537,13 @@ export class PurchaseOrdersService {
           if (!item.purchaseSupplierId) {
             throw new BadRequestException({
               code: 'PURCHASE_ORDER_ITEM_SUPPLIER_REQUIRED',
-              message: `${item.skuCode} 缺少拟采购供应商，请先回到发货需求明细完成分配`,
+              message: `${item.skuCode} 缺少采购供应商，请先回到发货需求明细完成分配`,
             });
           }
           if (Number(item.purchaseSupplierId) !== Number(group.supplierId)) {
             throw new BadRequestException({
               code: 'PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH',
-              message: `${item.skuCode} 拟采购供应商与采购单分组供应商不一致`,
+              message: `${item.skuCode} 采购供应商与采购单分组供应商不一致`,
             });
           }
           const purchaseOrderedQuantity = Math.max(

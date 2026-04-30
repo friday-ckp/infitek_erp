@@ -49,6 +49,7 @@ import { ActivityTimeline } from "../../components/ActivityTimeline";
 import {
   confirmShippingDemandAllocation,
   getShippingDemandById,
+  updateShippingDemandItemSupplier,
   voidShippingDemand,
   type ConfirmShippingDemandAllocationPayload,
   type ShippingDemandItem,
@@ -573,7 +574,7 @@ export default function ShippingDemandDetailPage() {
   const purchaseOrderDisabledTooltip = canGeneratePurchaseOrder
     ? undefined
     : purchaseSupplierMissingItemCount > 0
-      ? `${purchaseSupplierMissingItemCount} 行采购明细缺少拟采购供应商`
+      ? `${purchaseSupplierMissingItemCount} 行采购明细缺少采购供应商`
       : data?.status === ShippingDemandStatus.PURCHASING
         ? "当前没有可补单的采购缺口"
         : "确认分配产生采购缺口后可生成采购单";
@@ -641,7 +642,7 @@ export default function ShippingDemandDetailPage() {
   const suppliersQuery = useQuery({
     queryKey: ["purchase-order-suppliers"],
     queryFn: () => getSuppliers({ page: 1, pageSize: 500 }),
-    enabled: purchaseDrawerOpen || allocationModalOpen,
+    enabled: Boolean(data && data.status !== ShippingDemandStatus.VOIDED),
   });
   const contractTemplatesQuery = useQuery({
     queryKey: ["purchase-order-contract-templates", purchaseDrawerOpen],
@@ -807,6 +808,37 @@ export default function ShippingDemandDetailPage() {
     },
   });
 
+  const updateItemSupplierMutation = useMutation({
+    mutationFn: ({
+      itemId,
+      purchaseSupplierId,
+    }: {
+      itemId: number;
+      purchaseSupplierId: number;
+    }) =>
+      updateShippingDemandItemSupplier(demandId, itemId, {
+        purchaseSupplierId,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["shipping-demand-detail", demandId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["operation-logs", "shipping-demands", demandId],
+      });
+      message.success("采购供应商已更新");
+    },
+    onError: (error: unknown) => {
+      const err = error as {
+        message?: string;
+        response?: { data?: { message?: string } };
+      };
+      message.error(
+        err.response?.data?.message ?? err.message ?? "更新采购供应商失败",
+      );
+    },
+  });
+
   const handleVoidDemand = () => {
     modal.confirm({
       title: "确认作废此发货需求？",
@@ -829,9 +861,20 @@ export default function ShippingDemandDetailPage() {
     }));
   };
 
+  const handleItemSupplierChange = useCallback((
+    item: ShippingDemandItem,
+    purchaseSupplierId?: number,
+  ) => {
+    if (!purchaseSupplierId) return;
+    updateItemSupplierMutation.mutate({
+      itemId: item.id,
+      purchaseSupplierId,
+    });
+  }, [updateItemSupplierMutation]);
+
   const openPurchaseDrawer = () => {
     if (purchaseSupplierMissingItemCount > 0) {
-      message.error("存在采购明细缺少拟采购供应商，请先补充分配结果");
+      message.error("存在采购明细缺少采购供应商，请先补充分配结果");
       return;
     }
     setPurchaseRequestKey(`shipping-demand:${demandId}:purchase:${Date.now()}`);
@@ -880,7 +923,7 @@ export default function ShippingDemandDetailPage() {
         const draft = purchaseDrafts[item.shippingDemandItemId];
         const supplierId = numberValue(item.purchaseSupplierId);
         if (!supplierId) {
-          message.error(`${item.skuCode} 缺少拟采购供应商，请先回到分配库存补充`);
+          message.error(`${item.skuCode} 缺少采购供应商，请先回到分配库存补充`);
           return null;
         }
         const quantity = numberValue(draft?.quantity);
@@ -1034,7 +1077,7 @@ export default function ShippingDemandDetailPage() {
         }
         const purchaseQuantity = required - stockQuantity;
         if (purchaseQuantity > 0 && !draft.purchaseSupplierId) {
-          message.error(`${item.skuCode} 涉及采购时必须选择拟采购供应商`);
+          message.error(`${item.skuCode} 涉及采购时必须选择采购供应商`);
           return null;
         }
         payloadItems.push({
@@ -1182,7 +1225,7 @@ export default function ShippingDemandDetailPage() {
           ),
       },
       {
-        title: "拟采购供应商",
+        title: "采购供应商",
         key: "purchaseSupplierId",
         width: 260,
         render: (_: unknown, record) => {
@@ -1196,7 +1239,6 @@ export default function ShippingDemandDetailPage() {
             <Select<number>
               className="shipping-demand-allocation-control"
               showSearch
-              allowClear
               placeholder={purchaseQuantity > 0 ? "选择供应商" : "无需采购"}
               optionFilterProp="label"
               loading={suppliersQuery.isLoading}
@@ -1365,7 +1407,7 @@ export default function ShippingDemandDetailPage() {
         width: 100,
       },
       {
-        title: "拟采购供应商",
+        title: "采购供应商",
         key: "purchaseSupplier",
         width: 240,
         render: (_: unknown, record) => getSupplierDisplayName(record),
@@ -1554,10 +1596,27 @@ export default function ShippingDemandDetailPage() {
         render: displayOrDash,
       },
       {
-        title: "拟采购供应商",
+        title: "采购供应商",
         key: "purchaseSupplier",
-        width: 220,
-        render: (_: unknown, record) => getSupplierDisplayName(record),
+        width: 260,
+        render: (_: unknown, record) => (
+          <Select<number>
+            className="shipping-demand-allocation-control"
+            showSearch
+            placeholder="选择供应商"
+            optionFilterProp="label"
+            loading={suppliersQuery.isLoading}
+            options={supplierOptions}
+            value={record.purchaseSupplierId ?? undefined}
+            disabled={
+              updateItemSupplierMutation.isPending ||
+              data?.status === ShippingDemandStatus.VOIDED
+            }
+            onChange={(purchaseSupplierId: number | undefined) =>
+              handleItemSupplierChange(record, purchaseSupplierId)
+            }
+          />
+        ),
       },
       {
         title: "使用现有库存数量",
@@ -1652,7 +1711,14 @@ export default function ShippingDemandDetailPage() {
           ),
       },
     ],
-    [warehouseMap],
+    [
+      data?.status,
+      handleItemSupplierChange,
+      supplierOptions,
+      suppliersQuery.isLoading,
+      updateItemSupplierMutation.isPending,
+      warehouseMap,
+    ],
   );
 
   if (!Number.isInteger(demandId) || demandId <= 0) {
@@ -2454,7 +2520,7 @@ export default function ShippingDemandDetailPage() {
               })
             ) : (
               <div className="shipping-demand-purchase-empty">
-                采购明细缺少拟采购供应商，请回到分配库存补充后再生成采购单。
+                采购明细缺少采购供应商，请回到明细补充后再生成采购单。
               </div>
             )}
           </div>
