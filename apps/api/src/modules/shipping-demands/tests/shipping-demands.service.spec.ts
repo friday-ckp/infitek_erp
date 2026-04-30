@@ -15,6 +15,7 @@ import {
   OperationLog,
   OperationLogAction,
 } from '../../operation-logs/entities/operation-log.entity';
+import { Supplier } from '../../master-data/suppliers/entities/supplier.entity';
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../../sales-orders/entities/sales-order-item.entity';
 import { ShippingDemandInventoryAllocation } from '../entities/shipping-demand-inventory-allocation.entity';
@@ -215,6 +216,16 @@ describe('ShippingDemandsService', () => {
     ...overrides,
   });
 
+  const supplier = {
+    id: 88,
+    name: '信达供应商',
+    supplierCode: 'SUP0088',
+    contactPerson: 'Lily',
+    contactPhone: '13800000000',
+    contactEmail: 'lily@example.com',
+    paymentTerms: [{ paymentTermName: '月结30天' }],
+  };
+
   const makeQueryBuilder = (result: unknown) => {
     const qb = {
       leftJoinAndSelect: jest.fn(() => qb),
@@ -309,6 +320,16 @@ describe('ShippingDemandsService', () => {
         save: jest.fn().mockImplementation(async (data) => {
           state.savedInventoryTransactions = data;
           return data;
+        }),
+      };
+    }
+    if (entity === Supplier) {
+      return {
+        findOne: jest.fn().mockImplementation(async ({ where }) => {
+          const supplierId = Number(where?.id);
+          return (state.suppliersById as Record<number, unknown>)?.[
+            supplierId
+          ] ?? state.supplier;
         }),
       };
     }
@@ -772,6 +793,7 @@ describe('ShippingDemandsService', () => {
   it('confirms allocation and keeps demand pending purchase order when purchase quantity remains', async () => {
     const state: Record<string, unknown> = {
       demand: makeDemandForAllocation(),
+      supplier,
     };
     const queryRunner = makeQueryRunner(state);
     shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
@@ -800,6 +822,7 @@ describe('ShippingDemandsService', () => {
             fulfillmentType: FulfillmentType.PARTIAL_PURCHASE,
             stockQuantity: 1,
             warehouseId: 22,
+            purchaseSupplierId: 88,
           },
         ],
       },
@@ -812,6 +835,13 @@ describe('ShippingDemandsService', () => {
         stockRequiredQuantity: 1,
         purchaseRequiredQuantity: 1,
         lockedRemainingQuantity: 1,
+        purchaseSupplierId: 88,
+        purchaseSupplierName: '信达供应商',
+        purchaseSupplierCode: 'SUP0088',
+        purchaseSupplierContactPerson: 'Lily',
+        purchaseSupplierContactPhone: '13800000000',
+        purchaseSupplierContactEmail: 'lily@example.com',
+        purchaseSupplierPaymentTermName: '月结30天',
       }),
     ]);
     expect(state.savedDemand).toEqual(
@@ -820,6 +850,33 @@ describe('ShippingDemandsService', () => {
       }),
     );
     expect(state.salesOrderUpdate).toBeUndefined();
+  });
+
+  it('rejects allocation purchase line without supplier', async () => {
+    const state: Record<string, unknown> = {
+      demand: makeDemandForAllocation(),
+    };
+    const queryRunner = makeQueryRunner(state);
+    shippingDemandsRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.confirmAllocation(
+        500,
+        {
+          items: [
+            {
+              itemId: 700,
+              fulfillmentType: FulfillmentType.FULL_PURCHASE,
+              stockQuantity: 0,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedAllocationItems).toBeUndefined();
   });
 
   it.each([

@@ -63,6 +63,13 @@ export interface PurchaseOrderPrefillItem {
   purchaseOrderedQuantity: number;
   availableToOrder: number;
   quantity: number;
+  purchaseSupplierId?: number | null;
+  purchaseSupplierName?: string | null;
+  purchaseSupplierCode?: string | null;
+  purchaseSupplierContactPerson?: string | null;
+  purchaseSupplierContactPhone?: string | null;
+  purchaseSupplierContactEmail?: string | null;
+  purchaseSupplierPaymentTermName?: string | null;
 }
 
 export interface PurchaseOrderCreatePrefill {

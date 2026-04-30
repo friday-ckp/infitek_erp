@@ -458,6 +458,14 @@ export class PurchaseOrdersService {
           purchaseOrderedQuantity,
           availableToOrder,
           quantity: availableToOrder,
+          purchaseSupplierId: item.purchaseSupplierId,
+          purchaseSupplierName: item.purchaseSupplierName,
+          purchaseSupplierCode: item.purchaseSupplierCode,
+          purchaseSupplierContactPerson: item.purchaseSupplierContactPerson,
+          purchaseSupplierContactPhone: item.purchaseSupplierContactPhone,
+          purchaseSupplierContactEmail: item.purchaseSupplierContactEmail,
+          purchaseSupplierPaymentTermName:
+            item.purchaseSupplierPaymentTermName,
         };
       })
       .filter(
@@ -524,6 +532,18 @@ export class PurchaseOrdersService {
             throw new BadRequestException({
               code: 'PURCHASE_ORDER_ITEM_FULFILLMENT_INVALID',
               message: `${item.skuCode} 不是采购履行类型，不能生成采购订单`,
+            });
+          }
+          if (!item.purchaseSupplierId) {
+            throw new BadRequestException({
+              code: 'PURCHASE_ORDER_ITEM_SUPPLIER_REQUIRED',
+              message: `${item.skuCode} 缺少拟采购供应商，请先回到发货需求明细完成分配`,
+            });
+          }
+          if (Number(item.purchaseSupplierId) !== Number(group.supplierId)) {
+            throw new BadRequestException({
+              code: 'PURCHASE_ORDER_ITEM_SUPPLIER_MISMATCH',
+              message: `${item.skuCode} 拟采购供应商与采购单分组供应商不一致`,
             });
           }
           const purchaseOrderedQuantity = Math.max(

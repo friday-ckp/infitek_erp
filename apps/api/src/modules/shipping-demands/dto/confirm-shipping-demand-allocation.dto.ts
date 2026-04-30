@@ -28,6 +28,12 @@ export class ConfirmShippingDemandAllocationItemDto {
   @Min(1)
   @IsOptional()
   warehouseId?: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  purchaseSupplierId?: number;
 }
 
 export class ConfirmShippingDemandAllocationDto {

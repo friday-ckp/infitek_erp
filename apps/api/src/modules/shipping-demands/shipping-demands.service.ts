@@ -23,6 +23,7 @@ import {
   OperationLog,
   OperationLogAction,
 } from '../operation-logs/entities/operation-log.entity';
+import { Supplier } from '../master-data/suppliers/entities/supplier.entity';
 import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
 import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
 import { ConfirmShippingDemandAllocationDto } from './dto/confirm-shipping-demand-allocation.dto';
@@ -95,6 +96,17 @@ interface PreparedAllocationLine {
   stockQuantity: number;
   purchaseQuantity: number;
   warehouseId: number | null;
+  purchaseSupplier: PurchaseSupplierSnapshot | null;
+}
+
+interface PurchaseSupplierSnapshot {
+  supplierId: number;
+  supplierName: string;
+  supplierCode: string;
+  contactPerson: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  paymentTermName: string | null;
 }
 
 interface ActiveAllocationGroup {
@@ -400,7 +412,11 @@ export class ShippingDemandsService {
     operator?: string,
   ): Promise<void> {
     const demand = await this.findShippingDemandForAllocation(queryRunner, id);
-    const preparedLines = this.prepareAllocationLines(demand, dto);
+    const preparedLines = await this.prepareAllocationLines(
+      queryRunner,
+      demand,
+      dto,
+    );
     const oldStatus = demand.status;
     const hasPurchaseQuantity = preparedLines.some(
       (line) => line.purchaseQuantity > 0,
@@ -421,6 +437,19 @@ export class ShippingDemandsService {
       line.item.stockRequiredQuantity = line.stockQuantity;
       line.item.purchaseRequiredQuantity = line.purchaseQuantity;
       line.item.lockedRemainingQuantity = line.stockQuantity;
+      line.item.purchaseSupplierId = line.purchaseSupplier?.supplierId ?? null;
+      line.item.purchaseSupplierName =
+        line.purchaseSupplier?.supplierName ?? null;
+      line.item.purchaseSupplierCode =
+        line.purchaseSupplier?.supplierCode ?? null;
+      line.item.purchaseSupplierContactPerson =
+        line.purchaseSupplier?.contactPerson ?? null;
+      line.item.purchaseSupplierContactPhone =
+        line.purchaseSupplier?.contactPhone ?? null;
+      line.item.purchaseSupplierContactEmail =
+        line.purchaseSupplier?.contactEmail ?? null;
+      line.item.purchaseSupplierPaymentTermName =
+        line.purchaseSupplier?.paymentTermName ?? null;
       if (operator !== undefined) {
         line.item.updatedBy = operator;
       }
@@ -795,10 +824,11 @@ export class ShippingDemandsService {
     return value;
   }
 
-  private prepareAllocationLines(
+  private async prepareAllocationLines(
+    queryRunner: QueryRunner,
     demand: ShippingDemand,
     dto: ConfirmShippingDemandAllocationDto,
-  ): PreparedAllocationLine[] {
+  ): Promise<PreparedAllocationLine[]> {
     const items = demand.items ?? [];
     const dtoByItemId = new Map<
       number,
@@ -820,49 +850,104 @@ export class ShippingDemandsService {
       });
     }
 
-    return items.map((item) => {
-      const input = dtoByItemId.get(Number(item.id));
-      if (!input) {
-        throw new BadRequestException({
-          code: 'ALLOCATION_ITEM_MISSING',
-          message: `${item.skuCode} 未设置履行类型`,
-        });
-      }
-      const requiredQuantity = Number(item.requiredQuantity ?? 0);
-      if (!Number.isInteger(requiredQuantity) || requiredQuantity <= 0) {
-        throw new BadRequestException({
-          code: 'INVALID_REQUIRED_QUANTITY',
-          message: `${item.skuCode} 应发数量必须为正整数`,
-        });
-      }
-      const stockQuantity = Number(input.stockQuantity ?? 0);
-      if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
-        throw new BadRequestException({
-          code: 'INVALID_STOCK_QUANTITY',
-          message: `${item.skuCode} 使用库存数量必须为非负整数`,
-        });
-      }
-      if (stockQuantity > requiredQuantity) {
-        throw new BadRequestException({
-          code: 'STOCK_QUANTITY_EXCEEDS_REQUIRED',
-          message: `${item.skuCode} 使用库存数量不能超过应发数量`,
-        });
-      }
-      const purchaseQuantity = requiredQuantity - stockQuantity;
-      this.assertFulfillmentQuantity(
-        item,
-        input.fulfillmentType,
-        stockQuantity,
-        purchaseQuantity,
-      );
-      return {
-        item,
-        fulfillmentType: input.fulfillmentType,
-        stockQuantity,
-        purchaseQuantity,
-        warehouseId: stockQuantity > 0 ? Number(input.warehouseId) : null,
-      };
+    const supplierSnapshots = new Map<number, PurchaseSupplierSnapshot>();
+
+    return Promise.all(
+      items.map(async (item) => {
+        const input = dtoByItemId.get(Number(item.id));
+        if (!input) {
+          throw new BadRequestException({
+            code: 'ALLOCATION_ITEM_MISSING',
+            message: `${item.skuCode} 未设置履行类型`,
+          });
+        }
+        const requiredQuantity = Number(item.requiredQuantity ?? 0);
+        if (!Number.isInteger(requiredQuantity) || requiredQuantity <= 0) {
+          throw new BadRequestException({
+            code: 'INVALID_REQUIRED_QUANTITY',
+            message: `${item.skuCode} 应发数量必须为正整数`,
+          });
+        }
+        const stockQuantity = Number(input.stockQuantity ?? 0);
+        if (!Number.isInteger(stockQuantity) || stockQuantity < 0) {
+          throw new BadRequestException({
+            code: 'INVALID_STOCK_QUANTITY',
+            message: `${item.skuCode} 使用库存数量必须为非负整数`,
+          });
+        }
+        if (stockQuantity > requiredQuantity) {
+          throw new BadRequestException({
+            code: 'STOCK_QUANTITY_EXCEEDS_REQUIRED',
+            message: `${item.skuCode} 使用库存数量不能超过应发数量`,
+          });
+        }
+        const purchaseQuantity = requiredQuantity - stockQuantity;
+        this.assertFulfillmentQuantity(
+          item,
+          input.fulfillmentType,
+          stockQuantity,
+          purchaseQuantity,
+        );
+        const purchaseSupplier =
+          purchaseQuantity > 0
+            ? await this.getPurchaseSupplierSnapshot(
+                queryRunner,
+                input.purchaseSupplierId,
+                supplierSnapshots,
+                item,
+              )
+            : null;
+        return {
+          item,
+          fulfillmentType: input.fulfillmentType,
+          stockQuantity,
+          purchaseQuantity,
+          warehouseId: stockQuantity > 0 ? Number(input.warehouseId) : null,
+          purchaseSupplier,
+        };
+      }),
+    );
+  }
+
+  private async getPurchaseSupplierSnapshot(
+    queryRunner: QueryRunner,
+    supplierId: number | undefined,
+    cache: Map<number, PurchaseSupplierSnapshot>,
+    item: ShippingDemandItem,
+  ): Promise<PurchaseSupplierSnapshot> {
+    if (!supplierId) {
+      throw new BadRequestException({
+        code: 'PURCHASE_SUPPLIER_REQUIRED',
+        message: `${item.skuCode} 涉及采购时必须选择拟采购供应商`,
+      });
+    }
+
+    const cached = cache.get(supplierId);
+    if (cached) return cached;
+
+    const supplier = await queryRunner.manager.getRepository(Supplier).findOne({
+      where: { id: supplierId },
+      relations: { paymentTerms: true },
+      order: { paymentTerms: { createdAt: 'ASC' } },
     });
+    if (!supplier) {
+      throw new BadRequestException({
+        code: 'PURCHASE_SUPPLIER_NOT_FOUND',
+        message: `${item.skuCode} 选择的拟采购供应商不存在`,
+      });
+    }
+
+    const snapshot = {
+      supplierId: Number(supplier.id),
+      supplierName: supplier.name,
+      supplierCode: supplier.supplierCode,
+      contactPerson: supplier.contactPerson,
+      contactPhone: supplier.contactPhone,
+      contactEmail: supplier.contactEmail,
+      paymentTermName: supplier.paymentTerms?.[0]?.paymentTermName ?? null,
+    };
+    cache.set(supplierId, snapshot);
+    return snapshot;
   }
 
   private assertFulfillmentQuantity(
@@ -1262,8 +1347,11 @@ export class ShippingDemandsService {
         const warehouseText = line.warehouseId
           ? `，仓库 ${line.warehouseId}`
           : '';
+        const supplierText = line.purchaseSupplier
+          ? `，拟采购供应商 ${line.purchaseSupplier.supplierName}`
+          : '';
 
-        return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}`;
+        return `${index + 1}. ${line.item.skuCode}${productText}：${FULFILLMENT_TYPE_LABELS[line.fulfillmentType] ?? line.fulfillmentType}，应发 ${line.item.requiredQuantity}，锁定库存 ${line.stockQuantity}，需采购 ${line.purchaseQuantity}${warehouseText}${supplierText}`;
       })
       .join('\n');
   }

@@ -47,6 +47,13 @@ describe('PurchaseOrdersService', () => {
         fulfillmentType: FulfillmentType.FULL_PURCHASE,
         purchaseRequiredQuantity: 5,
         purchaseOrderedQuantity: 1,
+        purchaseSupplierId: 88,
+        purchaseSupplierName: '信达供应商',
+        purchaseSupplierCode: 'SUP0088',
+        purchaseSupplierContactPerson: 'Lily',
+        purchaseSupplierContactPhone: '13800000000',
+        purchaseSupplierContactEmail: 'lily@example.com',
+        purchaseSupplierPaymentTermName: '月结30天',
       },
       {
         id: 701,
@@ -70,6 +77,7 @@ describe('PurchaseOrdersService', () => {
   const supplier = {
     id: 88,
     name: '信达供应商',
+    supplierCode: 'SUP0088',
     contactPerson: 'Lily',
     contactPhone: '13800000000',
     contactEmail: 'lily@example.com',
@@ -265,6 +273,9 @@ describe('PurchaseOrdersService', () => {
         purchaseOrderedQuantity: 1,
         availableToOrder: 4,
         quantity: 4,
+        purchaseSupplierId: 88,
+        purchaseSupplierName: '信达供应商',
+        purchaseSupplierCode: 'SUP0088',
       }),
     ]);
     expect(queryRunner.release).toHaveBeenCalled();
@@ -346,6 +357,9 @@ describe('PurchaseOrdersService', () => {
             skuSpecification: '1ml',
             purchaseRequiredQuantity: 2,
             purchaseOrderedQuantity: 0,
+            purchaseSupplierId: 89,
+            purchaseSupplierName: '远达供应商',
+            purchaseSupplierCode: 'SUP0089',
           },
         ] as any,
       }),
@@ -355,6 +369,7 @@ describe('PurchaseOrdersService', () => {
           ...supplier,
           id: 89,
           name: '远达供应商',
+          supplierCode: 'SUP0089',
           contactPerson: 'Chen',
         },
       },
@@ -404,12 +419,12 @@ describe('PurchaseOrdersService', () => {
     expect(state.savedOrders).toEqual([
       expect.objectContaining({
         supplierId: 88,
-        poCode: 'PO2026042900001',
+        poCode: expect.stringMatching(/^PO\d{8}00001$/),
         sourceActionKey: 'req-grouped:supplier:88',
       }),
       expect.objectContaining({
         supplierId: 89,
-        poCode: 'PO2026042900002',
+        poCode: expect.stringMatching(/^PO\d{8}00002$/),
         sourceActionKey: 'req-grouped:supplier:89',
       }),
     ]);
@@ -514,6 +529,88 @@ describe('PurchaseOrdersService', () => {
               {
                 shippingDemandItemId: 700,
                 quantity: 5,
+                unitPrice: 12.5,
+              },
+            ],
+          },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedOrders).toBeUndefined();
+  });
+
+  it('rejects requisition item when group supplier differs from demand line supplier', async () => {
+    const state: Record<string, any> = {
+      demand: makeDemand(),
+      suppliersById: {
+        89: {
+          ...supplier,
+          id: 89,
+          name: '远达供应商',
+          supplierCode: 'SUP0089',
+        },
+      },
+      contract,
+    };
+    const queryRunner = makeQueryRunner(state);
+    purchaseOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.createFromShippingDemand({
+        shippingDemandId: 500,
+        requestKey: 'req-mismatch',
+        groups: [
+          {
+            supplierId: 89,
+            items: [
+              {
+                shippingDemandItemId: 700,
+                quantity: 4,
+                unitPrice: 12.5,
+              },
+            ],
+          },
+        ],
+      }),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedOrders).toBeUndefined();
+  });
+
+  it('rejects requisition item when demand line has no supplier', async () => {
+    const demand = makeDemand();
+    const purchaseItem = (demand.items as any[])[0];
+    const state: Record<string, any> = {
+      demand: makeDemand({
+        items: [
+          {
+            ...purchaseItem,
+            purchaseSupplierId: null,
+            purchaseSupplierName: null,
+            purchaseSupplierCode: null,
+          },
+        ] as any,
+      }),
+      supplier,
+      contract,
+    };
+    const queryRunner = makeQueryRunner(state);
+    purchaseOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.createFromShippingDemand({
+        shippingDemandId: 500,
+        requestKey: 'req-no-supplier',
+        groups: [
+          {
+            supplierId: 88,
+            items: [
+              {
+                shippingDemandItemId: 700,
+                quantity: 4,
                 unitPrice: 12.5,
               },
             ],
