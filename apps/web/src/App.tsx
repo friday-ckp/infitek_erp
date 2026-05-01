@@ -65,6 +65,7 @@ import LogisticsOrderFormPage from "./pages/logistics-orders/form";
 import PurchaseOrdersListPage from "./pages/purchase-orders/index";
 import PurchaseOrderDetailPage from "./pages/purchase-orders/detail";
 import PurchaseOrderFormPage from "./pages/purchase-orders/form";
+import ReceiptOrderFormPage from "./pages/receipt-orders/form";
 import InventoryPage from "./pages/inventory/index";
 import InventoryTransactionsPage from "./pages/inventory/transactions";
 import HomePage from "./pages/home/index";
@@ -473,6 +474,14 @@ function App() {
                   <Route
                     path="/purchase-orders/create"
                     element={<PurchaseOrderFormPage />}
+                  />
+                  <Route
+                    path="/receipt-orders/new"
+                    element={<ReceiptOrderFormPage />}
+                  />
+                  <Route
+                    path="/receipt-orders/create"
+                    element={<ReceiptOrderFormPage />}
                   />
                   <Route
                     path="/inventory/transactions"

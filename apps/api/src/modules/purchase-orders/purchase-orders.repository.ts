@@ -27,8 +27,11 @@ export class PurchaseOrdersRepository {
   findById(id: number): Promise<PurchaseOrder | null> {
     return this.purchaseOrderRepo.findOne({
       where: { id },
-      relations: { items: true },
-      order: { items: { id: 'ASC' } },
+      relations: { items: true, receiptOrders: true },
+      order: {
+        items: { id: 'ASC' },
+        receiptOrders: { createdAt: 'DESC', id: 'DESC' },
+      },
     });
   }
 

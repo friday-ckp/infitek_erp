@@ -330,6 +330,9 @@ export default function PurchaseOrderDetailPage() {
   const currentStatus = statusInfo(data);
   const isActionLoading =
     confirmInternalMutation.isPending || confirmSupplierMutation.isPending;
+  const canCreateReceiptOrder =
+    data?.status === PurchaseOrderStatus.PENDING_RECEIPT ||
+    data?.status === PurchaseOrderStatus.PARTIALLY_RECEIVED;
 
   return (
     <div className="master-page">
@@ -388,6 +391,18 @@ export default function PurchaseOrderDetailPage() {
                         供应商确认
                       </Button>
                     </Popconfirm>
+                  ) : null}
+                  {canCreateReceiptOrder ? (
+                    <Button
+                      type="primary"
+                      onClick={() =>
+                        navigate(
+                          `/receipt-orders/new?purchaseOrderId=${purchaseOrderId}`,
+                        )
+                      }
+                    >
+                      创建收货入库单
+                    </Button>
                   ) : null}
                 </Space>
               </div>
@@ -669,7 +684,24 @@ export default function PurchaseOrderDetailPage() {
             />
           </SectionCard>
 
-          <SectionCard id="relations" title="关联单据">
+          <SectionCard
+            id="relations"
+            title="关联单据"
+            extra={
+              canCreateReceiptOrder ? (
+                <Button
+                  type="primary"
+                  onClick={() =>
+                    navigate(
+                      `/receipt-orders/new?purchaseOrderId=${purchaseOrderId}`,
+                    )
+                  }
+                >
+                  创建收货入库单
+                </Button>
+              ) : undefined
+            }
+          >
             <div className="master-meta-grid">
               <MetaItem
                 label="销售订单号"
@@ -697,7 +729,21 @@ export default function PurchaseOrderDetailPage() {
               />
               <MetaItem
                 label="收货入库单"
-                value="收货入库将在 Story 6.5 接入"
+                value={
+                  data?.receiptOrders?.length ? (
+                    <Space direction="vertical" size={4}>
+                      {data.receiptOrders.map((receiptOrder) => (
+                        <span key={receiptOrder.id}>
+                          {receiptOrder.receiptCode} /{" "}
+                          {formatDate(receiptOrder.receiptDate)} / 数量{" "}
+                          {receiptOrder.totalQuantity}
+                        </span>
+                      ))}
+                    </Space>
+                  ) : (
+                    "暂无收货入库记录"
+                  )
+                }
                 full
               />
             </div>

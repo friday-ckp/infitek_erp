@@ -20,6 +20,7 @@ import {
 } from '@infitek/shared';
 import { BaseEntity } from '../../../common/entities/base.entity';
 import { ContractTemplate } from '../../master-data/contract-templates/entities/contract-template.entity';
+import { ReceiptOrder } from '../../receipt-orders/entities/receipt-order.entity';
 import { Supplier } from '../../master-data/suppliers/entities/supplier.entity';
 import { ShippingDemand } from '../../shipping-demands/entities/shipping-demand.entity';
 import { PurchaseOrderItem } from './purchase-order-item.entity';
@@ -480,4 +481,10 @@ export class PurchaseOrder extends BaseEntity {
   })
   @Expose()
   items?: PurchaseOrderItem[];
+
+  @OneToMany(() => ReceiptOrder, (receiptOrder) => receiptOrder.purchaseOrder, {
+    cascade: false,
+  })
+  @Expose()
+  receiptOrders?: ReceiptOrder[];
 }
