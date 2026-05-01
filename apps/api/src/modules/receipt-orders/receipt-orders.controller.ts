@@ -9,12 +9,18 @@ import {
 } from '@nestjs/common';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { CreateReceiptOrderDto } from './dto/create-receipt-order.dto';
+import { QueryReceiptOrderDto } from './dto/query-receipt-order.dto';
 import { QueryReceiptPurchaseOrderDto } from './dto/query-receipt-purchase-order.dto';
 import { ReceiptOrdersService } from './receipt-orders.service';
 
 @Controller('receipt-orders')
 export class ReceiptOrdersController {
   constructor(private readonly receiptOrdersService: ReceiptOrdersService) {}
+
+  @Get()
+  findAll(@Query() query: QueryReceiptOrderDto) {
+    return this.receiptOrdersService.findAll(query);
+  }
 
   @Get('purchase-order-options')
   getPurchaseOrderOptions(@Query() query: QueryReceiptPurchaseOrderDto) {

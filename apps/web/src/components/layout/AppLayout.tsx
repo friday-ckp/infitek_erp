@@ -159,6 +159,14 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     sectionPath: INVENTORY_SECTION_PATH,
     listLabel: "库存变动流水",
   }),
+  ...createCrudBreadcrumbRoutes({
+    basePath: "/receipt-orders",
+    sectionLabel: "库存管理",
+    sectionPath: INVENTORY_SECTION_PATH,
+    listLabel: "收货入库",
+    createLabel: "新建收货入库单",
+    detailLabel: "收货入库单详情",
+  }),
   {
     pattern: /^\/receipt-orders\/new$/,
     items: [

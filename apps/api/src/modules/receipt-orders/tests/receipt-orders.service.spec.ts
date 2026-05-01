@@ -99,6 +99,11 @@ describe('ReceiptOrdersService', () => {
           }
           return makeReceiptCodeQueryBuilder(state);
         }),
+        create: jest.fn((data) => data),
+        update: jest.fn().mockImplementation(async (id, patch) => {
+          state.updatedPurchaseOrder = { id, ...patch };
+          return { affected: 1 };
+        }),
         save: jest.fn().mockImplementation(async (data) => {
           state.savedPurchaseOrder = { ...data };
           return state.savedPurchaseOrder;
@@ -342,8 +347,9 @@ describe('ReceiptOrdersService', () => {
         receiptDate: '2026-04-30',
       }),
     );
-    expect(state.savedPurchaseOrder).toEqual(
+    expect(state.updatedPurchaseOrder).toEqual(
       expect.objectContaining({
+        id: 500,
         status: PurchaseOrderStatus.RECEIVED,
         receiptStatus: PurchaseOrderReceiptStatus.RECEIVED,
         receivedTotalQuantity: 5,
@@ -421,8 +427,9 @@ describe('ReceiptOrdersService', () => {
       'admin',
     );
 
-    expect(state.savedPurchaseOrder).toEqual(
+    expect(state.updatedPurchaseOrder).toEqual(
       expect.objectContaining({
+        id: 500,
         status: PurchaseOrderStatus.PARTIALLY_RECEIVED,
         receiptStatus: PurchaseOrderReceiptStatus.PARTIALLY_RECEIVED,
         receivedTotalQuantity: 3,

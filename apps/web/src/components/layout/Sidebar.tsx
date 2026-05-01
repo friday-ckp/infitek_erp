@@ -93,6 +93,7 @@ const menuItems = [
     ),
     children: [
       { key: '/inventory', label: '库存查询', exact: true },
+      { key: '/receipt-orders', label: '收货入库' },
       { key: '/inventory/transactions', label: '库存变动流水' },
     ],
   },

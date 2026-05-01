@@ -46,7 +46,7 @@ interface ReceiptOrderFormValues {
   purchaseOrderId?: number;
   receiptType?: ReceiptOrderType;
   warehouseId?: number;
-  receiptDate?: Dayjs;
+  receiptDate?: Dayjs | string;
   receiverId?: number;
   purchaseCompanyId?: number;
   shippingDemandCode?: string;
@@ -58,7 +58,7 @@ interface ReceiptOrderFormValues {
 }
 
 interface EditableReceiptItem extends ReceiptOrderPrefillItem {
-  inputReceivedQuantity: number;
+  inputReceivedQuantity?: number;
   warehouseId?: number;
 }
 
@@ -69,6 +69,27 @@ function formatMoney(value: number) {
   });
 }
 
+function normalizeReceiptDate(value?: Dayjs | string) {
+  if (!value) {
+    return dayjs().format("YYYY-MM-DD");
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return value.format("YYYY-MM-DD");
+}
+
+function getQuantityError(item: EditableReceiptItem): string | null {
+  const quantity = Number(item.inputReceivedQuantity ?? 0);
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    return "必填，且必须大于 0";
+  }
+  if (quantity > item.remainingQuantity) {
+    return `不能超过剩余可收货数量 ${item.remainingQuantity}`;
+  }
+  return null;
+}
+
 export default function ReceiptOrderFormPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -76,17 +97,39 @@ export default function ReceiptOrderFormPage() {
   const { message, notification } = App.useApp();
   const formRef = useRef<ProFormInstance<ReceiptOrderFormValues>>(undefined);
   const [activeAnchor, setActiveAnchor] = useState("basic");
-  const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState<
-    number | undefined
-  >(() => {
+  const urlPurchaseOrderId = useMemo(() => {
     const raw = searchParams.get("purchaseOrderId");
     return raw ? Number(raw) : undefined;
-  });
+  }, [searchParams]);
+  const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState<
+    number | undefined
+  >(urlPurchaseOrderId);
   const [receiptItems, setReceiptItems] = useState<EditableReceiptItem[]>([]);
   const [qcFileLists, setQcFileLists] = useState<Record<number, UploadFile[]>>(
     {},
   );
   const [uploadingItemId, setUploadingItemId] = useState<number | null>(null);
+
+  useEffect(() => {
+    setSelectedPurchaseOrderId(urlPurchaseOrderId);
+  }, [urlPurchaseOrderId]);
+
+  useEffect(() => {
+    formRef.current?.setFieldsValue({
+      purchaseOrderId: selectedPurchaseOrderId,
+      receiptType: ReceiptOrderType.PURCHASE_RECEIPT,
+      receiptDate: dayjs(),
+      purchaseOrderCode: undefined,
+      shippingDemandCode: undefined,
+      warehouseId: undefined,
+      receiverId: undefined,
+      purchaseCompanyId: undefined,
+      totalQuantity: "0",
+      totalAmount: formatMoney(0),
+    });
+    setReceiptItems([]);
+    setQcFileLists({});
+  }, [selectedPurchaseOrderId]);
 
   const prefillQuery = useQuery({
     queryKey: ["receipt-order-create-prefill", selectedPurchaseOrderId],
@@ -124,7 +167,7 @@ export default function ReceiptOrderFormPage() {
     formRef.current?.setFieldsValue({
       purchaseOrderId: purchaseOrder.id,
       receiptType: ReceiptOrderType.PURCHASE_RECEIPT,
-      receiptDate: dayjs(),
+      receiptDate: formRef.current?.getFieldValue("receiptDate") ?? dayjs(),
       purchaseCompanyId: purchaseOrder.purchaseCompanyId ?? undefined,
       shippingDemandCode: purchaseOrder.shippingDemandCode ?? undefined,
       purchaseOrderCode: purchaseOrder.poCode,
@@ -276,24 +319,52 @@ export default function ReceiptOrderFormPage() {
       align: "right" as const,
     },
     {
-      title: "入库数量",
+      title: (
+        <span>
+          入库数量 <span style={{ color: "#ef4444" }}>*</span>
+        </span>
+      ),
       dataIndex: "editableQuantity",
       key: "editableQuantity",
       width: 120,
-      render: (_: unknown, record: EditableReceiptItem) => (
-        <InputNumber
-          min={0}
-          max={record.remainingQuantity}
-          precision={0}
-          value={record.receivedQuantity}
-          style={{ width: "100%" }}
-          onChange={(value) =>
-            handleItemChange(record.purchaseOrderItemId, {
-              inputReceivedQuantity: Number(value ?? 0),
-            })
-          }
-        />
-      ),
+      render: (_: unknown, record: EditableReceiptItem) => {
+        const quantityError = getQuantityError(record);
+        return (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            <InputNumber
+              min={1}
+              max={record.remainingQuantity}
+              precision={0}
+              value={record.inputReceivedQuantity}
+              status={quantityError ? "error" : undefined}
+              style={{ width: "100%" }}
+              onChange={(value) =>
+                handleItemChange(record.purchaseOrderItemId, {
+                  inputReceivedQuantity:
+                    typeof value === "number" ? value : undefined,
+                })
+              }
+            />
+            {quantityError ? (
+              <span
+                style={{
+                  color: "#ef4444",
+                  fontSize: 12,
+                  lineHeight: "16px",
+                }}
+              >
+                {quantityError}
+              </span>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       title: "采购单价",
@@ -397,10 +468,6 @@ export default function ReceiptOrderFormPage() {
       <ProForm<ReceiptOrderFormValues>
         formRef={formRef}
         submitter={false}
-        initialValues={{
-          receiptType: ReceiptOrderType.PURCHASE_RECEIPT,
-          receiptDate: dayjs(),
-        }}
         onFinish={async (values) => {
           if (!values.purchaseOrderId) {
             message.error("请选择采购订单");
@@ -415,25 +482,28 @@ export default function ReceiptOrderFormPage() {
             return false;
           }
 
-          const positiveItems = receiptItems
-            .filter((item) => Number(item.inputReceivedQuantity ?? 0) > 0)
-            .map((item) => ({
-              purchaseOrderItemId: item.purchaseOrderItemId,
-              receivedQuantity: Number(item.inputReceivedQuantity ?? 0),
-              warehouseId: item.warehouseId,
-              qcImageKeys: item.qcImageKeys,
-            }));
-
-          if (!positiveItems.length) {
-            message.error("至少需要录入一条入库数量大于 0 的明细");
+          const invalidQuantityItem = receiptItems.find(
+            (item) => getQuantityError(item) !== null,
+          );
+          if (invalidQuantityItem) {
+            message.error(
+              `${invalidQuantityItem.skuCode} 的入库数量为必填项，且必须大于 0 且不超过剩余可收货数量`,
+            );
             return false;
           }
 
-          const missingWarehouseItem = positiveItems.find(
+          const receiptPayloadItems = receiptItems.map((item) => ({
+            purchaseOrderItemId: item.purchaseOrderItemId,
+            receivedQuantity: Number(item.inputReceivedQuantity ?? 0),
+            warehouseId: item.warehouseId,
+            qcImageKeys: item.qcImageKeys,
+          }));
+
+          const missingWarehouseItem = receiptPayloadItems.find(
             (item) => !item.warehouseId && !values.warehouseId,
           );
           if (missingWarehouseItem) {
-            message.error("请为所有入库数量大于 0 的明细选择目标仓库");
+            message.error("请为所有入库明细选择目标仓库");
             return false;
           }
 
@@ -442,14 +512,14 @@ export default function ReceiptOrderFormPage() {
             requestKey: `receipt-order:${Date.now()}`,
             receiptType: ReceiptOrderType.PURCHASE_RECEIPT,
             warehouseId: Number(values.warehouseId),
-            receiptDate: (values.receiptDate ?? dayjs()).format("YYYY-MM-DD"),
+            receiptDate: normalizeReceiptDate(values.receiptDate),
             receiverId: Number(values.receiverId),
             purchaseCompanyId: values.purchaseCompanyId
               ? Number(values.purchaseCompanyId)
               : undefined,
             inventoryNote: values.inventoryNote,
             remark: values.remark,
-            items: positiveItems,
+            items: receiptPayloadItems,
           });
           return true;
         }}
@@ -586,7 +656,7 @@ export default function ReceiptOrderFormPage() {
             <SectionCard
               id="receipt"
               title="入库明细"
-              description="默认按剩余可收货数量全额预填；可把本次未到货行改为 0，系统只处理入库数量大于 0 的明细。"
+              description="默认按剩余可收货数量全额预填；请为每条明细录入大于 0 且不超过剩余可收货数量的入库数量。"
             >
               <Table<EditableReceiptItem>
                 rowKey="purchaseOrderItemId"

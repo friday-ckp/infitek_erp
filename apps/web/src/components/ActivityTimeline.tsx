@@ -607,6 +607,21 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<
       no: "否",
     },
   },
+  "receipt-orders": {
+    receiptType: {
+      purchase_receipt: "采购入库",
+      sales_return_receipt: "销售退货入库",
+      sales_exchange_receipt: "销售换货入库",
+      opening_receipt: "期初入库",
+      supplier_gift_receipt: "供应商受赠入库",
+      transfer_receipt: "调拨入库",
+      inventory_gain_receipt: "盘盈入库",
+      other: "其他",
+    },
+    status: {
+      confirmed: "已确认",
+    },
+  },
 };
 
 type LookupRequest = {

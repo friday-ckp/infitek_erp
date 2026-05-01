@@ -26,6 +26,7 @@ import { PurchaseOrder } from '../purchase-orders/entities/purchase-order.entity
 import { ShippingDemandItem } from '../shipping-demands/entities/shipping-demand-item.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateReceiptOrderDto } from './dto/create-receipt-order.dto';
+import { QueryReceiptOrderDto } from './dto/query-receipt-order.dto';
 import { QueryReceiptPurchaseOrderDto } from './dto/query-receipt-purchase-order.dto';
 import { ReceiptOrderItem } from './entities/receipt-order-item.entity';
 import { ReceiptOrder } from './entities/receipt-order.entity';
@@ -52,6 +53,10 @@ export class ReceiptOrdersService {
       throw new NotFoundException('收货入库单不存在');
     }
     return receiptOrder;
+  }
+
+  findAll(query: QueryReceiptOrderDto) {
+    return this.receiptOrdersRepository.findAll(query);
   }
 
   async getPurchaseOrderOptions(query: QueryReceiptPurchaseOrderDto) {
@@ -380,7 +385,15 @@ export class ReceiptOrdersService {
     if (operator !== undefined) {
       purchaseOrder.updatedBy = operator;
     }
-    await queryRunner.manager.getRepository(PurchaseOrder).save(purchaseOrder);
+    await queryRunner.manager.getRepository(PurchaseOrder).update(
+      Number(purchaseOrder.id),
+      {
+        receivedTotalQuantity: purchaseOrder.receivedTotalQuantity,
+        receiptStatus: purchaseOrder.receiptStatus,
+        status: purchaseOrder.status,
+        updatedBy: purchaseOrder.updatedBy,
+      },
+    );
 
     await this.writeOperationLogs(
       queryRunner,

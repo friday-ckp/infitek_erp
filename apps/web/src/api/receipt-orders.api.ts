@@ -54,6 +54,25 @@ export interface ReceiptOrder {
   items?: ReceiptOrderItem[];
 }
 
+export interface ReceiptOrdersListParams {
+  keyword?: string;
+  receiptType?: ReceiptOrderType;
+  status?: ReceiptOrderStatus;
+  purchaseOrderId?: number;
+  warehouseId?: number;
+  receiverId?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ReceiptOrdersListData {
+  list: ReceiptOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export interface ReceiptPurchaseOrderOption {
   id: number;
   poCode: string;
@@ -155,6 +174,15 @@ export const getReceiptOrderCreatePrefill = (
 export const getReceiptOrderById = (id: number): Promise<ReceiptOrder> =>
   request
     .get<unknown, ReceiptOrder>(`/receipt-orders/${id}`)
+    .catch(normalizeApiError);
+
+export const getReceiptOrders = (
+  params: ReceiptOrdersListParams,
+): Promise<ReceiptOrdersListData> =>
+  request
+    .get<unknown, ReceiptOrdersListData>("/receipt-orders", {
+      params,
+    })
     .catch(normalizeApiError);
 
 export const createReceiptOrder = (
