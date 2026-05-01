@@ -734,8 +734,10 @@ export default function PurchaseOrderDetailPage() {
                     <Space direction="vertical" size={4}>
                       {data.receiptOrders.map((receiptOrder) => (
                         <span key={receiptOrder.id}>
-                          {receiptOrder.receiptCode} /{" "}
-                          {formatDate(receiptOrder.receiptDate)} / 数量{" "}
+                          <Link to={`/receipt-orders/${receiptOrder.id}`}>
+                            {receiptOrder.receiptCode}
+                          </Link>{" "}
+                          / {formatDate(receiptOrder.receiptDate)} / 数量{" "}
                           {receiptOrder.totalQuantity}
                         </span>
                       ))}
