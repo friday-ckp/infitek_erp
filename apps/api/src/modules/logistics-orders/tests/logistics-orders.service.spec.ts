@@ -120,8 +120,14 @@ describe('LogisticsOrdersService', () => {
         }),
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
-          state.savedItems = data;
-          return data;
+          const savedItems = (data as Record<string, unknown>[]).map(
+            (item, index) => ({
+              id: 910 + index,
+              ...item,
+            }),
+          );
+          state.savedItems = savedItems;
+          return savedItems;
         }),
       };
     }
@@ -215,12 +221,14 @@ describe('LogisticsOrdersService', () => {
         destinationCountryId: 86,
         destinationCountryName: '中国',
         requiresExportCustoms: YesNo.YES,
+        shippingMark: "标准唛头",
         items: [{ shippingDemandItemId: 700, plannedQuantity: 5 }],
         packages: [
           {
+            shippingDemandItemId: 700,
             packageNo: 'PKG-001',
-            quantityPerBox: 1,
-            boxCount: 5,
+            quantityPerBox: 5,
+            boxCount: 1,
             totalQuantity: 5,
             lengthCm: 10,
             widthCm: 20,
@@ -255,6 +263,8 @@ describe('LogisticsOrdersService', () => {
     expect(state.savedPackages).toEqual([
       expect.objectContaining({
         packageNo: 'PKG-001',
+        shippingDemandItemId: 700,
+        skuCode: 'SKU001',
         totalQuantity: 5,
         grossWeightKg: '50',
       }),
@@ -293,10 +303,47 @@ describe('LogisticsOrdersService', () => {
           items: [{ shippingDemandItemId: 700, plannedQuantity: 3 }],
           packages: [
             {
+              shippingDemandItemId: 700,
               packageNo: 'PKG-001',
-              quantityPerBox: 1,
-              boxCount: 3,
+              quantityPerBox: 3,
+              boxCount: 1,
               totalQuantity: 3,
+            },
+          ],
+        },
+        'admin',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    expect(state.savedOrder).toBeUndefined();
+  });
+
+  it('rejects package total when it does not equal planned quantity', async () => {
+    const state: Record<string, unknown> = { demand: makeDemand() };
+    const queryRunner = makeQueryRunner(state);
+    logisticsOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.create(
+        {
+          shippingDemandId: 500,
+          logisticsProviderId: 30,
+          logisticsProviderName: '顺丰国际',
+          transportationMethod: TransportationMethod.SEA,
+          companyId: 40,
+          companyName: '星辰科技有限公司',
+          originPortName: '深圳',
+          destinationPortName: '上海港',
+          destinationCountryName: '中国',
+          items: [{ shippingDemandItemId: 700, plannedQuantity: 5 }],
+          packages: [
+            {
+              shippingDemandItemId: 700,
+              packageNo: 'PKG-001',
+              quantityPerBox: 2,
+              boxCount: 3,
+              totalQuantity: 6,
             },
           ],
         },
@@ -388,6 +435,7 @@ describe('LogisticsOrdersService', () => {
           items: [{ shippingDemandItemId: 700, plannedQuantity: 1 }],
           packages: [
             {
+              shippingDemandItemId: 700,
               packageNo: 'PKG-001',
               quantityPerBox: 1,
               boxCount: 1,
@@ -425,6 +473,7 @@ describe('LogisticsOrdersService', () => {
           items: [{ shippingDemandItemId: 700, plannedQuantity: 1 }],
           packages: [
             {
+              shippingDemandItemId: 700,
               packageNo: 'PKG-001',
               quantityPerBox: 1,
               boxCount: 1,

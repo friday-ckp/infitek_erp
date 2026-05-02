@@ -144,6 +144,53 @@ export class LogisticsOrder extends BaseEntity {
   @Expose()
   requiresExportCustoms: YesNo | null;
 
+  @Column({ name: 'shipping_mark', type: 'text', nullable: true })
+  @Expose()
+  shippingMark: string | null;
+
+  @Column({ name: 'etd', type: 'date', nullable: true })
+  @Expose()
+  etd: string | null;
+
+  @Column({ name: 'eta', type: 'date', nullable: true })
+  @Expose()
+  eta: string | null;
+
+  @Column({
+    name: 'booking_number',
+    type: 'varchar',
+    length: 120,
+    nullable: true,
+  })
+  @Expose()
+  bookingNumber: string | null;
+
+  @Column({ name: 'carrier', type: 'varchar', length: 200, nullable: true })
+  @Expose()
+  carrier: string | null;
+
+  @Column({
+    name: 'vessel_voyage',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  @Expose()
+  vesselVoyage: string | null;
+
+  @Column({
+    name: 'bl_so_number',
+    type: 'varchar',
+    length: 120,
+    nullable: true,
+  })
+  @Expose()
+  blSoNumber: string | null;
+
+  @Column({ name: 'actual_departure_date', type: 'date', nullable: true })
+  @Expose()
+  actualDepartureDate: string | null;
+
   @Column({ name: 'consignee_company', type: 'text', nullable: true })
   @Expose()
   consigneeCompany: string | null;

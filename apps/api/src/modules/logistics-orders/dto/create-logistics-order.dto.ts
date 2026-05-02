@@ -26,6 +26,11 @@ export class CreateLogisticsOrderItemDto {
 }
 
 export class CreateLogisticsOrderPackageDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  shippingDemandItemId: number;
+
   @IsString()
   @IsNotEmpty()
   @MaxLength(80)
@@ -143,6 +148,11 @@ export class CreateLogisticsOrderDto {
   @IsOptional()
   @IsIn(Object.values(YesNo))
   requiresExportCustoms?: YesNo;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(2000)
+  shippingMark?: string;
 
   @IsString()
   @IsOptional()
