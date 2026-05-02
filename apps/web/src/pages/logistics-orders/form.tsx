@@ -708,7 +708,10 @@ export default function LogisticsOrderFormPage() {
                 creatorButtonProps={{ creatorButtonText: "添加装箱行" }}
                 copyIconProps={false}
               >
-                <div className="master-form-grid">
+                <div
+                  className="master-form-grid"
+                  style={{ gridTemplateColumns: "minmax(0, 1fr)" }}
+                >
                   <ProFormSelect
                     name="shippingDemandItemId"
                     label="SKU"
@@ -765,9 +768,7 @@ export default function LogisticsOrderFormPage() {
                     min={0}
                     fieldProps={{ precision: 1 }}
                   />
-                  <div className="full">
-                    <ProFormText name="remarks" label="装箱备注" />
-                  </div>
+                  <ProFormText name="remarks" label="装箱备注" />
                 </div>
               </ProFormList>
             </SectionCard>
