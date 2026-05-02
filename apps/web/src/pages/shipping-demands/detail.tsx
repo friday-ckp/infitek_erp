@@ -1887,7 +1887,7 @@ export default function ShippingDemandDetailPage() {
             />
             <SmartButton
               icon={<ExportOutlined />}
-              label="物流单"
+              label="创建物流单"
               count={0}
               disabled={!canCreateLogisticsOrder}
               disabledTooltip={
