@@ -45,7 +45,10 @@ const menuItems = [
         <path d="M7 10c0 1.657 1.343 2 3 2s3-.343 3-2" stroke="currentColor" strokeWidth="1.3"/>
       </svg>
     ),
-    children: [{ key: '/shipping-demands', label: '发货需求' }],
+    children: [
+      { key: '/shipping-demands', label: '发货需求' },
+      { key: '/logistics-orders', label: '物流单' },
+    ],
   },
   {
     section: SECTION_BUSINESS,

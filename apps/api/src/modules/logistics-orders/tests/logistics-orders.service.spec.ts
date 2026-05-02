@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import {
   DomesticTradeType,
   LogisticsOrderStatus,
@@ -95,6 +95,7 @@ describe('LogisticsOrdersService', () => {
     if (entity === LogisticsOrder) {
       return {
         createQueryBuilder: jest.fn(() => makeQueryBuilder(null)),
+        findOne: jest.fn().mockResolvedValue(state.existingOrder ?? null),
         create: jest.fn((data) => data),
         save: jest.fn().mockImplementation(async (data) => {
           state.savedOrder = { id: 900, ...data };
@@ -487,5 +488,105 @@ describe('LogisticsOrdersService', () => {
 
     expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     expect(state.savedOrder).toBeUndefined();
+  });
+
+  it('updates logistics tracking and writes operation log', async () => {
+    const existingOrder = {
+      id: 900,
+      orderCode: 'LOG20260502001',
+      status: LogisticsOrderStatus.CONFIRMED,
+      etd: null,
+      eta: null,
+      bookingNumber: null,
+      carrier: null,
+      vesselVoyage: null,
+      blSoNumber: null,
+      actualDepartureDate: null,
+      updatedBy: 'old-user',
+    };
+    const state: Record<string, unknown> = {
+      existingOrder,
+    };
+    const queryRunner = makeQueryRunner(state);
+    logisticsOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+    logisticsOrdersRepository.findById.mockResolvedValue({
+      ...existingOrder,
+      etd: '2026-05-10',
+      bookingNumber: 'BK001',
+      items: [],
+      packages: [],
+    });
+
+    const result = await service.updateTracking(
+      900,
+      {
+        etd: '2026-05-10',
+        bookingNumber: 'BK001',
+      },
+      'admin',
+    );
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 900,
+        etd: '2026-05-10',
+        bookingNumber: 'BK001',
+      }),
+    );
+    expect(state.savedOrder).toEqual(
+      expect.objectContaining({
+        id: 900,
+        etd: '2026-05-10',
+        bookingNumber: 'BK001',
+        updatedBy: 'admin',
+      }),
+    );
+    expect(state.savedOperationLog).toEqual(
+      expect.objectContaining({
+        action: OperationLogAction.UPDATE,
+        resourceType: 'logistics-orders',
+        resourcePath: '/api/logistics-orders/900/tracking',
+      }),
+    );
+  });
+
+  it('rejects tracking update that tries to patch status', async () => {
+    const state: Record<string, unknown> = {
+      existingOrder: {
+        id: 900,
+        orderCode: 'LOG20260502001',
+        status: LogisticsOrderStatus.CONFIRMED,
+      },
+    };
+    const queryRunner = makeQueryRunner(state);
+    logisticsOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.updateTracking(
+        900,
+        {
+          status: LogisticsOrderStatus.SHIPPED,
+        },
+        'admin',
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects tracking update for missing order', async () => {
+    const state: Record<string, unknown> = {
+      existingOrder: null,
+    };
+    const queryRunner = makeQueryRunner(state);
+    logisticsOrdersRepository.createQueryRunner.mockReturnValue(queryRunner);
+
+    await expect(
+      service.updateTracking(
+        999,
+        {
+          bookingNumber: 'BK001',
+        },
+        'admin',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 });

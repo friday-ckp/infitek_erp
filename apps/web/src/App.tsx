@@ -61,6 +61,8 @@ import SalesOrderDetailPage from "./pages/sales-orders/detail";
 import ShippingDemandsListPage from "./pages/shipping-demands/index";
 import ShippingDemandDetailPage from "./pages/shipping-demands/detail";
 import ShippingDemandFormPage from "./pages/shipping-demands/form";
+import LogisticsOrdersListPage from "./pages/logistics-orders/index";
+import LogisticsOrderDetailPage from "./pages/logistics-orders/detail";
 import LogisticsOrderFormPage from "./pages/logistics-orders/form";
 import PurchaseOrdersListPage from "./pages/purchase-orders/index";
 import PurchaseOrderDetailPage from "./pages/purchase-orders/detail";
@@ -456,6 +458,14 @@ function App() {
                   <Route
                     path="/shipping-demands/:id"
                     element={<ShippingDemandDetailPage />}
+                  />
+                  <Route
+                    path="/logistics-orders"
+                    element={<LogisticsOrdersListPage />}
+                  />
+                  <Route
+                    path="/logistics-orders/:id"
+                    element={<LogisticsOrderDetailPage />}
                   />
                   <Route
                     path="/logistics-orders/create"

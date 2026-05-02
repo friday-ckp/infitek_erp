@@ -37,14 +37,34 @@ export class LogisticsOrdersRepository {
   }
 
   async findAll(query: QueryLogisticsOrderDto) {
-    const { keyword, shippingDemandId, page = 1, pageSize = 20 } = query;
+    const {
+      keyword,
+      status,
+      logisticsProviderId,
+      shippingDemandId,
+      page = 1,
+      pageSize = 20,
+    } = query;
     const qb = this.logisticsOrderRepo.createQueryBuilder('logisticsOrder');
 
     const normalizedKeyword = keyword?.trim();
     if (normalizedKeyword) {
       qb.andWhere(
-        '(logisticsOrder.order_code LIKE :kw OR logisticsOrder.shipping_demand_code LIKE :kw OR logisticsOrder.sales_order_code LIKE :kw OR logisticsOrder.customer_name LIKE :kw)',
+        '(logisticsOrder.order_code LIKE :kw ESCAPE \'\\\\\' OR logisticsOrder.shipping_demand_code LIKE :kw ESCAPE \'\\\\\' OR logisticsOrder.sales_order_code LIKE :kw ESCAPE \'\\\\\' OR logisticsOrder.customer_name LIKE :kw ESCAPE \'\\\\\')',
         { kw: `%${escapeLike(normalizedKeyword)}%` },
+      );
+    }
+
+    if (status) {
+      qb.andWhere('logisticsOrder.status = :status', { status });
+    }
+
+    if (logisticsProviderId != null) {
+      qb.andWhere(
+        'logisticsOrder.logistics_provider_id = :logisticsProviderId',
+        {
+          logisticsProviderId,
+        },
       );
     }
 

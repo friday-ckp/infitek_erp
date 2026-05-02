@@ -285,6 +285,22 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<
   "contract-templates": {
     status: CONTRACT_TEMPLATE_STATUS_LABELS,
   },
+  "logistics-orders": {
+    status: {
+      confirmed: "已确认",
+      shipped: "已发运",
+      delivered: "已送达",
+      cancelled: "已取消",
+    },
+    transportationMethod: {
+      sea: "海运",
+      air: "空运",
+      road: "陆运",
+      rail: "铁路",
+      express: "快递",
+      other: "其它",
+    },
+  },
   "logistics-providers": {
     status: {
       合作: "合作",
