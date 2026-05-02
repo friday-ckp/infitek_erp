@@ -67,7 +67,11 @@ import {
   SummaryMetaItem,
   displayOrDash,
 } from "../master-data/components/page-scaffold";
-import { getLogisticsOrderCreatePrefill } from "../../api/logistics-orders.api";
+import {
+  getLogisticsOrderCreatePrefill,
+  getLogisticsOrders,
+  type LogisticsOrder,
+} from "../../api/logistics-orders.api";
 import {
   createPurchaseOrdersFromShippingDemand,
   getPurchaseOrderCreatePrefill,
@@ -408,9 +412,13 @@ function StatCard({
 function FlowProgress({
   status,
   hasPurchaseRequirement,
+  hasLogisticsOrders,
+  hasOutboundOrders,
 }: {
   status?: ShippingDemandStatus;
   hasPurchaseRequirement: boolean;
+  hasLogisticsOrders: boolean;
+  hasOutboundOrders: boolean;
 }) {
   const getProgressState = () => {
     switch (status) {
@@ -422,12 +430,20 @@ function FlowProgress({
         return { activeIndex: 3, doneIndexes: new Set([0, 1, 2]) };
       case ShippingDemandStatus.PREPARED:
         return {
-          activeIndex: 4,
-          doneIndexes: new Set(hasPurchaseRequirement ? [0, 1, 2, 3] : [0, 1]),
+          activeIndex: hasLogisticsOrders ? 5 : 4,
+          doneIndexes: new Set(
+            hasPurchaseRequirement
+              ? hasLogisticsOrders
+                ? [0, 1, 2, 3, 4]
+                : [0, 1, 2, 3]
+              : hasLogisticsOrders
+                ? [0, 1, 4]
+                : [0, 1],
+          ),
         };
       case ShippingDemandStatus.PARTIALLY_SHIPPED:
         return {
-          activeIndex: 6,
+          activeIndex: hasOutboundOrders ? 6 : hasLogisticsOrders ? 5 : 4,
           doneIndexes: new Set(
             hasPurchaseRequirement ? [0, 1, 2, 3, 4, 5] : [0, 1, 4, 5],
           ),
@@ -629,6 +645,16 @@ export default function ShippingDemandDetailPage() {
       Boolean(data) &&
       isLogisticsEligibleStatus,
   });
+  const logisticsOrdersQuery = useQuery({
+    queryKey: ["logistics-orders", "shipping-demand-detail", demandId],
+    queryFn: () =>
+      getLogisticsOrders({
+        shippingDemandId: demandId,
+        page: 1,
+        pageSize: 50,
+      }),
+    enabled: Number.isInteger(demandId) && demandId > 0,
+  });
   const purchasePrefillQuery = useQuery({
     queryKey: ["purchase-order-create-prefill", demandId],
     queryFn: () => getPurchaseOrderCreatePrefill(demandId),
@@ -658,6 +684,20 @@ export default function ShippingDemandDetailPage() {
     (logisticsPrefillQuery.data?.planItems ?? []).some(
       (item) => numberValue(item.availableToPlan) > 0,
     );
+  const logisticsOrders = logisticsOrdersQuery.data?.list ?? [];
+  const logisticsOrderCount = logisticsOrders.length;
+  const hasLogisticsOrders = logisticsOrderCount > 0;
+  const outboundOrderCount = logisticsOrders.reduce(
+    (sum: number, order: LogisticsOrder) =>
+      sum +
+      (order.items ?? []).reduce(
+        (itemSum, item) =>
+          itemSum + (numberValue(item.outboundQuantity) > 0 ? 1 : 0),
+        0,
+      ),
+    0,
+  );
+  const hasOutboundOrders = outboundOrderCount > 0;
   const warehouseMap = useMemo(() => {
     const map = new Map<number, Warehouse>();
     for (const warehouse of warehousesQuery.data?.list ?? []) {
@@ -1886,6 +1926,8 @@ export default function ShippingDemandDetailPage() {
           <FlowProgress
             status={data?.status}
             hasPurchaseRequirement={hasPurchaseRequirement}
+            hasLogisticsOrders={hasLogisticsOrders}
+            hasOutboundOrders={hasOutboundOrders}
           />
           <div className="shipping-demand-smart-row">
             <SmartButton
@@ -1901,18 +1943,20 @@ export default function ShippingDemandDetailPage() {
             <SmartButton
               icon={<ExportOutlined />}
               label="创建物流单"
-              count={0}
+              count={logisticsOrderCount}
               disabled
               disabledTooltip={
                 data?.status === ShippingDemandStatus.VOIDED
                   ? "已作废的发货需求不能创建物流单"
-                  : "备货完成且存在已锁定待发数量后可创建物流单"
+                  : logisticsOrderCount > 0
+                    ? "当前发货需求已创建物流单，可前往物流单模块查看"
+                    : "备货完成且存在已锁定待发数量后可创建物流单"
               }
             />
             <SmartButton
               icon={<FileDoneOutlined />}
               label="出库单"
-              count={0}
+              count={outboundOrderCount}
               disabled
             />
           </div>
