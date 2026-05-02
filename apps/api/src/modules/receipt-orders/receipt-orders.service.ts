@@ -5,16 +5,21 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  InventoryChangeType,
   InventoryBatchSourceType,
   PurchaseOrderReceiptStatus,
   PurchaseOrderStatus,
   PurchaseOrderType,
   ReceiptOrderStatus,
   ReceiptOrderType,
+  SalesOrderStatus,
+  ShippingDemandAllocationStatus,
+  ShippingDemandStatus,
   YesNo,
 } from '@infitek/shared';
 import { In, QueryRunner } from 'typeorm';
 import { InventoryService } from '../inventory/inventory.service';
+import { InventoryTransaction } from '../inventory/entities/inventory-transaction.entity';
 import {
   OperationLog,
   OperationLogAction,
@@ -23,7 +28,11 @@ import { Company } from '../master-data/companies/entities/company.entity';
 import { Warehouse } from '../master-data/warehouses/entities/warehouse.entity';
 import { PurchaseOrderItem } from '../purchase-orders/entities/purchase-order-item.entity';
 import { PurchaseOrder } from '../purchase-orders/entities/purchase-order.entity';
+import { SalesOrderItem } from '../sales-orders/entities/sales-order-item.entity';
+import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
+import { ShippingDemandInventoryAllocation } from '../shipping-demands/entities/shipping-demand-inventory-allocation.entity';
 import { ShippingDemandItem } from '../shipping-demands/entities/shipping-demand-item.entity';
+import { ShippingDemand } from '../shipping-demands/entities/shipping-demand.entity';
 import { User } from '../users/entities/user.entity';
 import { CreateReceiptOrderDto } from './dto/create-receipt-order.dto';
 import { QueryReceiptOrderDto } from './dto/query-receipt-order.dto';
@@ -38,6 +47,20 @@ const INITIAL_RETRY_DELAY_MS = 25;
 interface ReceiptWarehouseSnapshot {
   id: number;
   name: string;
+}
+
+interface ReceiptAutoLockEvent {
+  demandId: number;
+  demandCode: string;
+  demandItemId: number;
+  salesOrderId: number;
+  salesOrderItemId: number;
+  skuId: number;
+  skuCode: string;
+  warehouseId: number;
+  receiptItemId: number;
+  lockedQuantity: number;
+  batchAllocations: Array<{ batchId: number; quantity: number }>;
 }
 
 @Injectable()
@@ -375,6 +398,13 @@ export class ReceiptOrdersService {
         .filter((itemId): itemId is number => itemId != null),
       operator,
     );
+    await this.autoLockReceiptForRequisitionOrder(
+      queryRunner,
+      purchaseOrder,
+      receiptOrder,
+      savedReceiptItems,
+      operator,
+    );
 
     const aggregated = this.aggregatePurchaseOrderReceipt(
       purchaseOrder.items ?? [],
@@ -619,6 +649,694 @@ export class ReceiptOrdersService {
     }
 
     await shippingDemandItemRepo.save(items);
+  }
+
+  private async autoLockReceiptForRequisitionOrder(
+    queryRunner: QueryRunner,
+    purchaseOrder: PurchaseOrder,
+    receiptOrder: ReceiptOrder,
+    receiptItems: ReceiptOrderItem[],
+    operator?: string,
+  ): Promise<void> {
+    if (purchaseOrder.orderType !== PurchaseOrderType.REQUISITION) {
+      return;
+    }
+
+    const demandItemIds = [
+      ...new Set(
+        receiptItems
+          .map((item) =>
+            item.shippingDemandItemId == null
+              ? null
+              : Number(item.shippingDemandItemId),
+          )
+          .filter((itemId): itemId is number => itemId != null),
+      ),
+    ];
+    if (!demandItemIds.length) {
+      return;
+    }
+
+    const demandIds =
+      purchaseOrder.shippingDemandId != null
+        ? [Number(purchaseOrder.shippingDemandId)]
+        : [
+            ...new Set(
+              (
+                await queryRunner.manager
+                  .getRepository(ShippingDemandItem)
+                  .find({
+                    where: { id: In(demandItemIds) },
+                  })
+              )
+                .map((item) => Number(item.shippingDemandId))
+                .filter((demandId) => demandId > 0),
+            ),
+          ];
+    const demands = await this.findShippingDemandsForUpdate(
+      queryRunner,
+      demandIds,
+    );
+    const demandById = new Map(
+      demands.map((demand) => [Number(demand.id), demand]),
+    );
+    const demandItemById = new Map<number, ShippingDemandItem>();
+    const oldDemandStatusById = new Map<number, ShippingDemandStatus>();
+    for (const demand of demands) {
+      oldDemandStatusById.set(
+        Number(demand.id),
+        demand.status as ShippingDemandStatus,
+      );
+      for (const item of demand.items ?? []) {
+        demandItemById.set(Number(item.id), item);
+      }
+    }
+
+    const activeLockedByItemId =
+      await this.sumActiveLockedQuantityByDemandItemIds(
+        queryRunner,
+        demandItemIds,
+      );
+    const allocationRepo = queryRunner.manager.getRepository(
+      ShippingDemandInventoryAllocation,
+    );
+    const inventoryTransactionRepo =
+      queryRunner.manager.getRepository(InventoryTransaction);
+    const events: ReceiptAutoLockEvent[] = [];
+
+    for (const receiptItem of receiptItems) {
+      const demandItemId =
+        receiptItem.shippingDemandItemId == null
+          ? null
+          : Number(receiptItem.shippingDemandItemId);
+      if (demandItemId == null) {
+        throw new BadRequestException({
+          code: 'RECEIPT_ORDER_DEMAND_LINK_MISSING',
+          message: '请购型采购订单收货明细缺少发货需求关联',
+        });
+      }
+
+      const demandItem = demandItemById.get(demandItemId);
+      if (!demandItem) {
+        throw new BadRequestException({
+          code: 'RECEIPT_ORDER_DEMAND_ITEM_NOT_FOUND',
+          message: '收货明细关联的发货需求不存在',
+        });
+      }
+
+      const demand = demandById.get(Number(demandItem.shippingDemandId));
+      if (!demand) {
+        throw new BadRequestException({
+          code: 'RECEIPT_ORDER_DEMAND_NOT_FOUND',
+          message: '收货明细关联的发货需求不存在',
+        });
+      }
+
+      const currentLockedQuantity =
+        activeLockedByItemId.get(demandItemId) ??
+        Number(demandItem.lockedRemainingQuantity ?? 0);
+      const remainingGap = Math.max(
+        0,
+        Number(demandItem.requiredQuantity ?? 0) -
+          Number(demandItem.shippedQuantity ?? 0) -
+          currentLockedQuantity,
+      );
+      const lockQuantity = Math.min(
+        Number(receiptItem.receivedQuantity ?? 0),
+        remainingGap,
+      );
+      if (lockQuantity <= 0) {
+        continue;
+      }
+
+      const warehouseId = Number(receiptItem.warehouseId);
+      const lockResult = await this.inventoryService.lockStockInTransaction(
+        queryRunner,
+        {
+          skuId: Number(receiptItem.skuId),
+          warehouseId,
+          quantity: lockQuantity,
+          operator,
+        },
+      );
+
+      const actionKey = this.buildReceiptAutoLockActionKey(
+        receiptOrder,
+        receiptItem,
+        demandItem,
+      );
+      const allocations = lockResult.allocations ?? [];
+      if (allocations.length > 0) {
+        await allocationRepo.save(
+          allocations.map((allocation) =>
+            allocationRepo.create({
+              shippingDemandId: Number(demand.id),
+              shippingDemandItemId: Number(demandItem.id),
+              salesOrderItemId: Number(demandItem.salesOrderItemId),
+              skuId: Number(demandItem.skuId),
+              warehouseId,
+              inventoryBatchId: allocation.batchId,
+              lockSource: 'purchase_receipt',
+              sourceDocumentType: 'receipt_order',
+              sourceDocumentId: Number(receiptOrder.id),
+              originalLockedQuantity: allocation.quantity,
+              lockedQuantity: allocation.quantity,
+              shippedQuantity: 0,
+              releasedQuantity: 0,
+              status: ShippingDemandAllocationStatus.ACTIVE,
+              sourceActionKey: actionKey,
+              createdBy: operator,
+              updatedBy: operator,
+            }),
+          ),
+        );
+      }
+
+      await inventoryTransactionRepo.save(
+        inventoryTransactionRepo.create(
+          this.buildReceiptAutoLockInventoryTransaction(
+            receiptOrder,
+            receiptItem,
+            demandItem,
+            warehouseId,
+            lockQuantity,
+            {
+              actualQuantity: Number(lockResult.summary.actualQuantity ?? 0),
+              lockedQuantity: Number(lockResult.summary.lockedQuantity ?? 0),
+              availableQuantity: Number(
+                lockResult.summary.availableQuantity ?? 0,
+              ),
+            },
+            operator,
+          ),
+        ),
+      );
+
+      activeLockedByItemId.set(
+        demandItemId,
+        currentLockedQuantity + lockQuantity,
+      );
+      events.push({
+        demandId: Number(demand.id),
+        demandCode: demand.demandCode,
+        demandItemId: Number(demandItem.id),
+        salesOrderId: Number(demand.salesOrderId),
+        salesOrderItemId: Number(demandItem.salesOrderItemId),
+        skuId: Number(demandItem.skuId),
+        skuCode: demandItem.skuCode,
+        warehouseId,
+        receiptItemId: Number(receiptItem.id),
+        lockedQuantity: lockQuantity,
+        batchAllocations: allocations.map((allocation) => ({
+          batchId: Number(allocation.batchId),
+          quantity: Number(allocation.quantity ?? 0),
+        })),
+      });
+    }
+
+    await this.refreshShippingDemandLockedQuantity(
+      queryRunner,
+      demandItemIds,
+      operator,
+    );
+
+    const refreshedDemands = await this.findShippingDemandsForUpdate(
+      queryRunner,
+      [...demandById.keys()],
+    );
+    const salesOrderItemIds = [
+      ...new Set(
+        refreshedDemands.flatMap((demand) =>
+          (demand.items ?? [])
+            .map((item) => Number(item.salesOrderItemId))
+            .filter((itemId) => itemId > 0),
+        ),
+      ),
+    ];
+    await this.refreshSalesOrderItemSnapshots(
+      queryRunner,
+      salesOrderItemIds,
+      operator,
+    );
+    await this.updateShippingDemandStatusesAfterReceipt(
+      queryRunner,
+      refreshedDemands,
+      operator,
+    );
+    const salesOrderStatusChanges =
+      await this.updateSalesOrderStatusesAfterReceipt(
+        queryRunner,
+        refreshedDemands,
+        operator,
+      );
+
+    await this.writeReceiptAutoLockOperationLogs(
+      queryRunner,
+      receiptOrder,
+      refreshedDemands,
+      oldDemandStatusById,
+      events,
+      operator,
+    );
+    for (const change of salesOrderStatusChanges) {
+      await this.writeSalesOrderPreparedOperationLog(
+        queryRunner,
+        receiptOrder,
+        change.order,
+        change.oldStatus,
+        operator,
+      );
+    }
+  }
+
+  private async findShippingDemandsForUpdate(
+    queryRunner: QueryRunner,
+    demandIds: number[],
+  ): Promise<ShippingDemand[]> {
+    if (!demandIds.length) return [];
+
+    return queryRunner.manager
+      .getRepository(ShippingDemand)
+      .createQueryBuilder('demand')
+      .leftJoinAndSelect('demand.items', 'items')
+      .setLock('pessimistic_write')
+      .where('demand.id IN (:...demandIds)', { demandIds })
+      .orderBy('demand.id', 'ASC')
+      .addOrderBy('items.id', 'ASC')
+      .getMany();
+  }
+
+  private async sumActiveLockedQuantityByDemandItemIds(
+    queryRunner: QueryRunner,
+    demandItemIds: number[],
+  ): Promise<Map<number, number>> {
+    if (!demandItemIds.length) return new Map();
+
+    const rows = await queryRunner.manager
+      .getRepository(ShippingDemandInventoryAllocation)
+      .createQueryBuilder('allocation')
+      .select('allocation.shipping_demand_item_id', 'shippingDemandItemId')
+      .addSelect('SUM(allocation.locked_quantity)', 'lockedQuantity')
+      .where('allocation.shipping_demand_item_id IN (:...demandItemIds)', {
+        demandItemIds,
+      })
+      .andWhere('allocation.status = :status', {
+        status: ShippingDemandAllocationStatus.ACTIVE,
+      })
+      .groupBy('allocation.shipping_demand_item_id')
+      .getRawMany<{
+        shippingDemandItemId: string;
+        lockedQuantity: string;
+      }>();
+
+    return new Map(
+      rows.map((row) => [
+        Number(row.shippingDemandItemId),
+        Number(row.lockedQuantity ?? 0),
+      ]),
+    );
+  }
+
+  private async refreshShippingDemandLockedQuantity(
+    queryRunner: QueryRunner,
+    demandItemIds: number[],
+    operator?: string,
+  ): Promise<void> {
+    if (!demandItemIds.length) return;
+
+    const lockedByItemId = await this.sumActiveLockedQuantityByDemandItemIds(
+      queryRunner,
+      demandItemIds,
+    );
+    const shippingDemandItemRepo =
+      queryRunner.manager.getRepository(ShippingDemandItem);
+    const items = await shippingDemandItemRepo.find({
+      where: { id: In(demandItemIds) },
+    });
+
+    for (const item of items) {
+      item.lockedRemainingQuantity =
+        lockedByItemId.get(Number(item.id)) ?? 0;
+      if (operator !== undefined) {
+        item.updatedBy = operator;
+      }
+    }
+
+    await shippingDemandItemRepo.save(items);
+  }
+
+  private async refreshSalesOrderItemSnapshots(
+    queryRunner: QueryRunner,
+    salesOrderItemIds: number[],
+    operator?: string,
+  ): Promise<void> {
+    if (!salesOrderItemIds.length) return;
+
+    const rows = await queryRunner.manager
+      .getRepository(ShippingDemandItem)
+      .createQueryBuilder('item')
+      .innerJoin('item.shippingDemand', 'demand')
+      .select('item.sales_order_item_id', 'salesOrderItemId')
+      .addSelect('SUM(item.purchase_required_quantity)', 'purchaseQuantity')
+      .addSelect('SUM(item.stock_required_quantity)', 'useStockQuantity')
+      .addSelect('SUM(item.locked_remaining_quantity)', 'lockedQuantity')
+      .addSelect('SUM(item.shipped_quantity)', 'shippedQuantity')
+      .where('item.sales_order_item_id IN (:...salesOrderItemIds)', {
+        salesOrderItemIds,
+      })
+      .andWhere('demand.status != :voided', {
+        voided: ShippingDemandStatus.VOIDED,
+      })
+      .groupBy('item.sales_order_item_id')
+      .getRawMany<{
+        salesOrderItemId: string;
+        purchaseQuantity: string;
+        useStockQuantity: string;
+        lockedQuantity: string;
+        shippedQuantity: string;
+      }>();
+
+    const snapshotByItemId = new Map(
+      rows.map((row) => [
+        Number(row.salesOrderItemId),
+        {
+          purchaseQuantity: Number(row.purchaseQuantity ?? 0),
+          useStockQuantity: Number(row.useStockQuantity ?? 0),
+          preparedQuantity:
+            Number(row.lockedQuantity ?? 0) + Number(row.shippedQuantity ?? 0),
+          shippedQuantity: Number(row.shippedQuantity ?? 0),
+        },
+      ]),
+    );
+    const salesOrderItemRepo = queryRunner.manager.getRepository(SalesOrderItem);
+    const items = await salesOrderItemRepo.find({
+      where: { id: In(salesOrderItemIds) },
+    });
+
+    for (const item of items) {
+      const snapshot = snapshotByItemId.get(Number(item.id));
+      item.purchaseQuantity = snapshot?.purchaseQuantity ?? 0;
+      item.useStockQuantity = snapshot?.useStockQuantity ?? 0;
+      item.preparedQuantity = snapshot?.preparedQuantity ?? 0;
+      item.shippedQuantity = snapshot?.shippedQuantity ?? 0;
+      if (operator !== undefined) {
+        item.updatedBy = operator;
+      }
+    }
+
+    await salesOrderItemRepo.save(items);
+  }
+
+  private async updateShippingDemandStatusesAfterReceipt(
+    queryRunner: QueryRunner,
+    demands: ShippingDemand[],
+    operator?: string,
+  ): Promise<ShippingDemand[]> {
+    const demandRepo = queryRunner.manager.getRepository(ShippingDemand);
+    const changed: ShippingDemand[] = [];
+
+    for (const demand of demands) {
+      if (
+        demand.status === ShippingDemandStatus.VOIDED ||
+        demand.status === ShippingDemandStatus.SHIPPED ||
+        demand.status === ShippingDemandStatus.PARTIALLY_SHIPPED
+      ) {
+        continue;
+      }
+
+      const items = demand.items ?? [];
+      const allPrepared =
+        items.length > 0 &&
+        items.every(
+          (item) =>
+            Number(item.lockedRemainingQuantity ?? 0) +
+              Number(item.shippedQuantity ?? 0) >=
+            Number(item.requiredQuantity ?? 0),
+        );
+
+      let nextStatus = demand.status;
+      if (allPrepared) {
+        nextStatus = ShippingDemandStatus.PREPARED;
+      } else if (
+        demand.status === ShippingDemandStatus.PENDING_PURCHASE_ORDER ||
+        demand.status === ShippingDemandStatus.PURCHASING
+      ) {
+        nextStatus = ShippingDemandStatus.PURCHASING;
+      }
+
+      if (nextStatus === demand.status) {
+        continue;
+      }
+
+      demand.status = nextStatus;
+      if (operator !== undefined) {
+        demand.updatedBy = operator;
+      }
+      changed.push(await demandRepo.save(demand));
+    }
+
+    return changed;
+  }
+
+  private async updateSalesOrderStatusesAfterReceipt(
+    queryRunner: QueryRunner,
+    demands: ShippingDemand[],
+    operator?: string,
+  ): Promise<Array<{ order: SalesOrder; oldStatus: SalesOrderStatus }>> {
+    const preparedDemandBySalesOrderId = new Map<number, ShippingDemand>();
+    for (const demand of demands) {
+      if (demand.status === ShippingDemandStatus.PREPARED) {
+        preparedDemandBySalesOrderId.set(Number(demand.salesOrderId), demand);
+      }
+    }
+    const salesOrderIds = [...preparedDemandBySalesOrderId.keys()];
+    if (!salesOrderIds.length) return [];
+
+    const orders = await queryRunner.manager
+      .getRepository(SalesOrder)
+      .createQueryBuilder('salesOrder')
+      .setLock('pessimistic_write')
+      .where('salesOrder.id IN (:...salesOrderIds)', { salesOrderIds })
+      .getMany();
+    const salesOrderRepo = queryRunner.manager.getRepository(SalesOrder);
+    const changes: Array<{ order: SalesOrder; oldStatus: SalesOrderStatus }> =
+      [];
+
+    for (const order of orders) {
+      if (
+        order.status === SalesOrderStatus.PREPARED ||
+        order.status === SalesOrderStatus.PARTIALLY_SHIPPED ||
+        order.status === SalesOrderStatus.SHIPPED ||
+        order.status === SalesOrderStatus.VOIDED
+      ) {
+        continue;
+      }
+
+      const oldStatus = order.status as SalesOrderStatus;
+      order.status = SalesOrderStatus.PREPARED;
+      if (operator !== undefined) {
+        order.updatedBy = operator;
+      }
+      changes.push({
+        order: await salesOrderRepo.save(order),
+        oldStatus,
+      });
+    }
+
+    return changes;
+  }
+
+  private async writeReceiptAutoLockOperationLogs(
+    queryRunner: QueryRunner,
+    receiptOrder: ReceiptOrder,
+    demands: ShippingDemand[],
+    oldDemandStatusById: Map<number, ShippingDemandStatus>,
+    events: ReceiptAutoLockEvent[],
+    operator?: string,
+  ): Promise<void> {
+    const eventsByDemandId = new Map<number, ReceiptAutoLockEvent[]>();
+    for (const event of events) {
+      const group = eventsByDemandId.get(event.demandId) ?? [];
+      group.push(event);
+      eventsByDemandId.set(event.demandId, group);
+    }
+
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    for (const demand of demands) {
+      const demandId = Number(demand.id);
+      const demandEvents = eventsByDemandId.get(demandId) ?? [];
+      const oldStatus = oldDemandStatusById.get(demandId) ?? demand.status;
+      const changeSummary: Array<{
+        field: string;
+        fieldLabel: string;
+        oldValue: unknown;
+        newValue: unknown;
+      }> = [];
+
+      if (oldStatus !== demand.status) {
+        changeSummary.push({
+          field: 'status',
+          fieldLabel: '发货需求状态',
+          oldValue: oldStatus,
+          newValue: demand.status,
+        });
+      }
+      if (demandEvents.length > 0) {
+        changeSummary.push({
+          field: 'allocationSummary',
+          fieldLabel: '自动锁定结果',
+          oldValue: null,
+          newValue: this.buildReceiptAutoLockOperationSummary(demandEvents),
+        });
+        changeSummary.push({
+          field: 'allocationDetails',
+          fieldLabel: '自动锁定明细',
+          oldValue: null,
+          newValue: this.buildReceiptAutoLockOperationDetails(demandEvents),
+        });
+      }
+
+      if (!changeSummary.length) {
+        continue;
+      }
+
+      await operationLogRepo.save(
+        operationLogRepo.create({
+          operator: operator ?? 'system',
+          operatorId: null,
+          action: OperationLogAction.UPDATE,
+          resourceType: 'shipping-demands',
+          resourceId: String(demand.id),
+          resourcePath: `/api/receipt-orders/${receiptOrder.id}`,
+          requestSummary: {
+            sourceAction: 'receipt_auto_lock',
+            receiptOrderId: Number(receiptOrder.id),
+            receiptCode: receiptOrder.receiptCode,
+            lockedQuantity: demandEvents.reduce(
+              (sum, event) => sum + event.lockedQuantity,
+              0,
+            ),
+            itemCount: demandEvents.length,
+          },
+          changeSummary,
+        }),
+      );
+    }
+  }
+
+  private async writeSalesOrderPreparedOperationLog(
+    queryRunner: QueryRunner,
+    receiptOrder: ReceiptOrder,
+    order: SalesOrder,
+    oldStatus: SalesOrderStatus,
+    operator?: string,
+  ): Promise<void> {
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    await operationLogRepo.save(
+      operationLogRepo.create({
+        operator: operator ?? 'system',
+        operatorId: null,
+        action: OperationLogAction.UPDATE,
+        resourceType: 'sales-orders',
+        resourceId: String(order.id),
+        resourcePath: `/api/receipt-orders/${receiptOrder.id}`,
+        requestSummary: {
+          sourceAction: 'receipt_auto_lock',
+          receiptOrderId: Number(receiptOrder.id),
+          receiptCode: receiptOrder.receiptCode,
+        },
+        changeSummary: [
+          {
+            field: 'status',
+            fieldLabel: '订单状态',
+            oldValue: oldStatus,
+            newValue: order.status,
+          },
+        ],
+      }),
+    );
+  }
+
+  private buildReceiptAutoLockOperationSummary(
+    events: ReceiptAutoLockEvent[],
+  ): string {
+    const lockedQuantity = events.reduce(
+      (sum, event) => sum + event.lockedQuantity,
+      0,
+    );
+    return `共 ${events.length} 条收货明细触发自动锁定；锁定数量 ${lockedQuantity}`;
+  }
+
+  private buildReceiptAutoLockOperationDetails(
+    events: ReceiptAutoLockEvent[],
+  ): string {
+    return events
+      .map((event, index) => {
+        const batchText = event.batchAllocations
+          .map((allocation) => `批次 ${allocation.batchId} 锁定 ${allocation.quantity}`)
+          .join('，');
+        return `${index + 1}. ${event.skuCode}：仓库 ${event.warehouseId}，本次锁定 ${event.lockedQuantity}${batchText ? `（${batchText}）` : ''}`;
+      })
+      .join('\n');
+  }
+
+  private buildReceiptAutoLockActionKey(
+    receiptOrder: ReceiptOrder,
+    receiptItem: ReceiptOrderItem,
+    demandItem: ShippingDemandItem,
+  ): string {
+    return `receipt-order:${receiptOrder.id}:item:${receiptItem.id}:shipping-demand-item:${demandItem.id}:lock`;
+  }
+
+  private buildReceiptAutoLockInventoryTransactionActionKey(
+    receiptOrder: ReceiptOrder,
+    receiptItem: ReceiptOrderItem,
+    demandItem: ShippingDemandItem,
+  ): string {
+    return `receipt-order:${receiptOrder.id}:item:${receiptItem.id}:shipping-demand-item:${demandItem.id}:inventory-lock`;
+  }
+
+  private buildReceiptAutoLockInventoryTransaction(
+    receiptOrder: ReceiptOrder,
+    receiptItem: ReceiptOrderItem,
+    demandItem: ShippingDemandItem,
+    warehouseId: number,
+    lockedQuantity: number,
+    summary: {
+      actualQuantity: number;
+      lockedQuantity: number;
+      availableQuantity: number;
+    },
+    operator?: string,
+  ) {
+    const afterActual = Number(summary.actualQuantity ?? 0);
+    const afterLocked = Number(summary.lockedQuantity ?? 0);
+    const afterAvailable = Number(summary.availableQuantity ?? 0);
+
+    return {
+      skuId: Number(demandItem.skuId),
+      warehouseId,
+      inventoryBatchId: null,
+      changeType: InventoryChangeType.LOCK,
+      actualQuantityDelta: 0,
+      lockedQuantityDelta: lockedQuantity,
+      availableQuantityDelta: -lockedQuantity,
+      beforeActualQuantity: afterActual,
+      afterActualQuantity: afterActual,
+      beforeLockedQuantity: afterLocked - lockedQuantity,
+      afterLockedQuantity: afterLocked,
+      beforeAvailableQuantity: afterAvailable + lockedQuantity,
+      afterAvailableQuantity: afterAvailable,
+      sourceDocumentType: 'receipt_order',
+      sourceDocumentId: Number(receiptOrder.id),
+      sourceDocumentItemId: Number(receiptItem.id),
+      sourceActionKey: this.buildReceiptAutoLockInventoryTransactionActionKey(
+        receiptOrder,
+        receiptItem,
+        demandItem,
+      ),
+      operatedBy: operator ?? 'system',
+    };
   }
 
   private async writeOperationLogs(
