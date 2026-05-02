@@ -1829,6 +1829,19 @@ export default function ShippingDemandDetailPage() {
                       </span>
                     </Tooltip>
                   ) : null}
+                  {canCreateLogisticsOrder ? (
+                    <Button
+                      type="primary"
+                      icon={<ExportOutlined />}
+                      onClick={() =>
+                        navigate(
+                          `/logistics-orders/create?shippingDemandId=${demandId}`,
+                        )
+                      }
+                    >
+                      创建物流单
+                    </Button>
+                  ) : null}
                   {canVoidDemand ? (
                     <Button
                       danger
@@ -1889,19 +1902,11 @@ export default function ShippingDemandDetailPage() {
               icon={<ExportOutlined />}
               label="创建物流单"
               count={0}
-              disabled={!canCreateLogisticsOrder}
+              disabled
               disabledTooltip={
                 data?.status === ShippingDemandStatus.VOIDED
                   ? "已作废的发货需求不能创建物流单"
                   : "备货完成且存在已锁定待发数量后可创建物流单"
-              }
-              onClick={
-                canCreateLogisticsOrder
-                  ? () =>
-                      navigate(
-                        `/logistics-orders/create?shippingDemandId=${demandId}`,
-                      )
-                  : undefined
               }
             />
             <SmartButton

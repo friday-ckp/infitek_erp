@@ -139,6 +139,14 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     detailLabel: "发货需求详情",
     editLabel: "编辑发货需求",
   }),
+  {
+    pattern: /^\/logistics-orders\/create$/,
+    items: [
+      { title: "商务管理", path: COMMERCE_SECTION_PATH },
+      { title: "发货需求", path: "/shipping-demands" },
+      { title: "创建物流单" },
+    ],
+  },
   ...createCrudBreadcrumbRoutes({
     basePath: "/purchase-orders",
     sectionLabel: "采购管理",
