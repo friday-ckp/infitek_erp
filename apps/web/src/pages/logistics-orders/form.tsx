@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { App, Button, Result, Skeleton, Space, Table } from "antd";
+import { App, Button, Popconfirm, Result, Skeleton, Space, Table } from "antd";
 import {
   ProForm,
   ProFormDigit,
@@ -36,9 +36,8 @@ import "../master-data/master-page.css";
 
 const TRANSPORTATION_OPTIONS = [
   { label: "海运", value: TransportationMethod.SEA },
+  { label: "陆运", value: TransportationMethod.ROAD },
   { label: "空运", value: TransportationMethod.AIR },
-  { label: "公路", value: TransportationMethod.ROAD },
-  { label: "铁路", value: TransportationMethod.RAIL },
   { label: "快递", value: TransportationMethod.EXPRESS },
 ];
 
@@ -48,6 +47,19 @@ const YES_NO_OPTIONS = [
 ];
 
 interface LogisticsOrderFormValues {
+  sourceShippingDemandCode?: string;
+  sourceSalesOrderCode?: string;
+  sourceCustomerName?: string;
+  sourceOrderType?: string;
+  sourceDomesticTradeType?: string;
+  sourceTradeTerm?: string;
+  sourcePaymentTerm?: string;
+  sourceRequiredDeliveryAt?: string;
+  sourceOriginCountryName?: string;
+  sourceDestinationCountryName?: string;
+  sourceCurrencyCode?: string;
+  sourceContractAmount?: string;
+  sourceIsInsured?: string;
   logisticsProviderId: number;
   logisticsProviderName?: string;
   transportationMethod: TransportationMethodType;
@@ -60,8 +72,10 @@ interface LogisticsOrderFormValues {
   destinationCountryId?: number;
   destinationCountryName: string;
   requiresExportCustoms?: YesNo;
+  shippingMark?: string;
   remarks?: string;
   packages: Array<{
+    shippingDemandItemId: number;
     packageNo: string;
     quantityPerBox: number;
     boxCount: number;
@@ -81,9 +95,14 @@ function parsePositiveIntParam(value: string | null) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
 }
 
-function numberValue(value?: number | string | null) {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
+function buildPackageDefaults(planItems: LogisticsOrderPrefillItem[]) {
+  return planItems.map((item, index) => ({
+    shippingDemandItemId: item.shippingDemandItemId,
+    packageNo: `PKG-${String(index + 1).padStart(3, "0")}`,
+    quantityPerBox: item.plannedQuantity || 1,
+    boxCount: 1,
+    totalQuantity: item.plannedQuantity || 1,
+  }));
 }
 
 export default function LogisticsOrderFormPage() {
@@ -105,13 +124,22 @@ export default function LogisticsOrderFormPage() {
 
   const demand = prefillQuery.data?.shippingDemand;
   const planItems = prefillQuery.data?.planItems ?? [];
-  const totalPlannedQuantity = planItems.reduce(
-    (sum, item) => sum + numberValue(item.plannedQuantity),
-    0,
-  );
 
   const initialValues = useMemo<Partial<LogisticsOrderFormValues>>(
     () => ({
+      sourceShippingDemandCode: demand?.demandCode ?? undefined,
+      sourceSalesOrderCode: demand?.sourceDocumentCode ?? undefined,
+      sourceCustomerName: demand?.customerName ?? undefined,
+      sourceOrderType: demand?.orderType ?? undefined,
+      sourceDomesticTradeType: demand?.domesticTradeType ?? undefined,
+      sourceTradeTerm: demand?.tradeTerm ?? undefined,
+      sourcePaymentTerm: demand?.paymentTerm ?? undefined,
+      sourceRequiredDeliveryAt: demand?.requiredDeliveryAt ?? undefined,
+      sourceOriginCountryName: demand?.shipmentOriginCountryName ?? undefined,
+      sourceDestinationCountryName: demand?.destinationCountryName ?? undefined,
+      sourceCurrencyCode: demand?.currencyCode ?? undefined,
+      sourceContractAmount: demand?.contractAmount ?? undefined,
+      sourceIsInsured: demand?.isInsured ?? undefined,
       transportationMethod:
         demand?.transportationMethod ?? TransportationMethod.SEA,
       companyId: demand?.signingCompanyId ?? undefined,
@@ -122,16 +150,10 @@ export default function LogisticsOrderFormPage() {
       destinationCountryId: demand?.destinationCountryId ?? undefined,
       destinationCountryName: demand?.destinationCountryName ?? undefined,
       requiresExportCustoms: demand?.requiresExportCustoms ?? undefined,
-      packages: [
-        {
-          packageNo: "PKG-001",
-          quantityPerBox: totalPlannedQuantity || 1,
-          boxCount: 1,
-          totalQuantity: totalPlannedQuantity || 1,
-        },
-      ],
+      shippingMark: demand?.shippingMarkNote ?? undefined,
+      packages: buildPackageDefaults(planItems),
     }),
-    [demand, totalPlannedQuantity],
+    [demand, planItems],
   );
 
   const createMutation = useMutation({
@@ -154,14 +176,14 @@ export default function LogisticsOrderFormPage() {
   const itemColumns = useMemo(
     () => [
       {
-        title: "SKU",
+        title: "SKU编码",
         dataIndex: "skuCode",
         key: "skuCode",
         width: 140,
         fixed: "left" as const,
       },
       {
-        title: "产品",
+        title: "产品名称",
         key: "productName",
         width: 220,
         render: (_: unknown, record: LogisticsOrderPrefillItem) =>
@@ -207,6 +229,15 @@ export default function LogisticsOrderFormPage() {
       },
     ],
     [],
+  );
+
+  const packageSkuOptions = useMemo(
+    () =>
+      planItems.map((item) => ({
+        label: `${item.skuCode} / ${item.productNameCn ?? item.productNameEn ?? "-"}`,
+        value: item.shippingDemandItemId,
+      })),
+    [planItems],
   );
 
   if (!shippingDemandId) {
@@ -269,10 +300,11 @@ export default function LogisticsOrderFormPage() {
 
   const anchors = [
     { key: "source", label: "来源信息" },
-    { key: "transport", label: "物流信息" },
+    { key: "basic", label: "基本信息" },
     { key: "items", label: "产品明细" },
     { key: "packages", label: "装箱信息" },
-    { key: "requirements", label: "继承要求" },
+    { key: "customs", label: "报关备注" },
+    { key: "inherited", label: "继承要求" },
   ];
 
   return (
@@ -312,12 +344,24 @@ export default function LogisticsOrderFormPage() {
               : undefined,
             destinationCountryName: values.destinationCountryName,
             requiresExportCustoms: values.requiresExportCustoms,
+            shippingMark: values.shippingMark,
             remarks: values.remarks,
             items: planItems.map((item) => ({
               shippingDemandItemId: item.shippingDemandItemId,
               plannedQuantity: item.plannedQuantity,
             })),
-            packages: values.packages,
+            packages: values.packages.map((pkg) => ({
+              shippingDemandItemId: Number(pkg.shippingDemandItemId),
+              packageNo: pkg.packageNo,
+              quantityPerBox: Number(pkg.quantityPerBox),
+              boxCount: Number(pkg.boxCount),
+              totalQuantity: Number(pkg.totalQuantity),
+              lengthCm: pkg.lengthCm,
+              widthCm: pkg.widthCm,
+              heightCm: pkg.heightCm,
+              grossWeightKg: pkg.grossWeightKg,
+              remarks: pkg.remarks,
+            })),
           };
           await createMutation.mutateAsync(payload);
           return true;
@@ -333,56 +377,94 @@ export default function LogisticsOrderFormPage() {
             <SectionCard
               id="source"
               title="来源信息"
-              description="从发货需求继承，不可修改。"
+              description="来源字段灰底只读，不可修改。"
             >
-              <div className="master-meta-grid">
-                <MetaItem
+              <div className="master-form-grid">
+                <ProFormText
+                  name="sourceShippingDemandCode"
                   label="发货需求编号"
-                  value={displayOrDash(demand?.demandCode)}
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
-                  label="来源销售订单"
-                  value={displayOrDash(demand?.sourceDocumentCode)}
+                <ProFormText
+                  name="sourceSalesOrderCode"
+                  label="ERP销售订单号"
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
-                  label="客户"
-                  value={displayOrDash(demand?.customerName)}
+                <ProFormText
+                  name="sourceCustomerName"
+                  label="客户名称"
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
-                  label="客户代码"
-                  value={displayOrDash(demand?.customerCode)}
+                <ProFormText
+                  name="sourceOrderType"
+                  label="需求类型"
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
+                <ProFormText
+                  name="sourceDomesticTradeType"
                   label="内外销"
-                  value={displayOrDash(demand?.domesticTradeType)}
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
+                <ProFormText
+                  name="sourceTradeTerm"
+                  label="贸易方式"
+                  readonly
+                  fieldProps={{ disabled: true }}
+                />
+                <ProFormText
+                  name="sourcePaymentTerm"
+                  label="付款方式"
+                  readonly
+                  fieldProps={{ disabled: true }}
+                />
+                <ProFormText
+                  name="sourceRequiredDeliveryAt"
                   label="要求到货日期"
-                  value={displayOrDash(demand?.requiredDeliveryAt)}
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
+                <ProFormText
+                  name="sourceOriginCountryName"
                   label="起运地"
-                  value={displayOrDash(demand?.shipmentOriginCountryName)}
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
-                  label="目的港/目的地"
-                  value={displayOrDash(demand?.destinationPortName)}
-                />
-                <MetaItem
+                <ProFormText
+                  name="sourceDestinationCountryName"
                   label="运抵国"
-                  value={displayOrDash(demand?.destinationCountryName)}
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
-                <MetaItem
-                  label="签约公司"
-                  value={displayOrDash(demand?.signingCompanyName)}
+                <ProFormText
+                  name="sourceCurrencyCode"
+                  label="外销币种"
+                  readonly
+                  fieldProps={{ disabled: true }}
+                />
+                <ProFormText
+                  name="sourceContractAmount"
+                  label="合同金额"
+                  readonly
+                  fieldProps={{ disabled: true }}
+                />
+                <ProFormText
+                  name="sourceIsInsured"
+                  label="是否投保"
+                  readonly
+                  fieldProps={{ disabled: true }}
                 />
               </div>
             </SectionCard>
 
             <SectionCard
-              id="transport"
-              title="物流信息"
-              description="填写供应商、运输方式和本次运输口径。"
+              id="basic"
+              title="基本信息"
+              description="填写本次物流安排的主体、港口和运输方式。"
             >
               <div className="master-form-grid">
                 <ProFormSelect
@@ -413,7 +495,7 @@ export default function LogisticsOrderFormPage() {
                 />
                 <ProFormText
                   name="logisticsProviderName"
-                  label="供应商名称"
+                  label="订舱代理/快递服务商"
                   readonly
                 />
                 <ProFormSelect
@@ -599,25 +681,13 @@ export default function LogisticsOrderFormPage() {
                   label="运抵国名称"
                   rules={[{ required: true, message: "请输入运抵国" }]}
                 />
-                <ProFormSelect
-                  name="requiresExportCustoms"
-                  label="是否出口报关"
-                  options={YES_NO_OPTIONS}
-                />
-                <div className="full">
-                  <ProFormTextArea
-                    name="remarks"
-                    label="备注"
-                    fieldProps={{ rows: 3 }}
-                  />
-                </div>
               </div>
             </SectionCard>
 
             <SectionCard
               id="items"
               title="产品明细"
-              description="只使用已锁定且尚未计划出运的数量。"
+              description="只使用已锁定且尚未被其他 active 物流单计划的数量。"
             >
               <Table
                 rowKey="shippingDemandItemId"
@@ -631,14 +701,23 @@ export default function LogisticsOrderFormPage() {
             <SectionCard
               id="packages"
               title="装箱信息"
-              description="填写本次物流单的装箱行。"
+              description="同一 SKU 可拆成多条装箱行，但每个 SKU 的装箱总数量必须等于本次计划数量。"
             >
               <ProFormList
                 name="packages"
                 creatorButtonProps={{ creatorButtonText: "添加装箱行" }}
                 copyIconProps={false}
               >
-                <div className="master-form-grid">
+                <div
+                  className="master-form-grid"
+                  style={{ gridTemplateColumns: "minmax(0, 1fr)" }}
+                >
+                  <ProFormSelect
+                    name="shippingDemandItemId"
+                    label="SKU"
+                    options={packageSkuOptions}
+                    rules={[{ required: true, message: "请选择 SKU" }]}
+                  />
                   <ProFormText
                     name="packageNo"
                     label="箱号"
@@ -660,10 +739,10 @@ export default function LogisticsOrderFormPage() {
                   />
                   <ProFormDigit
                     name="totalQuantity"
-                    label="总数量"
+                    label="数量"
                     min={1}
                     fieldProps={{ precision: 0 }}
-                    rules={[{ required: true, message: "请输入总数量" }]}
+                    rules={[{ required: true, message: "请输入数量" }]}
                   />
                   <ProFormDigit
                     name="lengthCm"
@@ -687,7 +766,7 @@ export default function LogisticsOrderFormPage() {
                     name="grossWeightKg"
                     label="毛重(kg)"
                     min={0}
-                    fieldProps={{ precision: 3 }}
+                    fieldProps={{ precision: 1 }}
                   />
                   <ProFormText name="remarks" label="装箱备注" />
                 </div>
@@ -695,9 +774,37 @@ export default function LogisticsOrderFormPage() {
             </SectionCard>
 
             <SectionCard
-              id="requirements"
+              id="customs"
+              title="报关与备注"
+              description="创建期只处理报关和备注，不展示物流跟踪字段。"
+            >
+              <div className="master-form-grid">
+                <ProFormSelect
+                  name="requiresExportCustoms"
+                  label="是否出口报关"
+                  options={YES_NO_OPTIONS}
+                />
+                <div className="full">
+                  <ProFormTextArea
+                    name="shippingMark"
+                    label="唛头"
+                    fieldProps={{ rows: 3 }}
+                  />
+                </div>
+                <div className="full">
+                  <ProFormTextArea
+                    name="remarks"
+                    label="备注"
+                    fieldProps={{ rows: 3 }}
+                  />
+                </div>
+              </div>
+            </SectionCard>
+
+            <SectionCard
+              id="inherited"
               title="继承要求"
-              description="从发货需求继承，不影响库存数量。"
+              description="从发货需求继承的收发通与单据要求，创建时只读展示。"
             >
               <div className="master-meta-grid">
                 <MetaItem
@@ -726,8 +833,13 @@ export default function LogisticsOrderFormPage() {
                   full
                 />
                 <MetaItem
+                  label="是否公司常规唛头"
+                  value={displayOrDash(demand?.usesDefaultShippingMark)}
+                />
+                <MetaItem
                   label="唛头补充信息"
                   value={displayOrDash(demand?.shippingMarkNote)}
+                  full
                 />
                 <MetaItem
                   label="随货文件"
@@ -755,13 +867,17 @@ export default function LogisticsOrderFormPage() {
                 >
                   取消
                 </Button>
-                <Button
-                  type="primary"
-                  loading={createMutation.isPending}
-                  onClick={() => formRef.current?.submit()}
+                <Popconfirm
+                  title="确认创建物流单？"
+                  description="创建成功后物流单状态将直接变为“已确认”。"
+                  okText="确认创建"
+                  cancelText="再检查一下"
+                  onConfirm={() => formRef.current?.submit()}
                 >
-                  创建物流单
-                </Button>
+                  <Button type="primary" loading={createMutation.isPending}>
+                    创建物流单
+                  </Button>
+                </Popconfirm>
               </Space>
             </div>
           </div>

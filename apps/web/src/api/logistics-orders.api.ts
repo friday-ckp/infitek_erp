@@ -29,6 +29,10 @@ export interface LogisticsOrderItem {
 export interface LogisticsOrderPackage {
   id: number;
   logisticsOrderId: number;
+  logisticsOrderItemId?: number | null;
+  shippingDemandItemId?: number | null;
+  skuId?: number | null;
+  skuCode?: string | null;
   packageNo: string;
   quantityPerBox: number;
   boxCount: number;
@@ -65,6 +69,14 @@ export interface LogisticsOrder {
   destinationCountryName: string;
   requiredDeliveryAt?: string | null;
   requiresExportCustoms?: YesNo | null;
+  shippingMark?: string | null;
+  etd?: string | null;
+  eta?: string | null;
+  bookingNumber?: string | null;
+  carrier?: string | null;
+  vesselVoyage?: string | null;
+  blSoNumber?: string | null;
+  actualDepartureDate?: string | null;
   consigneeCompany?: string | null;
   consigneeOtherInfo?: string | null;
   notifyCompany?: string | null;
@@ -113,6 +125,7 @@ export interface CreateLogisticsOrderItemPayload {
 }
 
 export interface CreateLogisticsOrderPackagePayload {
+  shippingDemandItemId: number;
   packageNo: string;
   quantityPerBox: number;
   boxCount: number;
@@ -138,6 +151,7 @@ export interface CreateLogisticsOrderPayload {
   destinationCountryId?: number;
   destinationCountryName: string;
   requiresExportCustoms?: YesNo;
+  shippingMark?: string;
   remarks?: string;
   items: CreateLogisticsOrderItemPayload[];
   packages: CreateLogisticsOrderPackagePayload[];

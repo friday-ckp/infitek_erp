@@ -29,6 +29,19 @@ interface LogisticsPlanLine {
   availableToPlan: number;
 }
 
+interface LogisticsPackageLine {
+  shippingDemandItemId: number;
+  packageNo: string;
+  quantityPerBox: number;
+  boxCount: number;
+  totalQuantity: number;
+  lengthCm?: number;
+  widthCm?: number;
+  heightCm?: number;
+  grossWeightKg?: number;
+  remarks?: string;
+}
+
 @Injectable()
 export class LogisticsOrdersService {
   constructor(
@@ -108,6 +121,7 @@ export class LogisticsOrdersService {
       LogisticsOrderPackage,
     );
     const orderCode = await this.generateOrderCode(queryRunner);
+    const packageLines = this.preparePackageLines(dto, lines);
 
     const savedOrder = await orderRepo.save(
       orderRepo.create({
@@ -142,6 +156,14 @@ export class LogisticsOrdersService {
         requiredDeliveryAt: demand.requiredDeliveryAt,
         requiresExportCustoms:
           dto.requiresExportCustoms ?? demand.requiresExportCustoms,
+        shippingMark: dto.shippingMark?.trim() || null,
+        etd: null,
+        eta: null,
+        bookingNumber: null,
+        carrier: null,
+        vesselVoyage: null,
+        blSoNumber: null,
+        actualDepartureDate: null,
         consigneeCompany: demand.consigneeCompany,
         consigneeOtherInfo: demand.consigneeOtherInfo,
         notifyCompany: demand.notifyCompany,
@@ -163,7 +185,7 @@ export class LogisticsOrdersService {
       }),
     );
 
-    await itemRepo.save(
+    const savedItems = await itemRepo.save(
       lines.map((line) =>
         itemRepo.create({
           logisticsOrderId: Number(savedOrder.id),
@@ -186,11 +208,19 @@ export class LogisticsOrdersService {
         }),
       ),
     );
+    const savedItemByDemandItemId = new Map(
+      savedItems.map((item) => [Number(item.shippingDemandItemId), item]),
+    );
 
     await packageRepo.save(
-      dto.packages.map((pkg) =>
-        packageRepo.create({
+      packageLines.map((pkg) => {
+        const savedItem = savedItemByDemandItemId.get(pkg.shippingDemandItemId);
+        return packageRepo.create({
           logisticsOrderId: Number(savedOrder.id),
+          logisticsOrderItemId: savedItem ? Number(savedItem.id) : null,
+          shippingDemandItemId: pkg.shippingDemandItemId,
+          skuId: savedItem ? Number(savedItem.skuId) : null,
+          skuCode: savedItem?.skuCode ?? null,
           packageNo: pkg.packageNo,
           quantityPerBox: pkg.quantityPerBox,
           boxCount: pkg.boxCount,
@@ -202,8 +232,8 @@ export class LogisticsOrdersService {
           remarks: pkg.remarks?.trim() || null,
           createdBy: operator,
           updatedBy: operator,
-        }),
-      ),
+        });
+      }),
     );
 
     await this.writeCreateOperationLog(
@@ -353,12 +383,92 @@ export class LogisticsOrdersService {
     });
   }
 
+  private preparePackageLines(
+    dto: CreateLogisticsOrderDto,
+    lines: LogisticsPlanLine[],
+  ): LogisticsPackageLine[] {
+    if (!dto.packages?.length) {
+      throw new BadRequestException({
+        code: 'LOGISTICS_ORDER_PACKAGES_REQUIRED',
+        message: '物流单必须包含装箱信息',
+      });
+    }
+
+    const lineByDemandItemId = new Map(
+      lines.map((line) => [Number(line.item.id), line]),
+    );
+    const packedQuantityByItemId = new Map<number, number>();
+    const seenPackageNos = new Set<string>();
+
+    const packageLines = dto.packages.map((pkg) => {
+      const normalizedPackageNo = pkg.packageNo.trim();
+      if (!normalizedPackageNo) {
+        throw new BadRequestException({
+          code: 'LOGISTICS_PACKAGE_NO_REQUIRED',
+          message: '箱号不能为空',
+        });
+      }
+      if (seenPackageNos.has(normalizedPackageNo)) {
+        throw new BadRequestException({
+          code: 'DUPLICATE_LOGISTICS_PACKAGE_NO',
+          message: `箱号 ${normalizedPackageNo} 重复，请调整后再提交`,
+        });
+      }
+      seenPackageNos.add(normalizedPackageNo);
+
+      const line = lineByDemandItemId.get(pkg.shippingDemandItemId);
+      if (!line) {
+        throw new BadRequestException({
+          code: 'LOGISTICS_PACKAGE_ITEM_NOT_IN_DEMAND',
+          message: '装箱信息中的 SKU 必须来自当前物流单产品明细',
+        });
+      }
+      if (pkg.quantityPerBox * pkg.boxCount !== pkg.totalQuantity) {
+        throw new BadRequestException({
+          code: 'LOGISTICS_PACKAGE_TOTAL_MISMATCH',
+          message: `${line.item.skuCode} 的装箱数量必须等于每箱数量乘以箱数`,
+        });
+      }
+
+      packedQuantityByItemId.set(
+        pkg.shippingDemandItemId,
+        (packedQuantityByItemId.get(pkg.shippingDemandItemId) ?? 0) +
+          pkg.totalQuantity,
+      );
+
+      return {
+        shippingDemandItemId: pkg.shippingDemandItemId,
+        packageNo: normalizedPackageNo,
+        quantityPerBox: pkg.quantityPerBox,
+        boxCount: pkg.boxCount,
+        totalQuantity: pkg.totalQuantity,
+        lengthCm: pkg.lengthCm,
+        widthCm: pkg.widthCm,
+        heightCm: pkg.heightCm,
+        grossWeightKg: pkg.grossWeightKg,
+        remarks: pkg.remarks,
+      };
+    });
+
+    for (const line of lines) {
+      const packedQuantity = packedQuantityByItemId.get(Number(line.item.id)) ?? 0;
+      if (packedQuantity !== line.plannedQuantity) {
+        throw new BadRequestException({
+          code: 'LOGISTICS_PACKAGE_QUANTITY_MISMATCH',
+          message: `${line.item.skuCode} 的装箱总数量必须等于本次计划数量 ${line.plannedQuantity}`,
+        });
+      }
+    }
+
+    return packageLines;
+  }
+
   private async generateOrderCode(queryRunner: QueryRunner): Promise<string> {
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
-    const prefix = `LO${year}${month}${day}`;
+    const prefix = `LOG${year}${month}${day}`;
     const latest = await queryRunner.manager
       .getRepository(LogisticsOrder)
       .createQueryBuilder('logisticsOrder')
@@ -369,7 +479,7 @@ export class LogisticsOrdersService {
     const lastNumber = latest?.orderCode
       ? Number(latest.orderCode.slice(prefix.length))
       : 0;
-    return `${prefix}${String(lastNumber + 1).padStart(5, '0')}`;
+    return `${prefix}${String(lastNumber + 1).padStart(3, '0')}`;
   }
 
   private async sumActivePlannedQuantityByDemandItemIdsInTransaction(
