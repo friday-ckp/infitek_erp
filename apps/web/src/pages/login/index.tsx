@@ -1,21 +1,13 @@
 import { useState } from 'react';
-import { Form, Input, Button, Typography, Alert } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { Alert, Button, Checkbox, Form, Input, Typography } from 'antd';
+import { ArrowRightOutlined, LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
+import { Navigate, useNavigate } from 'react-router-dom';
 import request from '../../api/request';
 import { useAuthStore } from '../../store/auth.store';
+import antdStatic from '../../utils/antdStatic';
 import './login.css';
 
 const { Title, Text } = Typography;
-
-const modules = [
-  { label: '销售', icon: '📈' },
-  { label: '采购', icon: '🛒' },
-  { label: '仓储', icon: '📦' },
-  { label: '财务', icon: '💰' },
-  { label: '物流', icon: '🚚' },
-  { label: '产品', icon: '🏷️' },
-];
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -40,72 +32,123 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="lp-root">
-      {/* Background */}
-      <div className="lp-bg-gradient" />
-      <div className="lp-bg-grid" />
-      <div className="lp-orb lp-orb-1" />
-      <div className="lp-orb lp-orb-2" />
-      <div className="lp-orb lp-orb-3" />
+    <div className="layout-container">
+      <section className="visual-section">
+        <div className="glow-top" />
+        <div className="glow-bottom" />
+        <div className="circle-decorator" />
 
-      {/* Right-side orbiting art */}
-      <div className="lp-chip-wrap">
-        <div className="lp-chip-ring lp-chip-ring-1" />
-        <div className="lp-chip-ring lp-chip-ring-2" />
-        <div className="lp-chip-center">⚡</div>
-        {modules.map((m, i) => (
-          <div key={m.label} className={`lp-chip lp-chip-${i + 1}`}>
-            <span className="lp-chip-icon">{m.icon}</span>
-            <span className="lp-chip-label">{m.label}</span>
+        <div className="brand-logo">
+          <SafetyCertificateOutlined />
+          <span>跨境电商管理系统</span>
+        </div>
+
+        <div className="visual-content">
+          <div className="visual-text">
+            <Title level={2}>企业级数据驱动<br />智能管理平台</Title>
+            <Text>
+              通过全方位的资源计划与数据分析，赋能企业高效运营，实现业务流程自动化与数据资产化。
+            </Text>
           </div>
-        ))}
-      </div>
 
-      {/* Right tagline */}
-      <div className="lp-tagline">
-        <div className="lp-tagline-title">一体化企业资源管理</div>
-        <div className="lp-tagline-sub">覆盖销售、供应链、产品、用户管理全流程，<br />助力企业高效运营。</div>
-        <div className="lp-tagline-dots">
-          <div className="lp-tagline-dot active" />
-          <div className="lp-tagline-dot" />
-          <div className="lp-tagline-dot" />
+          <div className="visual-cards-container">
+            <div className="floating-ui">
+              <div className="skeleton-header" />
+              <div className="skeleton-chart" />
+              <div className="skeleton-row">
+                <div className="skeleton-block" />
+                <div className="skeleton-block" />
+              </div>
+            </div>
+
+            <div className="floating-ui-2">
+              <div className="skeleton-row skeleton-row--profile">
+                <div className="skeleton-avatar" />
+                <div className="skeleton-line" />
+              </div>
+              <div className="skeleton-line skeleton-line--w80" />
+              <div className="skeleton-line skeleton-line--w60" />
+              <div className="skeleton-line skeleton-line--w90" />
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Login card — centered left of the art */}
-      <div className="lp-card">
-        <div className="lp-logo">
-          <div className="lp-logo-icon">I</div>
-          <span className="lp-logo-name">Infitek ERP</span>
+      <section className="form-section">
+        <div className="watermark">
+          <SafetyCertificateOutlined />
         </div>
 
-        <Title level={2} className="lp-title">Welcome Back</Title>
-        <Text className="lp-subtitle">登录您的企业管理平台</Text>
+        <div className="form-container">
+          <div className="form-header">
+            <Title level={3}>欢迎回来</Title>
+            <Text>请输入您的企业账号以访问系统</Text>
+          </div>
 
-        {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 16 }} />}
+          {error && <Alert message={error} type="error" showIcon className="login-alert" />}
 
-        <Form
-          className="lp-form"
-          initialValues={{ username: 'admin', password: 'Admin@123' }}
-          onFinish={handleFinish}
-          size="large"
-          layout="vertical"
-        >
-          <Form.Item label="用户名" name="username" rules={[{ required: true, message: '请输入用户名' }]}>
-            <Input prefix={<UserOutlined />} placeholder="请输入用户名" />
-          </Form.Item>
-          <Form.Item label="密码" name="password" rules={[{ required: true, message: '请输入密码' }]}>
-            <Input.Password prefix={<LockOutlined />} placeholder="请输入密码" />
-          </Form.Item>
-          <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
-            <Button type="primary" htmlType="submit" loading={loading} className="lp-submit">
-              登录
+          <Form
+            className="login-form"
+            initialValues={{ username: 'admin', password: 'Admin@123', remember: true }}
+            onFinish={handleFinish}
+            size="large"
+            layout="vertical"
+          >
+            <div className="input-group">
+              <label htmlFor="account">企业账号 / 邮箱</label>
+              <div className="input-wrapper">
+                <Form.Item name="username" rules={[{ required: true, message: '请输入用户名' }]} style={{ marginBottom: 0, width: '100%' }}>
+                  <Input
+                    id="account"
+                    className="form-input"
+                    placeholder="admin@infitek.com"
+                    prefix={<UserOutlined className="input-icon" />}
+                  />
+                </Form.Item>
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label htmlFor="password">登录密码</label>
+              <div className="input-wrapper">
+                <Form.Item name="password" rules={[{ required: true, message: '请输入密码' }]} style={{ marginBottom: 0, width: '100%' }}>
+                  <Input.Password
+                    id="password"
+                    className="form-input"
+                    placeholder="••••••••"
+                    prefix={<LockOutlined className="input-icon" />}
+                  />
+                </Form.Item>
+              </div>
+            </div>
+
+            <div className="form-actions">
+              <Form.Item name="remember" valuePropName="checked" noStyle>
+                <Checkbox className="checkbox-label">自动登录</Checkbox>
+              </Form.Item>
+              <button type="button" className="forgot-link">
+                忘记密码？
+              </button>
+            </div>
+
+            <Button htmlType="submit" type="primary" className="btn-submit" loading={loading}>
+              <span>{loading ? '验证中...' : '登录系统'}</span>
+              {!loading && <ArrowRightOutlined />}
             </Button>
-          </Form.Item>
-        </Form>
 
-        <div className="lp-footer">© 2026 Infitek. All rights reserved.</div>
-      </div>
+            <div className="divider">或者</div>
+
+            <button
+              type="button"
+              className="sso-btn"
+              onClick={() => antdStatic.message?.info('该功能暂未开发')}
+            >
+              <SafetyCertificateOutlined />
+              <span>通过企业 SSO 登录</span>
+            </button>
+          </Form>
+        </div>
+      </section>
     </div>
   );
 }
