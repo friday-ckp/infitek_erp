@@ -421,56 +421,65 @@ function FlowProgress({
   hasOutboundOrders: boolean;
 }) {
   const getProgressState = () => {
+    const stockOnlyProgress = {
+      activeIndex: hasOutboundOrders ? 4 : hasLogisticsOrders ? 3 : 2,
+      doneIndexes: new Set([0, 1]),
+      steps: [
+        "需求创建",
+        "分配库存",
+        "备货完成",
+        "创建物流",
+        "出库发货",
+        "完成",
+      ],
+    };
+    const purchaseProgress = {
+      activeIndex: hasOutboundOrders ? 6 : hasLogisticsOrders ? 5 : 4,
+      doneIndexes: new Set([0, 1, 2, 3]),
+      steps: [
+        "需求创建",
+        "分配库存",
+        "待生成采购单",
+        "采购中",
+        "备货完成",
+        "创建物流",
+        "出库发货",
+        "完成",
+      ],
+    };
+
     switch (status) {
       case ShippingDemandStatus.PENDING_ALLOCATION:
-        return { activeIndex: 1, doneIndexes: new Set([0]) };
+        return purchaseProgress;
       case ShippingDemandStatus.PENDING_PURCHASE_ORDER:
-        return { activeIndex: 2, doneIndexes: new Set([0, 1]) };
+        return purchaseProgress;
       case ShippingDemandStatus.PURCHASING:
-        return { activeIndex: 3, doneIndexes: new Set([0, 1, 2]) };
+        return purchaseProgress;
       case ShippingDemandStatus.PREPARED:
-        return {
-          activeIndex: hasLogisticsOrders ? 5 : 4,
-          doneIndexes: new Set(
-            hasPurchaseRequirement
-              ? hasLogisticsOrders
-                ? [0, 1, 2, 3, 4]
-                : [0, 1, 2, 3]
-              : hasLogisticsOrders
-                ? [0, 1, 4]
-                : [0, 1],
-          ),
-        };
+        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
       case ShippingDemandStatus.PARTIALLY_SHIPPED:
-        return {
-          activeIndex: hasOutboundOrders ? 6 : hasLogisticsOrders ? 5 : 4,
-          doneIndexes: new Set(
-            hasPurchaseRequirement ? [0, 1, 2, 3, 4, 5] : [0, 1, 4, 5],
-          ),
-        };
+        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
       case ShippingDemandStatus.SHIPPED:
-        return {
-          activeIndex: 7,
-          doneIndexes: new Set(
-            hasPurchaseRequirement ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 4, 5, 6],
-          ),
-        };
+        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
       case ShippingDemandStatus.VOIDED:
       default:
-        return { activeIndex: 0, doneIndexes: new Set<number>() };
+        return {
+          activeIndex: 0,
+          doneIndexes: new Set<number>(),
+          steps: [
+            "需求创建",
+            "分配库存",
+            "待生成采购单",
+            "采购中",
+            "备货完成",
+            "创建物流",
+            "出库发货",
+            "完成",
+          ],
+        };
     }
   };
-  const { activeIndex, doneIndexes } = getProgressState();
-  const steps = [
-    "需求创建",
-    "分配库存",
-    "待生成采购单",
-    "采购中",
-    "备货完成",
-    "创建物流",
-    "出库发货",
-    "完成",
-  ];
+  const { activeIndex, doneIndexes, steps } = getProgressState();
 
   return (
     <div className="shipping-demand-flow">
@@ -1922,7 +1931,12 @@ export default function ShippingDemandDetailPage() {
         title="发货枢纽"
         description="查看流程阶段、关联入口和履约数量摘要。"
       >
-        <div className="shipping-demand-hub">
+    <div className="shipping-demand-hub">
+          {!hasPurchaseRequirement ? (
+            <div className="shipping-demand-hub-tip">
+              本单全部使用现有库存，已跳过采购阶段
+            </div>
+          ) : null}
           <FlowProgress
             status={data?.status}
             hasPurchaseRequirement={hasPurchaseRequirement}
