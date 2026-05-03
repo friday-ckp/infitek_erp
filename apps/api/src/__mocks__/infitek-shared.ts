@@ -182,6 +182,21 @@ export const ReceiptOrderStatus = {
 export type ReceiptOrderStatus =
   (typeof ReceiptOrderStatus)[keyof typeof ReceiptOrderStatus];
 
+export const OutboundOrderStatus = {
+  CONFIRMED: 'confirmed',
+} as const;
+export type OutboundOrderStatus =
+  (typeof OutboundOrderStatus)[keyof typeof OutboundOrderStatus];
+
+export const OutboundOrderType = {
+  SALES: 'sales_outbound',
+  LOSS: 'loss_outbound',
+  INVENTORY_LOSS: 'inventory_loss_outbound',
+  OTHER: 'other',
+} as const;
+export type OutboundOrderType =
+  (typeof OutboundOrderType)[keyof typeof OutboundOrderType];
+
 export const ReceiptOrderType = {
   PURCHASE_RECEIPT: 'purchase_receipt',
   SALES_RETURN_RECEIPT: 'sales_return_receipt',

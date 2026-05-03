@@ -437,6 +437,19 @@ export const RESOURCE_OPERATION_LOG_FIELD_LABELS: Record<string, Record<string, 
     items: '货物明细',
     packages: '装箱信息',
   },
+  'outbound-orders': {
+    outboundCode: '出库单号',
+    logisticsOrderId: '物流单',
+    logisticsOrderCode: '物流单号',
+    shippingDemandId: '发货需求',
+    shippingDemandCode: '发货需求编号',
+    salesOrderId: '销售订单',
+    salesOrderCode: '销售订单号',
+    status: '出库单状态',
+    remark: '备注',
+    items: '出库明细',
+    outboundSummary: '出库结果',
+  },
 };
 
 export function resolveOperationLogFieldLabel(

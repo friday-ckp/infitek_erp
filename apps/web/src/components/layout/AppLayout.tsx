@@ -148,6 +148,14 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     ],
   },
   {
+    pattern: /^\/outbound-orders\/create$/,
+    items: [
+      { title: "商务管理", path: COMMERCE_SECTION_PATH },
+      { title: "物流单", path: "/logistics-orders" },
+      { title: "创建发货出库单" },
+    ],
+  },
+  {
     pattern: /^\/logistics-orders$/,
     items: [
       { title: "商务管理", path: COMMERCE_SECTION_PATH },

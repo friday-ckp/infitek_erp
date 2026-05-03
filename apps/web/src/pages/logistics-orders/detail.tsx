@@ -258,6 +258,11 @@ export default function LogisticsOrderDetailPage() {
   const canEditTracking =
     data?.status === LogisticsOrderStatus.CONFIRMED ||
     data?.status === LogisticsOrderStatus.SHIPPED;
+  const canCreateOutbound =
+    data?.status === LogisticsOrderStatus.CONFIRMED &&
+    (data?.items ?? []).some(
+      (item) => Number(item.plannedQuantity ?? 0) > Number(item.outboundQuantity ?? 0),
+    );
 
   const openTrackingEdit = () => {
     trackingForm.setFieldsValue({
@@ -310,6 +315,16 @@ export default function LogisticsOrderDetailPage() {
                   {canEditTracking ? (
                     <Button type="primary" onClick={openTrackingEdit}>
                       编辑物流跟踪
+                    </Button>
+                  ) : null}
+                  {canCreateOutbound ? (
+                    <Button
+                      type="primary"
+                      onClick={() =>
+                        navigate(`/outbound-orders/create?logisticsOrderId=${logisticsOrderId}`)
+                      }
+                    >
+                      创建发货出库单
                     </Button>
                   ) : null}
                 </Space>
@@ -522,7 +537,21 @@ export default function LogisticsOrderDetailPage() {
               />
               <MetaItem
                 label="出库单"
-                value="发货出库单将在 Story 7.3 接入"
+                value={
+                  canCreateOutbound ? (
+                    <Button
+                      type="link"
+                      style={{ padding: 0 }}
+                      onClick={() =>
+                        navigate(`/outbound-orders/create?logisticsOrderId=${logisticsOrderId}`)
+                      }
+                    >
+                      创建发货出库单
+                    </Button>
+                  ) : (
+                    "当前物流单无剩余待出库数量"
+                  )
+                }
                 full
               />
             </div>

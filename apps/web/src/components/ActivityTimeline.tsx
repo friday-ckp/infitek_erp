@@ -301,6 +301,11 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<
       other: "其它",
     },
   },
+  "outbound-orders": {
+    status: {
+      confirmed: "已确认",
+    },
+  },
   "logistics-providers": {
     status: {
       合作: "合作",
