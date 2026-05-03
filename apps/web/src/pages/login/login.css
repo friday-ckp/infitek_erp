@@ -452,16 +452,10 @@ body {
 
 .form-actions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-top: 0.5rem;
   margin-bottom: 1rem;
-}
-
-.checkbox-label.ant-checkbox-wrapper {
-  color: var(--text-body);
-  font-size: 14px;
-  font-weight: 500;
 }
 
 .forgot-link {

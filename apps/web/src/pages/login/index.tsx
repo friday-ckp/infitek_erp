@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Button, Checkbox, Form, Input, Typography } from 'antd';
+import { Alert, Button, Form, Input, Typography } from 'antd';
 import { ArrowRightOutlined, LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
 import { Navigate, useNavigate } from 'react-router-dom';
 import request from '../../api/request';
@@ -89,7 +89,7 @@ export default function LoginPage() {
 
           <Form
             className="login-form"
-            initialValues={{ username: 'admin', password: 'Admin@123', remember: true }}
+            initialValues={{ username: 'admin', password: 'Admin@123' }}
             onFinish={handleFinish}
             size="large"
             layout="vertical"
@@ -123,9 +123,6 @@ export default function LoginPage() {
             </div>
 
             <div className="form-actions">
-              <Form.Item name="remember" valuePropName="checked" noStyle>
-                <Checkbox className="checkbox-label">自动登录</Checkbox>
-              </Form.Item>
               <button type="button" className="forgot-link">
                 忘记密码？
               </button>

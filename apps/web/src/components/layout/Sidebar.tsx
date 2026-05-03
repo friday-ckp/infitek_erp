@@ -199,8 +199,8 @@ export default function Sidebar() {
   const systemItems = menuItems.filter(i => i.section === SECTION_SYSTEM);
 
   const renderMenuGroup = (item: typeof menuItems[0]) => {
-    const isOpen = openKeys.includes(item.key) || Boolean(item.defaultPath);
     const hasActiveChild = item.children.some((c) => isChildRouteActive(location.pathname, c.key));
+    const isOpen = openKeys.includes(item.key) || hasActiveChild;
 
     if (item.disabled) {
       return (
