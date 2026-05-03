@@ -38,6 +38,7 @@ import { PurchaseOrdersModule } from './modules/purchase-orders/purchase-orders.
 import { ReceiptOrdersModule } from './modules/receipt-orders/receipt-orders.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OperationLogsModule } from './modules/operation-logs/operation-logs.module';
+import { OutboundOrdersModule } from './modules/outbound-orders/outbound-orders.module';
 import databaseConfig from './config/database.config';
 import { createLoggerConfig } from './config/logger.config';
 
@@ -72,6 +73,7 @@ import { createLoggerConfig } from './config/logger.config';
     LogisticsOrdersModule,
     PurchaseOrdersModule,
     ReceiptOrdersModule,
+    OutboundOrdersModule,
     InventoryModule,
     ProductCategoriesModule,
     SuppliersModule,
