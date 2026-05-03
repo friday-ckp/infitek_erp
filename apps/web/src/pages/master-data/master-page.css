@@ -717,6 +717,19 @@
   gap: 16px;
 }
 
+.shipping-demand-hub-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 700;
+}
+
 .shipping-demand-flow {
   display: grid;
   grid-template-columns: repeat(8, minmax(78px, 1fr));

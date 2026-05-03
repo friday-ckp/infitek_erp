@@ -38,6 +38,7 @@ import {
   ExportOutlined,
   FileDoneOutlined,
   FileProtectOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -1931,10 +1932,11 @@ export default function ShippingDemandDetailPage() {
         title="发货枢纽"
         description="查看流程阶段、关联入口和履约数量摘要。"
       >
-    <div className="shipping-demand-hub">
+        <div className="shipping-demand-hub">
           {!hasPurchaseRequirement ? (
             <div className="shipping-demand-hub-tip">
-              本单全部使用现有库存，已跳过采购阶段
+              <InfoCircleOutlined />
+              <span>本单全部使用现有库存，已跳过采购阶段</span>
             </div>
           ) : null}
           <FlowProgress
