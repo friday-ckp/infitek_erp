@@ -9,6 +9,22 @@ import {
 import request from "./request";
 import type { ShippingDemand } from "./shipping-demands.api";
 
+export const LOGISTICS_ORDER_STATUS_LABELS: Record<LogisticsOrderStatus, string> = {
+  [LogisticsOrderStatus.CONFIRMED]: "已确认",
+  [LogisticsOrderStatus.SHIPPED]: "已发运",
+  [LogisticsOrderStatus.DELIVERED]: "已送达",
+  [LogisticsOrderStatus.CANCELLED]: "已取消",
+};
+
+export const TRANSPORTATION_METHOD_LABELS: Record<TransportationMethod, string> = {
+  [TransportationMethod.SEA]: "海运",
+  [TransportationMethod.AIR]: "空运",
+  [TransportationMethod.ROAD]: "陆运",
+  [TransportationMethod.RAIL]: "铁路",
+  [TransportationMethod.EXPRESS]: "快递",
+  [TransportationMethod.OTHER]: "其它",
+};
+
 export interface LogisticsOrderItem {
   id: number;
   logisticsOrderId: number;
@@ -97,6 +113,24 @@ export interface LogisticsOrder {
   updatedAt: string;
   items?: LogisticsOrderItem[];
   packages?: LogisticsOrderPackage[];
+  itemCount?: number;
+}
+
+export interface LogisticsOrdersListParams {
+  keyword?: string;
+  status?: LogisticsOrderStatus;
+  logisticsProviderId?: number;
+  shippingDemandId?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface LogisticsOrdersListData {
+  list: LogisticsOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export interface LogisticsOrderPrefillItem {
@@ -157,6 +191,16 @@ export interface CreateLogisticsOrderPayload {
   packages: CreateLogisticsOrderPackagePayload[];
 }
 
+export interface UpdateLogisticsTrackingPayload {
+  etd?: string | null;
+  eta?: string | null;
+  bookingNumber?: string | null;
+  carrier?: string | null;
+  vesselVoyage?: string | null;
+  blSoNumber?: string | null;
+  actualDepartureDate?: string | null;
+}
+
 function normalizeApiError(error: unknown): never {
   if (typeof error === "object" && error !== null) throw error;
   throw { message: "请求失败，请稍后重试" };
@@ -171,6 +215,13 @@ export const getLogisticsOrderCreatePrefill = (
     })
     .catch(normalizeApiError);
 
+export const getLogisticsOrders = (
+  params: LogisticsOrdersListParams,
+): Promise<LogisticsOrdersListData> =>
+  request
+    .get<unknown, LogisticsOrdersListData>("/logistics-orders", { params })
+    .catch(normalizeApiError);
+
 export const createLogisticsOrder = (
   payload: CreateLogisticsOrderPayload,
 ): Promise<LogisticsOrder> =>
@@ -181,4 +232,12 @@ export const createLogisticsOrder = (
 export const getLogisticsOrderById = (id: number): Promise<LogisticsOrder> =>
   request
     .get<unknown, LogisticsOrder>(`/logistics-orders/${id}`)
+    .catch(normalizeApiError);
+
+export const updateLogisticsTracking = (
+  id: number,
+  payload: UpdateLogisticsTrackingPayload,
+): Promise<LogisticsOrder> =>
+  request
+    .patch<unknown, LogisticsOrder>(`/logistics-orders/${id}/tracking`, payload)
     .catch(normalizeApiError);

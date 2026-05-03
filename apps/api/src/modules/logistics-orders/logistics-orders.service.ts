@@ -14,6 +14,7 @@ import { ShippingDemandItem } from '../shipping-demands/entities/shipping-demand
 import { ShippingDemand } from '../shipping-demands/entities/shipping-demand.entity';
 import { CreateLogisticsOrderDto } from './dto/create-logistics-order.dto';
 import { QueryLogisticsOrderDto } from './dto/query-logistics-order.dto';
+import { UpdateLogisticsTrackingDto } from './dto/update-logistics-tracking.dto';
 import { LogisticsOrderItem } from './entities/logistics-order-item.entity';
 import { LogisticsOrderPackage } from './entities/logistics-order-package.entity';
 import { LogisticsOrder } from './entities/logistics-order.entity';
@@ -93,6 +94,26 @@ export class LogisticsOrdersService {
       async (queryRunner) => {
         const order = await this.createInTransaction(
           queryRunner,
+          dto,
+          operator,
+        );
+        return Number(order.id);
+      },
+    );
+
+    return this.findById(orderId);
+  }
+
+  async updateTracking(
+    id: number,
+    dto: UpdateLogisticsTrackingDto,
+    operator?: string,
+  ): Promise<LogisticsOrder> {
+    const orderId = await this.executeWithLogisticsOrderCodeRetry(
+      async (queryRunner) => {
+        const order = await this.updateTrackingInTransaction(
+          queryRunner,
+          id,
           dto,
           operator,
         );
@@ -243,6 +264,64 @@ export class LogisticsOrdersService {
       lines,
       operator,
     );
+    return savedOrder;
+  }
+
+  private async updateTrackingInTransaction(
+    queryRunner: QueryRunner,
+    id: number,
+    dto: UpdateLogisticsTrackingDto,
+    operator?: string,
+  ): Promise<LogisticsOrder> {
+    if (dto.status != null) {
+      throw new BadRequestException({
+        code: 'LOGISTICS_TRACKING_STATUS_PATCH_FORBIDDEN',
+        message: '物流跟踪更新不允许直接修改物流单状态',
+      });
+    }
+
+    const orderRepo = queryRunner.manager.getRepository(LogisticsOrder);
+    const order = await orderRepo.findOne({
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+
+    if (!order) {
+      throw new NotFoundException('物流单不存在');
+    }
+
+    if (
+      order.status !== LogisticsOrderStatus.CONFIRMED &&
+      order.status !== LogisticsOrderStatus.SHIPPED
+    ) {
+      throw new BadRequestException({
+        code: 'LOGISTICS_TRACKING_STATUS_INVALID',
+        message: '只有已确认或已发运的物流单可以编辑物流跟踪信息',
+      });
+    }
+
+    const updates = this.normalizeTrackingUpdates(order, dto);
+    if (!updates.length) {
+      throw new BadRequestException({
+        code: 'LOGISTICS_TRACKING_EMPTY',
+        message: '请至少填写一个物流跟踪字段',
+      });
+    }
+
+    const mutableOrder = order as unknown as Record<string, unknown>;
+    for (const update of updates) {
+      mutableOrder[update.field as string] = update.newValue;
+    }
+    order.updatedBy = operator ?? order.updatedBy ?? null;
+
+    const savedOrder = await orderRepo.save(order);
+    await this.writeTrackingUpdateOperationLog(
+      queryRunner,
+      savedOrder,
+      updates,
+      operator,
+    );
+
     return savedOrder;
   }
 
@@ -550,6 +629,89 @@ export class LogisticsOrdersService {
         ],
       }),
     );
+  }
+
+  private async writeTrackingUpdateOperationLog(
+    queryRunner: QueryRunner,
+    order: LogisticsOrder,
+    updates: Array<{
+      field: keyof LogisticsOrder;
+      fieldLabel: string;
+      oldValue: unknown;
+      newValue: unknown;
+    }>,
+    operator?: string,
+  ): Promise<void> {
+    const operationLogRepo = queryRunner.manager.getRepository(OperationLog);
+    await operationLogRepo.save(
+      operationLogRepo.create({
+        operator: operator ?? 'system',
+        operatorId: null,
+        action: OperationLogAction.UPDATE,
+        resourceType: 'logistics-orders',
+        resourceId: String(order.id),
+        resourcePath: `/api/logistics-orders/${order.id}/tracking`,
+        requestSummary: {
+          sourceAction: 'update_logistics_tracking',
+          logisticsOrderId: Number(order.id),
+          logisticsOrderCode: order.orderCode,
+          fieldCount: updates.length,
+        },
+        changeSummary: updates.map((item) => ({
+          field: item.field,
+          fieldLabel: item.fieldLabel,
+          oldValue: item.oldValue,
+          newValue: item.newValue,
+        })),
+      }),
+    );
+  }
+
+  private normalizeTrackingUpdates(
+    order: LogisticsOrder,
+    dto: UpdateLogisticsTrackingDto,
+  ): Array<{
+    field: keyof LogisticsOrder;
+    fieldLabel: string;
+    oldValue: unknown;
+    newValue: unknown;
+  }> {
+    const definitions: Array<{
+      field: keyof LogisticsOrder;
+      rawValue: string | null | undefined;
+      fieldLabel: string;
+    }> = [
+      { field: 'etd', rawValue: dto.etd, fieldLabel: '预计离港日期' },
+      { field: 'eta', rawValue: dto.eta, fieldLabel: '预计到港日期' },
+      { field: 'bookingNumber', rawValue: dto.bookingNumber, fieldLabel: '订舱号' },
+      { field: 'carrier', rawValue: dto.carrier, fieldLabel: '船司/航司' },
+      { field: 'vesselVoyage', rawValue: dto.vesselVoyage, fieldLabel: '船名航次' },
+      { field: 'blSoNumber', rawValue: dto.blSoNumber, fieldLabel: 'SO/提单号' },
+      {
+        field: 'actualDepartureDate',
+        rawValue: dto.actualDepartureDate,
+        fieldLabel: '实际离港日期',
+      },
+    ];
+
+    return definitions
+      .filter((item) => item.rawValue !== undefined)
+      .map((item) => {
+        const newValue =
+          typeof item.rawValue === 'string'
+            ? item.rawValue.trim() === ''
+              ? null
+              : item.rawValue.trim()
+            : item.rawValue ?? null;
+        const oldValue = order[item.field] ?? null;
+        return {
+          field: item.field,
+          fieldLabel: item.fieldLabel,
+          oldValue,
+          newValue,
+        };
+      })
+      .filter((item) => item.oldValue !== item.newValue);
   }
 
   private decimalOrNull(value?: number): string | null {

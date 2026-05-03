@@ -38,6 +38,7 @@ import {
   ExportOutlined,
   FileDoneOutlined,
   FileProtectOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -67,7 +68,11 @@ import {
   SummaryMetaItem,
   displayOrDash,
 } from "../master-data/components/page-scaffold";
-import { getLogisticsOrderCreatePrefill } from "../../api/logistics-orders.api";
+import {
+  getLogisticsOrderCreatePrefill,
+  getLogisticsOrders,
+  type LogisticsOrder,
+} from "../../api/logistics-orders.api";
 import {
   createPurchaseOrdersFromShippingDemand,
   getPurchaseOrderCreatePrefill,
@@ -408,53 +413,74 @@ function StatCard({
 function FlowProgress({
   status,
   hasPurchaseRequirement,
+  hasLogisticsOrders,
+  hasOutboundOrders,
 }: {
   status?: ShippingDemandStatus;
   hasPurchaseRequirement: boolean;
+  hasLogisticsOrders: boolean;
+  hasOutboundOrders: boolean;
 }) {
   const getProgressState = () => {
+    const stockOnlyProgress = {
+      activeIndex: hasOutboundOrders ? 4 : hasLogisticsOrders ? 3 : 2,
+      doneIndexes: new Set([0, 1]),
+      steps: [
+        "需求创建",
+        "分配库存",
+        "备货完成",
+        "创建物流",
+        "出库发货",
+        "完成",
+      ],
+    };
+    const purchaseProgress = {
+      activeIndex: hasOutboundOrders ? 6 : hasLogisticsOrders ? 5 : 4,
+      doneIndexes: new Set([0, 1, 2, 3]),
+      steps: [
+        "需求创建",
+        "分配库存",
+        "待生成采购单",
+        "采购中",
+        "备货完成",
+        "创建物流",
+        "出库发货",
+        "完成",
+      ],
+    };
+
     switch (status) {
       case ShippingDemandStatus.PENDING_ALLOCATION:
-        return { activeIndex: 1, doneIndexes: new Set([0]) };
+        return purchaseProgress;
       case ShippingDemandStatus.PENDING_PURCHASE_ORDER:
-        return { activeIndex: 2, doneIndexes: new Set([0, 1]) };
+        return purchaseProgress;
       case ShippingDemandStatus.PURCHASING:
-        return { activeIndex: 3, doneIndexes: new Set([0, 1, 2]) };
+        return purchaseProgress;
       case ShippingDemandStatus.PREPARED:
-        return {
-          activeIndex: 4,
-          doneIndexes: new Set(hasPurchaseRequirement ? [0, 1, 2, 3] : [0, 1]),
-        };
+        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
       case ShippingDemandStatus.PARTIALLY_SHIPPED:
-        return {
-          activeIndex: 6,
-          doneIndexes: new Set(
-            hasPurchaseRequirement ? [0, 1, 2, 3, 4, 5] : [0, 1, 4, 5],
-          ),
-        };
+        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
       case ShippingDemandStatus.SHIPPED:
-        return {
-          activeIndex: 7,
-          doneIndexes: new Set(
-            hasPurchaseRequirement ? [0, 1, 2, 3, 4, 5, 6] : [0, 1, 4, 5, 6],
-          ),
-        };
+        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
       case ShippingDemandStatus.VOIDED:
       default:
-        return { activeIndex: 0, doneIndexes: new Set<number>() };
+        return {
+          activeIndex: 0,
+          doneIndexes: new Set<number>(),
+          steps: [
+            "需求创建",
+            "分配库存",
+            "待生成采购单",
+            "采购中",
+            "备货完成",
+            "创建物流",
+            "出库发货",
+            "完成",
+          ],
+        };
     }
   };
-  const { activeIndex, doneIndexes } = getProgressState();
-  const steps = [
-    "需求创建",
-    "分配库存",
-    "待生成采购单",
-    "采购中",
-    "备货完成",
-    "创建物流",
-    "出库发货",
-    "完成",
-  ];
+  const { activeIndex, doneIndexes, steps } = getProgressState();
 
   return (
     <div className="shipping-demand-flow">
@@ -629,6 +655,16 @@ export default function ShippingDemandDetailPage() {
       Boolean(data) &&
       isLogisticsEligibleStatus,
   });
+  const logisticsOrdersQuery = useQuery({
+    queryKey: ["logistics-orders", "shipping-demand-detail", demandId],
+    queryFn: () =>
+      getLogisticsOrders({
+        shippingDemandId: demandId,
+        page: 1,
+        pageSize: 50,
+      }),
+    enabled: Number.isInteger(demandId) && demandId > 0,
+  });
   const purchasePrefillQuery = useQuery({
     queryKey: ["purchase-order-create-prefill", demandId],
     queryFn: () => getPurchaseOrderCreatePrefill(demandId),
@@ -658,6 +694,20 @@ export default function ShippingDemandDetailPage() {
     (logisticsPrefillQuery.data?.planItems ?? []).some(
       (item) => numberValue(item.availableToPlan) > 0,
     );
+  const logisticsOrders = logisticsOrdersQuery.data?.list ?? [];
+  const logisticsOrderCount = logisticsOrders.length;
+  const hasLogisticsOrders = logisticsOrderCount > 0;
+  const outboundOrderCount = logisticsOrders.reduce(
+    (sum: number, order: LogisticsOrder) =>
+      sum +
+      (order.items ?? []).reduce(
+        (itemSum, item) =>
+          itemSum + (numberValue(item.outboundQuantity) > 0 ? 1 : 0),
+        0,
+      ),
+    0,
+  );
+  const hasOutboundOrders = outboundOrderCount > 0;
   const warehouseMap = useMemo(() => {
     const map = new Map<number, Warehouse>();
     for (const warehouse of warehousesQuery.data?.list ?? []) {
@@ -1883,9 +1933,17 @@ export default function ShippingDemandDetailPage() {
         description="查看流程阶段、关联入口和履约数量摘要。"
       >
         <div className="shipping-demand-hub">
+          {!hasPurchaseRequirement ? (
+            <div className="shipping-demand-hub-tip">
+              <InfoCircleOutlined />
+              <span>本单全部使用现有库存，已跳过采购阶段</span>
+            </div>
+          ) : null}
           <FlowProgress
             status={data?.status}
             hasPurchaseRequirement={hasPurchaseRequirement}
+            hasLogisticsOrders={hasLogisticsOrders}
+            hasOutboundOrders={hasOutboundOrders}
           />
           <div className="shipping-demand-smart-row">
             <SmartButton
@@ -1901,18 +1959,20 @@ export default function ShippingDemandDetailPage() {
             <SmartButton
               icon={<ExportOutlined />}
               label="创建物流单"
-              count={0}
+              count={logisticsOrderCount}
               disabled
               disabledTooltip={
                 data?.status === ShippingDemandStatus.VOIDED
                   ? "已作废的发货需求不能创建物流单"
-                  : "备货完成且存在已锁定待发数量后可创建物流单"
+                  : logisticsOrderCount > 0
+                    ? "当前发货需求已创建物流单，可前往物流单模块查看"
+                    : "备货完成且存在已锁定待发数量后可创建物流单"
               }
             />
             <SmartButton
               icon={<FileDoneOutlined />}
               label="出库单"
-              count={0}
+              count={outboundOrderCount}
               disabled
             />
           </div>
