@@ -414,70 +414,76 @@ function FlowProgress({
   status,
   hasPurchaseRequirement,
   hasLogisticsOrders,
-  hasOutboundOrders,
 }: {
   status?: ShippingDemandStatus;
   hasPurchaseRequirement: boolean;
   hasLogisticsOrders: boolean;
-  hasOutboundOrders: boolean;
 }) {
+  const stockOnlySteps = [
+    "需求创建",
+    "分配库存",
+    "备货完成",
+    "创建物流",
+    "出库发货",
+    "完成",
+  ];
+  const purchaseSteps = [
+    "需求创建",
+    "分配库存",
+    "待生成采购单",
+    "采购中",
+    "备货完成",
+    "创建物流",
+    "出库发货",
+    "完成",
+  ];
+  const buildProgressState = (
+    steps: string[],
+    activeIndex: number,
+    doneIndexes: number[],
+  ) => ({
+    activeIndex,
+    doneIndexes: new Set(doneIndexes),
+    steps,
+  });
+
   const getProgressState = () => {
-    const stockOnlyProgress = {
-      activeIndex: hasOutboundOrders ? 4 : hasLogisticsOrders ? 3 : 2,
-      doneIndexes: new Set([0, 1]),
-      steps: [
-        "需求创建",
-        "分配库存",
-        "备货完成",
-        "创建物流",
-        "出库发货",
-        "完成",
-      ],
-    };
-    const purchaseProgress = {
-      activeIndex: hasOutboundOrders ? 6 : hasLogisticsOrders ? 5 : 4,
-      doneIndexes: new Set([0, 1, 2, 3]),
-      steps: [
-        "需求创建",
-        "分配库存",
-        "待生成采购单",
-        "采购中",
-        "备货完成",
-        "创建物流",
-        "出库发货",
-        "完成",
-      ],
-    };
+    if (hasPurchaseRequirement) {
+      switch (status) {
+        case ShippingDemandStatus.PENDING_ALLOCATION:
+          return buildProgressState(purchaseSteps, 1, [0]);
+        case ShippingDemandStatus.PENDING_PURCHASE_ORDER:
+          return buildProgressState(purchaseSteps, 2, [0, 1]);
+        case ShippingDemandStatus.PURCHASING:
+          return buildProgressState(purchaseSteps, 3, [0, 1, 2]);
+        case ShippingDemandStatus.PREPARED:
+          return hasLogisticsOrders
+            ? buildProgressState(purchaseSteps, 5, [0, 1, 2, 3, 4])
+            : buildProgressState(purchaseSteps, 4, [0, 1, 2, 3]);
+        case ShippingDemandStatus.PARTIALLY_SHIPPED:
+          return buildProgressState(purchaseSteps, 6, [0, 1, 2, 3, 4, 5]);
+        case ShippingDemandStatus.SHIPPED:
+          return buildProgressState(purchaseSteps, 7, [0, 1, 2, 3, 4, 5, 6]);
+        case ShippingDemandStatus.VOIDED:
+        default:
+          return buildProgressState(purchaseSteps, 0, []);
+      }
+    }
 
     switch (status) {
       case ShippingDemandStatus.PENDING_ALLOCATION:
-        return purchaseProgress;
-      case ShippingDemandStatus.PENDING_PURCHASE_ORDER:
-        return purchaseProgress;
-      case ShippingDemandStatus.PURCHASING:
-        return purchaseProgress;
+        return buildProgressState(stockOnlySteps, 1, [0]);
       case ShippingDemandStatus.PREPARED:
-        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
+        return hasLogisticsOrders
+          ? buildProgressState(stockOnlySteps, 3, [0, 1, 2])
+          : buildProgressState(stockOnlySteps, 2, [0, 1]);
       case ShippingDemandStatus.PARTIALLY_SHIPPED:
-        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
+        return buildProgressState(stockOnlySteps, 4, [0, 1, 2, 3]);
       case ShippingDemandStatus.SHIPPED:
-        return hasPurchaseRequirement ? purchaseProgress : stockOnlyProgress;
+        return buildProgressState(stockOnlySteps, 5, [0, 1, 2, 3, 4]);
       case ShippingDemandStatus.VOIDED:
       default:
-        return {
-          activeIndex: 0,
-          doneIndexes: new Set<number>(),
-          steps: [
-            "需求创建",
-            "分配库存",
-            "待生成采购单",
-            "采购中",
-            "备货完成",
-            "创建物流",
-            "出库发货",
-            "完成",
-          ],
-        };
+        return buildProgressState(stockOnlySteps, 0, []);
     }
   };
   const { activeIndex, doneIndexes, steps } = getProgressState();
@@ -707,7 +713,6 @@ export default function ShippingDemandDetailPage() {
       ),
     0,
   );
-  const hasOutboundOrders = outboundOrderCount > 0;
   const warehouseMap = useMemo(() => {
     const map = new Map<number, Warehouse>();
     for (const warehouse of warehousesQuery.data?.list ?? []) {
@@ -1943,7 +1948,6 @@ export default function ShippingDemandDetailPage() {
             status={data?.status}
             hasPurchaseRequirement={hasPurchaseRequirement}
             hasLogisticsOrders={hasLogisticsOrders}
-            hasOutboundOrders={hasOutboundOrders}
           />
           <div className="shipping-demand-smart-row">
             <SmartButton

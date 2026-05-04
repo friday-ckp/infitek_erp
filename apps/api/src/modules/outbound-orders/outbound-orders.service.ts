@@ -95,6 +95,11 @@ interface SalesOrderStatusChange {
   oldStatus: SalesOrderStatus;
 }
 
+interface LogisticsOrderStatusChange {
+  order: LogisticsOrder;
+  oldStatus: LogisticsOrderStatus;
+}
+
 @Injectable()
 export class OutboundOrdersService {
   constructor(
@@ -496,7 +501,8 @@ export class OutboundOrdersService {
       refreshedDemands,
       operator,
     );
-    await this.updateLogisticsOrderStatusAfterOutbound(
+    const logisticsOrderStatusChange =
+      await this.updateLogisticsOrderStatusAfterOutbound(
       queryRunner,
       logisticsOrder,
       operator,
@@ -523,10 +529,11 @@ export class OutboundOrdersService {
     );
     await this.writeLogisticsOrderOutboundOperationLog(
       queryRunner,
-      logisticsOrder,
+      logisticsOrderStatusChange?.order ?? logisticsOrder,
       savedOutboundOrder,
       lines,
       operator,
+      logisticsOrderStatusChange?.oldStatus,
     );
 
     return savedOutboundOrder;
@@ -1007,7 +1014,10 @@ export class OutboundOrdersService {
       .getRepository(ShippingDemand)
       .createQueryBuilder('demand')
       .select('demand.sales_order_id', 'salesOrderId')
-      .addSelect('MAX(CASE WHEN demand.status = :shipped THEN 1 ELSE 0 END)', 'hasShipped')
+      .addSelect(
+        'MAX(CASE WHEN demand.status IN (:...inShipmentStatuses) THEN 1 ELSE 0 END)',
+        'hasShipmentProgress',
+      )
       .addSelect(
         'MIN(CASE WHEN demand.status = :shipped THEN 1 ELSE 0 END)',
         'allShipped',
@@ -1016,17 +1026,23 @@ export class OutboundOrdersService {
       .andWhere('demand.status != :voided', {
         voided: ShippingDemandStatus.VOIDED,
       })
-      .setParameters({ shipped: ShippingDemandStatus.SHIPPED })
+      .setParameters({
+        shipped: ShippingDemandStatus.SHIPPED,
+        inShipmentStatuses: [
+          ShippingDemandStatus.PARTIALLY_SHIPPED,
+          ShippingDemandStatus.SHIPPED,
+        ],
+      })
       .groupBy('demand.sales_order_id')
       .getRawMany<{
         salesOrderId: string;
-        hasShipped: string;
+        hasShipmentProgress: string;
         allShipped: string;
       }>();
 
     const statusBySalesOrderId = new Map<number, SalesOrderStatus>();
     for (const row of demandRows) {
-      const hasShipped = Number(row.hasShipped ?? 0) === 1;
+      const hasShipped = Number(row.hasShipmentProgress ?? 0) === 1;
       const allShipped = Number(row.allShipped ?? 0) === 1;
       if (allShipped) {
         statusBySalesOrderId.set(Number(row.salesOrderId), SalesOrderStatus.SHIPPED);
@@ -1067,23 +1083,34 @@ export class OutboundOrdersService {
     queryRunner: QueryRunner,
     logisticsOrder: LogisticsOrder,
     operator?: string,
-  ): Promise<void> {
+  ): Promise<LogisticsOrderStatusChange | null> {
     const items = await queryRunner.manager.getRepository(LogisticsOrderItem).find({
       where: { logisticsOrderId: Number(logisticsOrder.id) },
     });
-    const allItemsShipped = items.every((item) => {
+    const allItemsShipped =
+      items.length > 0 &&
+      items.every((item) => {
       const plannedQuantity = Number(item.plannedQuantity ?? 0);
       const outboundQuantity = Number(item.outboundQuantity ?? 0);
       return outboundQuantity >= plannedQuantity;
     });
-    if (!allItemsShipped) return;
+    if (!allItemsShipped) return null;
+
+    const oldStatus = logisticsOrder.status as LogisticsOrderStatus;
+    if (oldStatus === LogisticsOrderStatus.SHIPPED) {
+      return null;
+    }
 
     const repo = queryRunner.manager.getRepository(LogisticsOrder);
     logisticsOrder.status = LogisticsOrderStatus.SHIPPED;
     if (operator !== undefined) {
       logisticsOrder.updatedBy = operator;
     }
-    await repo.save(logisticsOrder);
+    const savedOrder = await repo.save(logisticsOrder);
+    return {
+      order: savedOrder,
+      oldStatus,
+    };
   }
 
   private async findLogisticsOrderForOutbound(
@@ -1250,8 +1277,34 @@ export class OutboundOrdersService {
     outboundOrder: OutboundOrder,
     lines: PreparedOutboundLine[],
     operator?: string,
+    oldStatus?: LogisticsOrderStatus,
   ): Promise<void> {
     const repo = queryRunner.manager.getRepository(OperationLog);
+    const changeSummary: Array<Record<string, unknown>> = [];
+
+    if (oldStatus && oldStatus !== logisticsOrder.status) {
+      changeSummary.push({
+        field: 'status',
+        fieldLabel: '物流单状态',
+        oldValue: oldStatus,
+        newValue: logisticsOrder.status,
+      });
+    }
+
+    changeSummary.push({
+      field: 'outboundSummary',
+      fieldLabel: '出库结果',
+      oldValue: null,
+      newValue: lines.map((line) => ({
+        logisticsOrderItemId: Number(line.logisticsItem.id),
+        skuCode: line.logisticsItem.skuCode,
+        productNameCn: line.logisticsItem.productNameCn,
+        productNameEn: line.logisticsItem.productNameEn,
+        warehouseName: line.warehouseName,
+        outboundQuantity: line.requestedQuantity,
+      })),
+    });
+
     await repo.save(
       repo.create({
         operator: operator ?? 'system',
@@ -1265,21 +1318,7 @@ export class OutboundOrdersService {
           outboundOrderId: Number(outboundOrder.id),
           outboundCode: outboundOrder.outboundCode,
         },
-        changeSummary: [
-          {
-            field: 'outboundSummary',
-            fieldLabel: '出库结果',
-            oldValue: null,
-            newValue: lines.map((line) => ({
-              logisticsOrderItemId: Number(line.logisticsItem.id),
-              skuCode: line.logisticsItem.skuCode,
-              productNameCn: line.logisticsItem.productNameCn,
-              productNameEn: line.logisticsItem.productNameEn,
-              warehouseName: line.warehouseName,
-              outboundQuantity: line.requestedQuantity,
-            })),
-          },
-        ],
+        changeSummary,
       }),
     );
   }

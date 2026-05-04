@@ -1,5 +1,5 @@
 # generated: 2026-04-15
-# last_updated: 2026-05-03 (story-7.3-done)
+# last_updated: 2026-05-04 (story-7.4-done)
 # project: infitek_erp
 # project_key: NOKEY
 # tracking_system: file-system
@@ -39,7 +39,7 @@
 #   _bmad-output/planning-artifacts/flow-quantity-data-lineage.md
 
 generated: 2026-04-15
-last_updated: 2026-05-03 (story-7.3-done)
+last_updated: 2026-05-04 (story-7.4-done)
 project: infitek_erp
 
 project_key: NOKEY
@@ -134,7 +134,7 @@ development_status:
   7-1-物流单创建: done
   7-2-物流单列表与详情: review
   7-3-发货出库单创建与确认: done
-  7-4-发货出库后状态联动: backlog
+  7-4-发货出库后状态联动: done
   epic-7-retrospective: optional
 
   # ─────────────────────────────────────────────────
