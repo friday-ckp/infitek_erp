@@ -188,11 +188,19 @@ export default function Sidebar() {
   const [hoveredFooterBtn, setHoveredFooterBtn] = useState<string | null>(null);
 
   useEffect(() => {
+    if (defaultOpen.length === 0) return;
     setOpenKeys((prev) => {
-      const merged = new Set([...prev, ...defaultOpen]);
-      return Array.from(merged);
+      const merged = new Set(prev);
+      let changed = false;
+      defaultOpen.forEach((key) => {
+        if (!merged.has(key)) {
+          merged.add(key);
+          changed = true;
+        }
+      });
+      return changed ? Array.from(merged) : prev;
     });
-  }, [defaultOpen]);
+  }, [location.pathname]);
 
   const handleLogout = () => { logout(); navigate('/login'); };
   const displayName = user?.name || '用户';
