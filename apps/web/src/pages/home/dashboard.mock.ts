@@ -77,10 +77,10 @@ export const urgentTasks = [
 ] as const;
 
 export const quickLinks = [
-  { label: '销售订单', description: '录入新订单并确认客户需求' },
-  { label: '发货需求', description: '查看待履约与备货状态' },
-  { label: '采购订单', description: '跟进采购在途与交期' },
-  { label: '库存查询', description: '核对可用库存和锁定量' },
+  { label: '销售订单', description: '录入新订单并确认客户需求', path: '/sales-orders' },
+  { label: '发货需求', description: '查看待履约与备货状态', path: '/shipping-demands' },
+  { label: '采购订单', description: '跟进采购在途与交期', path: '/purchase-orders' },
+  { label: '库存查询', description: '核对可用库存和锁定量', path: '/inventory' },
 ] as const;
 
 export const moduleHealth = [

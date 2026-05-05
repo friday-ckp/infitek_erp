@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
 
@@ -187,6 +187,13 @@ export default function Sidebar() {
   const [openKeys, setOpenKeys] = useState<string[]>(defaultOpen);
   const [hoveredFooterBtn, setHoveredFooterBtn] = useState<string | null>(null);
 
+  useEffect(() => {
+    setOpenKeys((prev) => {
+      const merged = new Set([...prev, ...defaultOpen]);
+      return Array.from(merged);
+    });
+  }, [defaultOpen]);
+
   const handleLogout = () => { logout(); navigate('/login'); };
   const displayName = user?.name || '用户';
 
@@ -200,7 +207,7 @@ export default function Sidebar() {
 
   const renderMenuGroup = (item: typeof menuItems[0]) => {
     const hasActiveChild = item.children.some((c) => isChildRouteActive(location.pathname, c.key));
-    const isOpen = openKeys.includes(item.key) || hasActiveChild;
+    const isOpen = openKeys.includes(item.key);
 
     if (item.disabled) {
       return (
@@ -234,8 +241,10 @@ export default function Sidebar() {
           hasActiveChild={hasActiveChild}
           onToggle={() => {
             if (item.defaultPath) {
-              navigate(item.defaultPath);
-              setOpenKeys((prev) => (prev.includes(item.key) ? prev : [...prev, item.key]));
+              if (!hasActiveChild) {
+                navigate(item.defaultPath);
+              }
+              toggleGroup(item.key);
               return;
             }
             if (item.children.length > 0) toggleGroup(item.key);

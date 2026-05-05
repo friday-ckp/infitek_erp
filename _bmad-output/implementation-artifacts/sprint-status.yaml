@@ -1,5 +1,5 @@
 # generated: 2026-04-15
-# last_updated: 2026-05-05 (story-8.1-done)
+# last_updated: 2026-05-05 (epic-status-closure)
 # project: infitek_erp
 # project_key: NOKEY
 # tracking_system: file-system
@@ -39,7 +39,7 @@
 #   _bmad-output/planning-artifacts/flow-quantity-data-lineage.md
 
 generated: 2026-04-15
-last_updated: 2026-05-05 (story-8.1-done)
+last_updated: 2026-05-05 (epic-status-closure)
 project: infitek_erp
 
 project_key: NOKEY
@@ -58,7 +58,7 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 1: 项目基础设施与用户认证
   # ─────────────────────────────────────────────────
-  epic-1: in-progress
+  epic-1: done
   1-1-monorepo-项目初始化与开发环境搭建: done
   1-2-后端api基础设施: done
   1-3-用户认证: done
@@ -106,7 +106,7 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 5: 销售订单与发货需求管理
   # ─────────────────────────────────────────────────
-  epic-5: in-progress
+  epic-5: done
   5-1-销售订单创建与确认: done
   5-0-库存双层结构查询接口与期初录入: done
   5-2-销售订单列表与详情: done
@@ -119,7 +119,7 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 6: 采购订单与收货入库
   # ─────────────────────────────────────────────────
-  epic-6: in-progress
+  epic-6: done
   6-2-库存变动流水: done
   6-3-采购订单创建与确认: done
   6-4-采购订单列表与详情: done
@@ -140,6 +140,6 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 8: 发货需求枢纽库存决策
   # ─────────────────────────────────────────────────
-  epic-8: in-progress
+  epic-8: done
   8-1-发货需求状态自动流转: done
   epic-8-retrospective: optional

@@ -21,6 +21,7 @@ import {
   FileTextOutlined,
   ArrowRightOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/auth.store';
 import {
   heroMetrics,
@@ -155,6 +156,7 @@ function SurfaceCard({
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const name = user?.name || user?.username || '用户';
   const greeting = GREETINGS[getTimeSlot()];
@@ -225,6 +227,32 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      <section className="dash-priority-links" aria-label="快捷入口">
+        <div className="dash-priority-links-head">
+          <div>
+            <div className="dash-priority-links-kicker">高频操作</div>
+            <div className="dash-priority-links-title">从这里直接进入今天最常用的四个模块</div>
+          </div>
+          <div className="dash-priority-links-note">点击卡片立即跳转</div>
+        </div>
+        <div className="dash-entry-grid dash-entry-grid-prominent">
+          {quickLinks.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className="dash-entry-card dash-entry-card-button"
+              onClick={() => navigate(item.path)}
+            >
+              <div>
+                <div className="dash-entry-title">{item.label}</div>
+                <div className="dash-entry-desc">{item.description}</div>
+              </div>
+              <ArrowRightOutlined className="dash-entry-arrow" />
+            </button>
+          ))}
+        </div>
+      </section>
+
       <div className="dash-section-label">工作台视图</div>
       <div className="dash-main-grid">
         <SurfaceCard title="业务走势" extra={<span className="dash-extra-note">销售 / 采购 / 库存</span>}>
@@ -241,20 +269,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </SurfaceCard>
 
-        <SurfaceCard title="快捷入口">
-          <div className="dash-entry-grid">
-            {quickLinks.map((item) => (
-              <div key={item.label} className="dash-entry-card">
-                <div>
-                  <div className="dash-entry-title">{item.label}</div>
-                  <div className="dash-entry-desc">{item.description}</div>
-                </div>
-                <ArrowRightOutlined className="dash-entry-arrow" />
-              </div>
-            ))}
-          </div>
-
-          <div className="dash-subsection-title">模块健康度</div>
+        <SurfaceCard title="模块健康度">
           <div className="dash-health-list">
             {moduleHealth.map((item) => (
               <div key={item.label} className="dash-health-item">
