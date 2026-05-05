@@ -196,19 +196,32 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <SurfaceCard title="今日最该处理">
-          <div className="dash-task-list">
-            {urgentTasks.map((task) => (
-              <div key={task.label} className="dash-task-item">
-                <div className="dash-task-copy">
-                  <div className="dash-task-label">{task.label}</div>
-                  <div className="dash-task-note">{task.note}</div>
+        <section className="dash-priority-links" aria-label="快捷入口">
+          <div className="dash-priority-links-head">
+            <div className="dash-priority-links-copy">
+              <div className="dash-priority-links-kicker">高频操作</div>
+              <div className="dash-priority-links-title">快捷入口</div>
+              <div className="dash-priority-links-description">销售、发货、采购、库存四个高频模块一键直达</div>
+            </div>
+            <div className="dash-priority-links-note">点击卡片立即跳转</div>
+          </div>
+          <div className="dash-entry-grid dash-entry-grid-prominent">
+            {quickLinks.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                className="dash-entry-card dash-entry-card-button"
+                onClick={() => navigate(item.path)}
+              >
+                <div>
+                  <div className="dash-entry-title">{item.label}</div>
+                  <div className="dash-entry-desc">{item.description}</div>
                 </div>
-                <div className={`dash-task-value tone-${task.tone}`}>{task.value}</div>
-              </div>
+                <ArrowRightOutlined className="dash-entry-arrow" />
+              </button>
             ))}
           </div>
-        </SurfaceCard>
+        </section>
       </div>
 
       <div className="dash-section-label">核心指标</div>
@@ -227,34 +240,22 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <section className="dash-priority-links" aria-label="快捷入口">
-        <div className="dash-priority-links-head">
-          <div>
-            <div className="dash-priority-links-kicker">高频操作</div>
-            <div className="dash-priority-links-title">从这里直接进入今天最常用的四个模块</div>
-          </div>
-          <div className="dash-priority-links-note">点击卡片立即跳转</div>
-        </div>
-        <div className="dash-entry-grid dash-entry-grid-prominent">
-          {quickLinks.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              className="dash-entry-card dash-entry-card-button"
-              onClick={() => navigate(item.path)}
-            >
-              <div>
-                <div className="dash-entry-title">{item.label}</div>
-                <div className="dash-entry-desc">{item.description}</div>
-              </div>
-              <ArrowRightOutlined className="dash-entry-arrow" />
-            </button>
-          ))}
-        </div>
-      </section>
-
       <div className="dash-section-label">工作台视图</div>
       <div className="dash-main-grid">
+        <SurfaceCard title="今日最该处理">
+          <div className="dash-task-list">
+            {urgentTasks.map((task) => (
+              <div key={task.label} className="dash-task-item">
+                <div className="dash-task-copy">
+                  <div className="dash-task-label">{task.label}</div>
+                  <div className="dash-task-note">{task.note}</div>
+                </div>
+                <div className={`dash-task-value tone-${task.tone}`}>{task.value}</div>
+              </div>
+            ))}
+          </div>
+        </SurfaceCard>
+
         <SurfaceCard title="业务走势" extra={<span className="dash-extra-note">销售 / 采购 / 库存</span>}>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={trendData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
