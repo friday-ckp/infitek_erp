@@ -139,13 +139,15 @@ function SurfaceCard({
   title,
   extra,
   children,
+  className,
 }: {
   title: string;
   extra?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="dash-surface-card">
+    <section className={className ? `dash-surface-card ${className}` : 'dash-surface-card'}>
       <div className="dash-surface-head">
         <div className="dash-surface-title">{title}</div>
         {extra ? <div className="dash-surface-extra">{extra}</div> : null}
@@ -242,7 +244,7 @@ export default function DashboardPage() {
 
       <div className="dash-section-label">工作台视图</div>
       <div className="dash-main-grid">
-        <SurfaceCard title="今日最该处理">
+        <SurfaceCard title="今日最该处理" className="dash-main-card dash-main-card-tasks">
           <div className="dash-task-list">
             {urgentTasks.map((task) => (
               <div key={task.label} className="dash-task-item">
@@ -256,7 +258,11 @@ export default function DashboardPage() {
           </div>
         </SurfaceCard>
 
-        <SurfaceCard title="业务走势" extra={<span className="dash-extra-note">销售 / 采购 / 库存</span>}>
+        <SurfaceCard
+          title="业务走势"
+          extra={<span className="dash-extra-note">销售 / 采购 / 库存</span>}
+          className="dash-main-card dash-main-card-trend"
+        >
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={trendData} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
@@ -270,7 +276,7 @@ export default function DashboardPage() {
           </ResponsiveContainer>
         </SurfaceCard>
 
-        <SurfaceCard title="模块健康度">
+        <SurfaceCard title="模块健康度" className="dash-main-card dash-main-card-health">
           <div className="dash-health-list">
             {moduleHealth.map((item) => (
               <div key={item.label} className="dash-health-item">
@@ -286,7 +292,7 @@ export default function DashboardPage() {
           </div>
         </SurfaceCard>
 
-        <SurfaceCard title="风险与依赖">
+        <SurfaceCard title="风险与依赖" className="dash-main-card dash-main-card-risk">
           <div className="dash-risk-list">
             {riskBoard.map((item) => (
               <div key={item.item} className="dash-risk-row">

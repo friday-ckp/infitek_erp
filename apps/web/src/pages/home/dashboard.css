@@ -324,6 +324,10 @@
   gap: 18px;
 }
 
+.dash-main-card-risk {
+  grid-column: span 2;
+}
+
 .dash-extra-note {
   color: #94a3b8;
   font-weight: 600;
@@ -430,9 +434,9 @@
 
 .dash-risk-row {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr) minmax(0, 0.8fr);
-  gap: 10px;
-  padding: 13px 0;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr) minmax(0, 0.9fr);
+  gap: 14px;
+  padding: 14px 0;
   border-bottom: 1px solid #eef2f7;
   font-size: 13px;
   color: #334155;
@@ -440,6 +444,16 @@
 
 .dash-risk-row:last-child {
   border-bottom: none;
+}
+
+.dash-risk-row span:first-child {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.dash-risk-row span:last-child {
+  text-align: right;
+  color: #64748b;
 }
 
 .dash-analysis-grid {
