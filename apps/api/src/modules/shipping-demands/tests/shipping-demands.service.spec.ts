@@ -30,6 +30,7 @@ describe('ShippingDemandsService', () => {
     findAll: jest.fn(),
     findById: jest.fn(),
     update: jest.fn(),
+    getRelatedDocumentCounts: jest.fn(),
   };
   const inventoryService = {
     findAvailable: jest.fn(),
@@ -383,6 +384,11 @@ describe('ShippingDemandsService', () => {
       shippingMarkTemplateKey: 'shipping-mark/a.docx',
       items: [],
     });
+    shippingDemandsRepository.getRelatedDocumentCounts.mockResolvedValue({
+      purchaseOrderCount: 2,
+      logisticsOrderCount: 1,
+      outboundOrderCount: 3,
+    });
     filesService.getSignedUrl.mockImplementation(async (key: string) => {
       return `https://signed.example.com/${key}`;
     });
@@ -398,6 +404,14 @@ describe('ShippingDemandsService', () => {
     expect(result.shippingMarkTemplateUrl).toBe(
       'https://signed.example.com/shipping-mark/a.docx',
     );
+    expect(result.relatedDocumentCounts).toEqual({
+      purchaseOrderCount: 2,
+      logisticsOrderCount: 1,
+      outboundOrderCount: 3,
+    });
+    expect(
+      shippingDemandsRepository.getRelatedDocumentCounts,
+    ).toHaveBeenCalledWith(500);
   });
 
   it('finds shipping demands with list query', async () => {

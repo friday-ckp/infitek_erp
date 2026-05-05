@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Not, Repository } from 'typeorm';
 import { ShippingDemandStatus } from '@infitek/shared';
+import { PurchaseOrder } from '../purchase-orders/entities/purchase-order.entity';
+import { LogisticsOrder } from '../logistics-orders/entities/logistics-order.entity';
+import { OutboundOrder } from '../outbound-orders/entities/outbound-order.entity';
 import { QueryShippingDemandDto } from './dto/query-shipping-demand.dto';
 import { ShippingDemandItem } from './entities/shipping-demand-item.entity';
 import { ShippingDemand } from './entities/shipping-demand.entity';
@@ -104,6 +107,31 @@ export class ShippingDemandsRepository {
   ): Promise<ShippingDemand> {
     await this.shippingDemandRepo.update(id, data);
     return this.findById(id).then((item) => item as ShippingDemand);
+  }
+
+  async getRelatedDocumentCounts(shippingDemandId: number): Promise<{
+    purchaseOrderCount: number;
+    logisticsOrderCount: number;
+    outboundOrderCount: number;
+  }> {
+    const [purchaseOrderCount, logisticsOrderCount, outboundOrderCount] =
+      await Promise.all([
+        this.dataSource.getRepository(PurchaseOrder).count({
+          where: { shippingDemandId },
+        }),
+        this.dataSource.getRepository(LogisticsOrder).count({
+          where: { shippingDemandId },
+        }),
+        this.dataSource.getRepository(OutboundOrder).count({
+          where: { shippingDemandId },
+        }),
+      ]);
+
+    return {
+      purchaseOrderCount,
+      logisticsOrderCount,
+      outboundOrderCount,
+    };
   }
 
   getItemRepository(): Repository<ShippingDemandItem> {

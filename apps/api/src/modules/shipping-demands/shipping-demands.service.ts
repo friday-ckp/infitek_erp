@@ -1649,6 +1649,10 @@ export class ShippingDemandsService {
   }
 
   private async withSignedUrls(demand: ShippingDemand) {
+    const relatedDocumentCounts =
+      await this.shippingDemandsRepository.getRelatedDocumentCounts(
+        Number(demand.id),
+      );
     const contractFileUrls = demand.contractFileKeys
       ? await Promise.all(
           demand.contractFileKeys.map(async (key) => {
@@ -1678,6 +1682,7 @@ export class ShippingDemandsService {
       : null;
     return {
       ...demand,
+      relatedDocumentCounts,
       contractFileUrls,
       plugPhotoUrls,
       shippingMarkTemplateUrl,
