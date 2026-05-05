@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Empty, Select, Space, Button } from "antd";
 import { ProTable, type ProColumns } from "@ant-design/pro-components";
 import { LogisticsOrderStatus } from "@infitek/shared";
@@ -48,8 +48,16 @@ function displayOrDash(value?: string | number | null) {
   return value == null || value === "" ? "—" : String(value);
 }
 
+function parsePositiveIntParam(value: string | null) {
+  const normalized = value?.trim();
+  if (!normalized || !/^\d+$/.test(normalized)) return undefined;
+  const parsed = Number(normalized);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
 export default function LogisticsOrdersListPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [keywordInput, setKeywordInput] = useState("");
   const [status, setStatus] = useState<LogisticsOrderStatus | undefined>();
   const [logisticsProviderId, setLogisticsProviderId] = useState<
@@ -59,12 +67,19 @@ export default function LogisticsOrdersListPage() {
   const [pageSize, setPageSize] = useState(20);
 
   const keyword = useDebouncedValue(keywordInput, 300).trim();
+  const shippingDemandId = useMemo(
+    () => parsePositiveIntParam(searchParams.get("shippingDemandId")),
+    [searchParams],
+  );
   const hasFilters =
-    Boolean(keyword) || status != null || logisticsProviderId != null;
+    Boolean(keyword) ||
+    status != null ||
+    logisticsProviderId != null ||
+    shippingDemandId != null;
 
   useEffect(() => {
     setPage(1);
-  }, [keyword, status, logisticsProviderId]);
+  }, [keyword, status, logisticsProviderId, shippingDemandId]);
 
   const query = useQuery({
     queryKey: [
@@ -72,6 +87,7 @@ export default function LogisticsOrdersListPage() {
       keyword,
       status,
       logisticsProviderId,
+      shippingDemandId,
       page,
       pageSize,
     ],
@@ -81,6 +97,7 @@ export default function LogisticsOrdersListPage() {
         keyword: keyword || undefined,
         status,
         logisticsProviderId,
+        shippingDemandId,
         page,
         pageSize,
       }),
@@ -95,6 +112,11 @@ export default function LogisticsOrdersListPage() {
     setKeywordInput("");
     setStatus(undefined);
     setLogisticsProviderId(undefined);
+    if (searchParams.has("shippingDemandId")) {
+      const next = new URLSearchParams(searchParams);
+      next.delete("shippingDemandId");
+      setSearchParams(next, { replace: true });
+    }
     setPage(1);
   };
 
@@ -223,6 +245,18 @@ export default function LogisticsOrdersListPage() {
       label: `物流供应商: ${selectedProvider.name}`,
       onClose: () => {
         setLogisticsProviderId(undefined);
+        setPage(1);
+      },
+    });
+  }
+  if (shippingDemandId != null) {
+    activeTags.push({
+      key: "shippingDemandId",
+      label: `发货需求: #${shippingDemandId}`,
+      onClose: () => {
+        const next = new URLSearchParams(searchParams);
+        next.delete("shippingDemandId");
+        setSearchParams(next, { replace: true });
         setPage(1);
       },
     });

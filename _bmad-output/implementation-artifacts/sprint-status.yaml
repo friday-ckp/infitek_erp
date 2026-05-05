@@ -1,5 +1,5 @@
 # generated: 2026-04-15
-# last_updated: 2026-05-04 (story-7.4-done)
+# last_updated: 2026-05-05 (story-8.1-done)
 # project: infitek_erp
 # project_key: NOKEY
 # tracking_system: file-system
@@ -39,7 +39,7 @@
 #   _bmad-output/planning-artifacts/flow-quantity-data-lineage.md
 
 generated: 2026-04-15
-last_updated: 2026-05-04 (story-7.4-done)
+last_updated: 2026-05-05 (story-8.1-done)
 project: infitek_erp
 
 project_key: NOKEY
@@ -130,9 +130,9 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 7: 物流单与发货出库
   # ─────────────────────────────────────────────────
-  epic-7: in-progress
+  epic-7: done
   7-1-物流单创建: done
-  7-2-物流单列表与详情: review
+  7-2-物流单列表与详情: done
   7-3-发货出库单创建与确认: done
   7-4-发货出库后状态联动: done
   epic-7-retrospective: optional
@@ -140,6 +140,6 @@ development_status:
   # ─────────────────────────────────────────────────
   # Epic 8: 发货需求枢纽库存决策
   # ─────────────────────────────────────────────────
-  epic-8: backlog
-  8-1-发货需求状态自动流转: backlog
+  epic-8: in-progress
+  8-1-发货需求状态自动流转: done
   epic-8-retrospective: optional

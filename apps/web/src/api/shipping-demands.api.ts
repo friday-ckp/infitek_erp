@@ -173,6 +173,11 @@ export interface ShippingDemand {
   totalAmount: string;
   createdAt: string;
   updatedAt: string;
+  relatedDocumentCounts?: {
+    purchaseOrderCount: number;
+    logisticsOrderCount: number;
+    outboundOrderCount: number;
+  };
   items?: ShippingDemandItem[];
 }
 

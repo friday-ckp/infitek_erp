@@ -70,8 +70,6 @@ import {
 } from "../master-data/components/page-scaffold";
 import {
   getLogisticsOrderCreatePrefill,
-  getLogisticsOrders,
-  type LogisticsOrder,
 } from "../../api/logistics-orders.api";
 import {
   createPurchaseOrdersFromShippingDemand,
@@ -661,16 +659,6 @@ export default function ShippingDemandDetailPage() {
       Boolean(data) &&
       isLogisticsEligibleStatus,
   });
-  const logisticsOrdersQuery = useQuery({
-    queryKey: ["logistics-orders", "shipping-demand-detail", demandId],
-    queryFn: () =>
-      getLogisticsOrders({
-        shippingDemandId: demandId,
-        page: 1,
-        pageSize: 50,
-      }),
-    enabled: Number.isInteger(demandId) && demandId > 0,
-  });
   const purchasePrefillQuery = useQuery({
     queryKey: ["purchase-order-create-prefill", demandId],
     queryFn: () => getPurchaseOrderCreatePrefill(demandId),
@@ -700,18 +688,15 @@ export default function ShippingDemandDetailPage() {
     (logisticsPrefillQuery.data?.planItems ?? []).some(
       (item) => numberValue(item.availableToPlan) > 0,
     );
-  const logisticsOrders = logisticsOrdersQuery.data?.list ?? [];
-  const logisticsOrderCount = logisticsOrders.length;
+  const purchaseOrderCount = numberValue(
+    data?.relatedDocumentCounts?.purchaseOrderCount,
+  );
+  const logisticsOrderCount = numberValue(
+    data?.relatedDocumentCounts?.logisticsOrderCount,
+  );
   const hasLogisticsOrders = logisticsOrderCount > 0;
-  const outboundOrderCount = logisticsOrders.reduce(
-    (sum: number, order: LogisticsOrder) =>
-      sum +
-      (order.items ?? []).reduce(
-        (itemSum, item) =>
-          itemSum + (numberValue(item.outboundQuantity) > 0 ? 1 : 0),
-        0,
-      ),
-    0,
+  const outboundOrderCount = numberValue(
+    data?.relatedDocumentCounts?.outboundOrderCount,
   );
   const warehouseMap = useMemo(() => {
     const map = new Map<number, Warehouse>();
@@ -1952,25 +1937,40 @@ export default function ShippingDemandDetailPage() {
           <div className="shipping-demand-smart-row">
             <SmartButton
               icon={<FileProtectOutlined />}
-              label="生成采购单"
-              count={purchaseOrderGapItemCount}
-              disabled={!canGeneratePurchaseOrder}
-              disabledTooltip={purchaseOrderDisabledTooltip}
+              label="采购订单"
+              count={purchaseOrderCount}
+              disabled={purchaseOrderCount === 0}
+              disabledTooltip={
+                purchaseOrderCount > 0
+                  ? undefined
+                  : canGeneratePurchaseOrder
+                    ? "当前还没有关联采购订单；可使用顶部操作生成采购单"
+                    : purchaseOrderDisabledTooltip
+              }
               onClick={
-                canGeneratePurchaseOrder ? openPurchaseDrawer : undefined
+                purchaseOrderCount > 0
+                  ? () =>
+                      navigate(`/purchase-orders?shippingDemandId=${demandId}`)
+                  : undefined
               }
             />
             <SmartButton
               icon={<ExportOutlined />}
-              label="创建物流单"
+              label="物流单"
               count={logisticsOrderCount}
-              disabled
+              disabled={!hasLogisticsOrders}
               disabledTooltip={
                 data?.status === ShippingDemandStatus.VOIDED
                   ? "已作废的发货需求不能创建物流单"
-                  : logisticsOrderCount > 0
-                    ? "当前发货需求已创建物流单，可前往物流单模块查看"
-                    : "备货完成且存在已锁定待发数量后可创建物流单"
+                  : hasLogisticsOrders
+                    ? undefined
+                    : "当前还没有关联物流单；备货完成后可通过顶部操作创建物流单"
+              }
+              onClick={
+                hasLogisticsOrders
+                  ? () =>
+                      navigate(`/logistics-orders?shippingDemandId=${demandId}`)
+                  : undefined
               }
             />
             <SmartButton
@@ -1978,6 +1978,11 @@ export default function ShippingDemandDetailPage() {
               label="出库单"
               count={outboundOrderCount}
               disabled
+              disabledTooltip={
+                outboundOrderCount > 0
+                  ? "当前已存在关联出库单，正式列表入口待后续 Story 补齐"
+                  : "当前还没有关联出库单；正式列表入口待后续 Story 补齐"
+              }
             />
           </div>
           <div className="shipping-demand-stat-grid">
