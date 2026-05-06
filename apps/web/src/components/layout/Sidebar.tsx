@@ -158,6 +158,25 @@ function getInitials(name: string) {
   return name ? name.slice(0, 2).toUpperCase() : 'U';
 }
 
+const sidebarPalette = {
+  shell: '#FBFDFF',
+  shellSoft: '#F6F9FF',
+  surface: '#FFFFFF',
+  surfaceAlt: '#EDF2F8',
+  border: '#E1EAF5',
+  divider: '#E6EDF6',
+  textStrong: '#0F172A',
+  textMain: '#334155',
+  textMuted: '#475569',
+  textSoft: '#94A3B8',
+  icon: '#64748B',
+  iconHover: '#334155',
+  primary: '#2563EB',
+  primarySoft: '#EEF4FF',
+  primaryBorder: '#DCE8FF',
+  submenuLine: '#D7E3F3',
+};
+
 function isChildRouteActive(
   currentPath: string,
   childPath: string,
@@ -219,22 +238,37 @@ export default function Sidebar() {
 
     if (item.disabled) {
       return (
-        <div key={item.key} style={{ opacity: 0.5, pointerEvents: 'none' }}>
+        <div key={item.key} style={{ opacity: 0.5, pointerEvents: 'none', marginBottom: 6 }}>
           <div style={{
             display: 'flex', alignItems: 'center',
-            padding: '8px 10px', borderRadius: 8,
+            padding: '11px 12px 11px 14px', borderRadius: 14,
             fontSize: 13.5, fontWeight: 500, color: '#6B7280',
-            gap: 9,
+            gap: 10,
+            background: 'rgba(255,255,255,0.88)',
+            border: `1px solid ${sidebarPalette.divider}`,
           }}>
-            <span style={{ width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#C4C4C4', flexShrink: 0 }}>
+            <span style={{
+              width: 20,
+              height: 20,
+              borderRadius: 7,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#94A3B8',
+              background: sidebarPalette.surfaceAlt,
+              flexShrink: 0,
+            }}>
               {item.icon}
             </span>
-            <span style={{ flex: 1 }}>{item.label}</span>
+            <span style={{ flex: 1, whiteSpace: 'nowrap' }}>{item.label}</span>
             <span style={{
-              fontSize: 9.5, fontWeight: 600,
-              padding: '2px 7px', borderRadius: 9,
+              fontSize: 9, fontWeight: 700,
+              lineHeight: 1,
+              padding: '3px 6px', borderRadius: 999,
               background: '#F5F3FF', color: '#A78BFA',
               border: '1px solid #DDD6FE',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}>即将上线</span>
           </div>
         </div>
@@ -242,7 +276,7 @@ export default function Sidebar() {
     }
 
     return (
-      <div key={item.key} style={{ marginBottom: 1 }}>
+      <div key={item.key}>
         <ParentItem
           item={item}
           isOpen={isOpen}
@@ -268,7 +302,19 @@ export default function Sidebar() {
             transition: 'max-height 0.25s cubic-bezier(.4,0,.2,1)',
           }}
         >
-          <div style={{ padding: '3px 0 6px 0' }}>
+          <div style={{
+            position: 'relative',
+            margin: '2px 0 8px',
+            padding: '2px 0 2px 16px',
+          }}>
+            <div style={{
+              position: 'absolute',
+              left: 18,
+              top: 6,
+              bottom: 6,
+              width: 1,
+              background: `linear-gradient(180deg, ${sidebarPalette.submenuLine} 0%, rgba(215, 227, 243, 0.12) 100%)`,
+            }} />
             {item.children.map((child) => {
               const isActive = isChildRouteActive(
                 location.pathname,
@@ -294,78 +340,113 @@ export default function Sidebar() {
   return (
     <div style={{
       width: 220, minWidth: 220,
-      background: '#fff',
-      borderRight: '1px solid #E2E8F0',
+      background: `linear-gradient(180deg, ${sidebarPalette.shell} 0%, ${sidebarPalette.shellSoft} 100%)`,
+      borderRight: `1px solid ${sidebarPalette.border}`,
       display: 'flex', flexDirection: 'column',
       height: '100vh', overflowY: 'auto', flexShrink: 0,
+      boxShadow: '0 0 0 1px rgba(255,255,255,0.96) inset',
     }}
       className="sidebar-scroll"
     >
       <style>{`
         .sidebar-scroll::-webkit-scrollbar { width: 4px; }
-        .sidebar-scroll::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 2px; }
+        .sidebar-scroll::-webkit-scrollbar-thumb { background: ${sidebarPalette.border}; border-radius: 999px; }
       `}</style>
 
       {/* Logo */}
-      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{
+        padding: '11px 16px 5px',
+        borderBottom: `1px solid ${sidebarPalette.divider}`,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
+        background: 'radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 42%), linear-gradient(180deg, #FFFFFF 0%, #F9FBFF 100%)',
+      }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>跨境电商 ERP</div>
-          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', marginTop: 1 }}>CROSS-BORDER E-COMMERCE</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: sidebarPalette.textStrong, letterSpacing: '-0.5px' }}>跨境电商 ERP</div>
+          <div style={{ fontSize: 10, color: sidebarPalette.textSoft, fontWeight: 700, letterSpacing: '0.08em', marginTop: 1 }}>CROSS-BORDER E-COMMERCE</div>
         </div>
       </div>
 
       {/* 导航 */}
-      <nav style={{ flex: 1, padding: '4px 0' }}>
-        {/* 业务模块 */}
-        <SectionLabel label={SECTION_BUSINESS} />
-        {businessItems.map(renderMenuGroup)}
+      <nav style={{
+        flex: 1,
+        padding: '14px 12px 12px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 12,
+      }}>
+        <div style={{
+          borderRadius: 18,
+          background: 'rgba(255,255,255,0.88)',
+          border: `1px solid ${sidebarPalette.divider}`,
+          padding: '12px 10px 10px',
+          boxShadow: '0 12px 26px rgba(148, 163, 184, 0.08)',
+        }}>
+          <SectionLabel label={SECTION_BUSINESS} />
+          {businessItems.map(renderMenuGroup)}
+        </div>
 
-        {/* 分隔线 */}
-        <div style={{ height: 1, background: '#F1F5F9', margin: '8px 8px' }} />
-
-        {/* 系统功能 */}
-        <SectionLabel label={SECTION_SYSTEM} />
-        {systemItems.map(renderMenuGroup)}
+        <div style={{
+          borderRadius: 18,
+          background: 'rgba(255,255,255,0.88)',
+          border: `1px solid ${sidebarPalette.divider}`,
+          padding: '12px 10px 10px',
+          boxShadow: '0 12px 26px rgba(148, 163, 184, 0.08)',
+        }}>
+          <SectionLabel label={SECTION_SYSTEM} />
+          {systemItems.map(renderMenuGroup)}
+        </div>
       </nav>
 
       {/* 底部用户区 */}
       <div style={{
-        borderTop: '1px solid #F1F5F9',
-        padding: '12px 14px',
-        display: 'flex', alignItems: 'center', gap: 9,
+        padding: '0 12px 16px',
       }}>
         <div style={{
-          width: 28, height: 28, borderRadius: 6,
-          background: '#2563EB',
-          color: '#fff',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 11, fontWeight: 800, flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+          padding: '11px 12px',
+          borderRadius: 16,
+          background: 'linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%)',
+          border: `1px solid ${sidebarPalette.border}`,
+          boxShadow: '0 14px 28px rgba(148, 163, 184, 0.10)',
         }}>
-          {getInitials(displayName)}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: '#1E293B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {displayName}
+          <div style={{
+            width: 34, height: 34, borderRadius: 12,
+            background: 'linear-gradient(135deg, #2563EB 0%, #3B82F6 100%)',
+            color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 800, flexShrink: 0,
+          }}>
+            {getInitials(displayName)}
           </div>
-          <div style={{ fontSize: 11, color: '#94A3B8', marginTop: 1 }}>管理员</div>
-        </div>
-        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-          <button
-            title="退出登录"
-            onClick={handleLogout}
-            style={{
-              width: 26, height: 26, borderRadius: 7,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: hoveredFooterBtn === 'logout' ? '#2563EB' : '#94A3B8',
-              background: hoveredFooterBtn === 'logout' ? '#EFF6FF' : 'transparent',
-              border: 'none', cursor: 'pointer',
-              transition: 'background 0.12s, color 0.12s',
-            }}
-            onMouseEnter={() => setHoveredFooterBtn('logout')}
-            onMouseLeave={() => setHoveredFooterBtn(null)}
-          >
-            <LogoutIcon />
-          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 700, color: sidebarPalette.textStrong, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {displayName}
+            </div>
+            <div style={{ fontSize: 11, color: sidebarPalette.textSoft, marginTop: 2 }}>管理员</div>
+          </div>
+          <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+            <button
+              title="退出登录"
+              onClick={handleLogout}
+              style={{
+                minWidth: 34, height: 28, borderRadius: 999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: hoveredFooterBtn === 'logout' ? sidebarPalette.primary : sidebarPalette.textSoft,
+                background: hoveredFooterBtn === 'logout' ? sidebarPalette.primarySoft : '#EFF5FF',
+                border: 'none', cursor: 'pointer',
+                transition: 'background 0.12s, color 0.12s',
+                padding: '0 9px',
+              }}
+              onMouseEnter={() => setHoveredFooterBtn('logout')}
+              onMouseLeave={() => setHoveredFooterBtn(null)}
+            >
+              <LogoutIcon />
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -375,7 +456,11 @@ export default function Sidebar() {
 function SectionLabel({ label }: { label: string }) {
   return (
     <div style={{
-      display: 'none',
+      padding: '2px 8px 10px',
+      fontSize: 11,
+      fontWeight: 700,
+      letterSpacing: '0.08em',
+      color: sidebarPalette.textSoft,
     }}>
       {label}
     </div>
@@ -398,30 +483,47 @@ function ParentItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
+        position: 'relative',
         display: 'flex', alignItems: 'center',
-        padding: '7px 16px', borderRadius: 0,
+        padding: '11px 12px 11px 14px',
+        borderRadius: 14,
         cursor: 'pointer',
-        fontSize: 13,
-        fontWeight: hasActiveChild ? 600 : 500,
-        color: hasActiveChild ? '#1E293B' : hovered ? '#1E293B' : '#64748B',
-        background: 'transparent',
-        gap: 9,
-        transition: 'background 0.15s, color 0.15s',
+        fontSize: 13.5,
+        fontWeight: hasActiveChild ? 700 : 600,
+        color: hasActiveChild ? sidebarPalette.textStrong : hovered ? sidebarPalette.textMain : sidebarPalette.textMuted,
+        background: hasActiveChild
+          ? 'linear-gradient(180deg, #EEF4FF 0%, #F7FAFF 100%)'
+          : hovered
+            ? '#F8FBFF'
+            : 'transparent',
+        gap: 10,
+        transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
         userSelect: 'none',
+        marginBottom: 6,
+        boxShadow: hasActiveChild
+          ? `inset 0 0 0 1px ${sidebarPalette.primaryBorder}, inset 3px 0 0 ${sidebarPalette.primary}`
+          : 'none',
       }}
     >
       <span style={{
-        width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: hasActiveChild ? '#2563EB' : hovered ? '#475569' : '#94A3B8',
+        width: 20,
+        height: 20,
+        borderRadius: 7,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: hasActiveChild ? sidebarPalette.primary : hovered ? sidebarPalette.iconHover : sidebarPalette.icon,
+        background: hasActiveChild ? sidebarPalette.surface : sidebarPalette.surfaceAlt,
         flexShrink: 0,
         transition: 'color 0.15s',
+        boxShadow: hasActiveChild ? '0 6px 14px rgba(37, 99, 235, 0.14)' : 'none',
       }}>
         {item.icon}
       </span>
       <span style={{ flex: 1 }}>{item.label}</span>
       {item.children.length > 0 && (
         <span style={{
-          color: hasActiveChild ? '#CBD5E1' : '#CBD5E1',
+          color: sidebarPalette.textSoft,
           flexShrink: 0,
           display: 'flex', alignItems: 'center',
           transform: isOpen ? 'rotate(90deg)' : 'none',
@@ -458,20 +560,33 @@ function ChildItem({
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
+        position: 'relative',
         display: 'flex', alignItems: 'center',
-        padding: '5px 10px 5px 40px',
+        padding: '8px 12px 8px 18px',
         fontSize: 13,
-        color: isActive ? '#2563EB' : hovered ? '#1E293B' : '#64748B',
+        color: isActive ? sidebarPalette.primary : hovered ? sidebarPalette.textMain : sidebarPalette.textMuted,
         cursor: 'pointer',
-        borderRadius: 999,
-        margin: '1px 8px',
-        fontWeight: isActive ? 600 : 400,
-        background: isActive ? '#EEF2FF' : hovered ? '#F1F5F9' : 'transparent',
+        borderRadius: 12,
+        margin: '4px 0 4px 12px',
+        fontWeight: isActive ? 700 : 500,
+        background: isActive ? '#F3F7FF' : hovered ? '#F8FBFF' : 'transparent',
+        border: isActive ? `1px solid ${sidebarPalette.primaryBorder}` : '1px solid transparent',
         transition: 'background 0.12s, color 0.12s',
         userSelect: 'none',
       }}
     >
-      {label}
+      <span style={{
+        position: 'absolute',
+        left: 6,
+        top: '50%',
+        width: 6,
+        height: 6,
+        borderRadius: 999,
+        background: isActive ? sidebarPalette.primary : '#CBD5E1',
+        transform: 'translateY(-50%)',
+        boxShadow: isActive ? '0 0 0 4px rgba(37, 99, 235, 0.08)' : 'none',
+      }} />
+      <span>{label}</span>
     </div>
   );
 }
