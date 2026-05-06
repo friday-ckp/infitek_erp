@@ -96,6 +96,24 @@ export interface OutboundOrder {
   updatedAt: string;
 }
 
+export interface OutboundOrdersListParams {
+  keyword?: string;
+  status?: OutboundOrderStatus;
+  outboundType?: OutboundOrderType;
+  logisticsOrderId?: number;
+  shippingDemandId?: number;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface OutboundOrdersListData {
+  list: OutboundOrder[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+}
+
 export const OUTBOUND_ORDER_STATUS_LABELS: Record<OutboundOrderStatus, string> = {
   [OutboundOrderStatus.CONFIRMED]: "已确认",
 };
@@ -121,4 +139,16 @@ export const createOutboundOrder = (
 ): Promise<OutboundOrder> =>
   request
     .post<unknown, OutboundOrder>("/outbound-orders", payload)
+    .catch(normalizeApiError);
+
+export const getOutboundOrders = (
+  params: OutboundOrdersListParams,
+): Promise<OutboundOrdersListData> =>
+  request
+    .get<unknown, OutboundOrdersListData>("/outbound-orders", { params })
+    .catch(normalizeApiError);
+
+export const getOutboundOrderById = (id: number): Promise<OutboundOrder> =>
+  request
+    .get<unknown, OutboundOrder>(`/outbound-orders/${id}`)
     .catch(normalizeApiError);

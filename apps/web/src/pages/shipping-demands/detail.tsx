@@ -1977,11 +1977,17 @@ export default function ShippingDemandDetailPage() {
               icon={<FileDoneOutlined />}
               label="出库单"
               count={outboundOrderCount}
-              disabled
+              disabled={outboundOrderCount === 0}
               disabledTooltip={
                 outboundOrderCount > 0
-                  ? "当前已存在关联出库单，正式列表入口待后续 Story 补齐"
-                  : "当前还没有关联出库单；正式列表入口待后续 Story 补齐"
+                  ? undefined
+                  : "当前还没有关联出库单；关联物流单执行发货后会在这里汇总查看"
+              }
+              onClick={
+                outboundOrderCount > 0
+                  ? () =>
+                      navigate(`/outbound-orders?shippingDemandId=${demandId}`)
+                  : undefined
               }
             />
           </div>

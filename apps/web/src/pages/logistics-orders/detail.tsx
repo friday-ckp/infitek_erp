@@ -263,6 +263,9 @@ export default function LogisticsOrderDetailPage() {
     (data?.items ?? []).some(
       (item) => Number(item.plannedQuantity ?? 0) > Number(item.outboundQuantity ?? 0),
     );
+  const hasOutboundOrders = (data?.items ?? []).some(
+    (item) => Number(item.outboundQuantity ?? 0) > 0,
+  );
 
   const openTrackingEdit = () => {
     trackingForm.setFieldsValue({
@@ -312,6 +315,17 @@ export default function LogisticsOrderDetailPage() {
                   >
                     查看发货需求
                   </Button>
+                  {hasOutboundOrders ? (
+                    <Button
+                      onClick={() =>
+                        navigate(
+                          `/outbound-orders?logisticsOrderId=${logisticsOrderId}`,
+                        )
+                      }
+                    >
+                      查看发货出库单
+                    </Button>
+                  ) : null}
                   {canEditTracking ? (
                     <Button type="primary" onClick={openTrackingEdit}>
                       编辑物流跟踪
@@ -324,7 +338,7 @@ export default function LogisticsOrderDetailPage() {
                         navigate(`/outbound-orders/create?logisticsOrderId=${logisticsOrderId}`)
                       }
                     >
-                      创建发货出库单
+                      {hasOutboundOrders ? "继续创建发货出库单" : "创建发货出库单"}
                     </Button>
                   ) : null}
                 </Space>
@@ -538,12 +552,41 @@ export default function LogisticsOrderDetailPage() {
               <MetaItem
                 label="出库单"
                 value={
-                  canCreateOutbound ? (
+                  hasOutboundOrders ? (
+                    <Space wrap size={12}>
+                      <Button
+                        type="link"
+                        style={{ padding: 0 }}
+                        onClick={() =>
+                          navigate(
+                            `/outbound-orders?logisticsOrderId=${logisticsOrderId}`,
+                          )
+                        }
+                      >
+                        查看关联发货出库单
+                      </Button>
+                      {canCreateOutbound ? (
+                        <Button
+                          type="link"
+                          style={{ padding: 0 }}
+                          onClick={() =>
+                            navigate(
+                              `/outbound-orders/create?logisticsOrderId=${logisticsOrderId}`,
+                            )
+                          }
+                        >
+                          继续创建发货出库单
+                        </Button>
+                      ) : null}
+                    </Space>
+                  ) : canCreateOutbound ? (
                     <Button
                       type="link"
                       style={{ padding: 0 }}
                       onClick={() =>
-                        navigate(`/outbound-orders/create?logisticsOrderId=${logisticsOrderId}`)
+                        navigate(
+                          `/outbound-orders/create?logisticsOrderId=${logisticsOrderId}`,
+                        )
                       }
                     >
                       创建发货出库单

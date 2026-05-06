@@ -70,6 +70,8 @@ import PurchaseOrderFormPage from "./pages/purchase-orders/form";
 import ReceiptOrdersListPage from "./pages/receipt-orders/index";
 import ReceiptOrderDetailPage from "./pages/receipt-orders/detail";
 import ReceiptOrderFormPage from "./pages/receipt-orders/form";
+import OutboundOrdersListPage from "./pages/outbound-orders/index";
+import OutboundOrderDetailPage from "./pages/outbound-orders/detail";
 import OutboundOrderFormPage from "./pages/outbound-orders/form";
 import InventoryPage from "./pages/inventory/index";
 import InventoryTransactionsPage from "./pages/inventory/transactions";
@@ -503,6 +505,14 @@ function App() {
                   <Route
                     path="/receipt-orders/create"
                     element={<ReceiptOrderFormPage />}
+                  />
+                  <Route
+                    path="/outbound-orders"
+                    element={<OutboundOrdersListPage />}
+                  />
+                  <Route
+                    path="/outbound-orders/:id"
+                    element={<OutboundOrderDetailPage />}
                   />
                   <Route
                     path="/outbound-orders/create"
