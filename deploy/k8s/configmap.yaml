@@ -10,5 +10,5 @@ data:
   DB_NAME: "infitek_erp"
   NODE_ENV: "production"
   PORT: "3000"
-  CORS_ORIGIN: "https://infitek.test.huaqing.run"
+  CORS_ORIGIN: "https://ai-erp.test.huaqing.run"
   JWT_EXPIRES_IN: "8h"

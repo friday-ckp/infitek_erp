@@ -10,7 +10,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: infitek.test.huaqing.run
+    - host: ai-erp.test.huaqing.run
       http:
         paths:
           - path: /
