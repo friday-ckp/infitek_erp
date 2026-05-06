@@ -9,12 +9,14 @@ import { OperationLog } from '../../operation-logs/entities/operation-log.entity
 import { SalesOrder } from '../../sales-orders/entities/sales-order.entity';
 import { ShippingDemand } from '../../shipping-demands/entities/shipping-demand.entity';
 import { OutboundOrdersService } from '../outbound-orders.service';
+import { OutboundOrder } from '../entities/outbound-order.entity';
 
 describe('OutboundOrdersService', () => {
   const outboundOrdersRepository = {
     createQueryRunner: jest.fn(),
     findById: jest.fn(),
     findBySourceActionKey: jest.fn(),
+    findAll: jest.fn(),
   };
   const inventoryService = {
     deductLockedStockInTransaction: jest.fn(),
@@ -32,6 +34,30 @@ describe('OutboundOrdersService', () => {
 
   it('is defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('delegates outbound order list query to repository', async () => {
+    const expected = {
+      list: [{ id: 1, outboundCode: 'QTCK202605060001' }],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+    };
+    outboundOrdersRepository.findAll.mockResolvedValue(expected);
+
+    const result = await service.findAll({
+      keyword: 'QTCK',
+      page: 1,
+      pageSize: 20,
+    } as any);
+
+    expect(outboundOrdersRepository.findAll).toHaveBeenCalledWith({
+      keyword: 'QTCK',
+      page: 1,
+      pageSize: 20,
+    });
+    expect(result).toBe(expected);
   });
 
   it('pushes sales order to partially shipped when any active demand is partially shipped', async () => {
@@ -193,6 +219,59 @@ describe('OutboundOrdersService', () => {
 
     expect(result).toBeNull();
     expect(save).not.toHaveBeenCalled();
+  });
+
+  it('updates logistics order to shipped when all outbound quantities are completed', async () => {
+    const savedOrders: LogisticsOrder[] = [];
+    const queryRunner = {
+      manager: {
+        getRepository: jest.fn((entity) => {
+          if (entity === LogisticsOrderItem) {
+            return {
+              find: jest.fn().mockResolvedValue([
+                { plannedQuantity: 5, outboundQuantity: 5 },
+                { plannedQuantity: 3, outboundQuantity: 3 },
+              ]),
+            };
+          }
+          if (entity === LogisticsOrder) {
+            return {
+              save: jest.fn(async (order) => {
+                savedOrders.push(order);
+                return order;
+              }),
+            };
+          }
+          throw new Error('Unexpected repository');
+        }),
+      },
+    };
+
+    const result = await (service as any).updateLogisticsOrderStatusAfterOutbound(
+      queryRunner,
+      {
+        id: 200,
+        status: LogisticsOrderStatus.CONFIRMED,
+        updatedBy: null,
+      } as LogisticsOrder,
+      'admin',
+    );
+
+    expect(result).toEqual({
+      order: expect.objectContaining({
+        id: 200,
+        status: LogisticsOrderStatus.SHIPPED,
+        updatedBy: 'admin',
+      }),
+      oldStatus: LogisticsOrderStatus.CONFIRMED,
+    });
+    expect(savedOrders).toEqual([
+      expect.objectContaining({
+        id: 200,
+        status: LogisticsOrderStatus.SHIPPED,
+        updatedBy: 'admin',
+      }),
+    ]);
   });
 
   it('writes logistics status change into operation log when outbound completes shipment', async () => {

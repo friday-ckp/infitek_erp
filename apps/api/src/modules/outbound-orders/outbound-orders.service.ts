@@ -27,6 +27,7 @@ import { ShippingDemandInventoryAllocation } from '../shipping-demands/entities/
 import { ShippingDemandItem } from '../shipping-demands/entities/shipping-demand-item.entity';
 import { ShippingDemand } from '../shipping-demands/entities/shipping-demand.entity';
 import { CreateOutboundOrderDto } from './dto/create-outbound-order.dto';
+import { QueryOutboundOrderDto } from './dto/query-outbound-order.dto';
 import { OutboundOrdersRepository } from './outbound-orders.repository';
 import { OutboundAllocationConsumption } from './entities/outbound-allocation-consumption.entity';
 import { OutboundOrderItem } from './entities/outbound-order-item.entity';
@@ -106,6 +107,10 @@ export class OutboundOrdersService {
     private readonly outboundOrdersRepository: OutboundOrdersRepository,
     private readonly inventoryService: InventoryService,
   ) {}
+
+  findAll(query: QueryOutboundOrderDto) {
+    return this.outboundOrdersRepository.findAll(query);
+  }
 
   async getCreatePrefill(
     logisticsOrderId: number,

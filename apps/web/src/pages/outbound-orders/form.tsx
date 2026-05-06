@@ -124,22 +124,41 @@ export default function OutboundOrderFormPage() {
     mutationFn: (payload: CreateOutboundOrderPayload) =>
       createOutboundOrder(payload),
     onSuccess: (created) => {
-      queryClient.invalidateQueries({
+      queryClient.removeQueries({
+        queryKey: ["outbound-order-create-prefill", created.logisticsOrderId],
+        exact: true,
+      });
+      queryClient.removeQueries({
         queryKey: ["logistics-order-detail", created.logisticsOrderId],
+        exact: true,
       });
-      queryClient.invalidateQueries({ queryKey: ["logistics-orders"] });
-      queryClient.invalidateQueries({
+      queryClient.removeQueries({
         queryKey: ["shipping-demand-detail", created.shippingDemandId],
+        exact: true,
+      });
+      queryClient.removeQueries({
+        queryKey: ["sales-order-detail", created.salesOrderId],
+        exact: true,
+      });
+      queryClient.invalidateQueries({ queryKey: ["outbound-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["logistics-orders"] });
+      queryClient.invalidateQueries({ queryKey: ["shipping-demands"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+      queryClient.invalidateQueries({
+        queryKey: ["operation-logs", "logistics-orders", created.logisticsOrderId],
       });
       queryClient.invalidateQueries({
-        queryKey: ["sales-order-detail", created.salesOrderId],
+        queryKey: ["operation-logs", "shipping-demands", created.shippingDemandId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["operation-logs", "sales-orders", created.salesOrderId],
       });
       notification.success({
         message: "发货出库已确认",
         description: `${created.outboundCode} 已完成出库确认。`,
         duration: 5,
       });
-      navigate(`/logistics-orders/${created.logisticsOrderId}`);
+      navigate(`/outbound-orders/${created.id}`);
     },
   });
 
@@ -249,18 +268,25 @@ export default function OutboundOrderFormPage() {
   };
 
   const validateItems = () => {
+    let hasPositiveQuantity = false;
     for (const item of editableItems) {
       if (
         !Number.isInteger(item.inputOutboundQuantity) ||
-        Number(item.inputOutboundQuantity) <= 0
+        Number(item.inputOutboundQuantity) < 0
       ) {
-        throw new Error(`${item.skuCode} 的实际出库数量必须为正整数`);
+        throw new Error(`${item.skuCode} 的实际出库数量必须为 0 或正整数`);
       }
       if (Number(item.inputOutboundQuantity) > Number(item.remainingQuantity)) {
         throw new Error(
           `${item.skuCode} 的实际出库数量不能超过剩余可出库数量 ${item.remainingQuantity}`,
         );
       }
+      if (Number(item.inputOutboundQuantity) > 0) {
+        hasPositiveQuantity = true;
+      }
+    }
+    if (!hasPositiveQuantity) {
+      throw new Error("至少需要填写一条出库数量大于 0 的明细");
     }
   };
 
@@ -299,7 +325,7 @@ export default function OutboundOrderFormPage() {
       align: "right" as const,
       render: (_: unknown, record: EditableOutboundItem) => (
         <InputNumber
-          min={1}
+          min={0}
           max={record.remainingQuantity}
           precision={0}
           style={{ width: "100%" }}
@@ -424,7 +450,7 @@ export default function OutboundOrderFormPage() {
             items: editableItems.map((item) => ({
               logisticsOrderItemId: Number(item.logisticsOrderItemId),
               outboundQuantity: Number(item.inputOutboundQuantity),
-            })),
+            })).filter((item) => item.outboundQuantity > 0),
           };
           await createMutation.mutateAsync(payload);
         }}
