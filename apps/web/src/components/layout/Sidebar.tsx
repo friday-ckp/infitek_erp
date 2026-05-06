@@ -309,8 +309,8 @@ export default function Sidebar() {
       {/* Logo */}
       <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>星辰科技 ERP</div>
-          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', marginTop: 1 }}>INFITEK ENTERPRISE</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: '#0F172A', letterSpacing: '-0.5px' }}>跨境电商 ERP</div>
+          <div style={{ fontSize: 10, color: '#94A3B8', fontWeight: 700, letterSpacing: '0.5px', marginTop: 1 }}>CROSS-BORDER E-COMMERCE</div>
         </div>
       </div>
 

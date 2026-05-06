@@ -101,7 +101,7 @@ export default function LoginPage() {
                   <Input
                     id="account"
                     className="form-input"
-                    placeholder="admin@infitek.com"
+                    placeholder="admin@crossborder.com"
                     prefix={<UserOutlined className="input-icon" />}
                   />
                 </Form.Item>
