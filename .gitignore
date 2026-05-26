@@ -36,5 +36,8 @@ Thumbs.db
 # Testing
 coverage/
 
+# BMAD personal installer answers
+_bmad/config.user.toml
+
 # K8s secrets (contains plaintext credentials, never commit)
 deploy/k8s/secret.yaml
