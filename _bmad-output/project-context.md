@@ -1,331 +1,194 @@
 ---
 project_name: infitek_erp
 user_name: friday
-date: 2026-04-17
-sections_completed: [technology_stack, backend_rules, frontend_rules, ux_rules, testing_rules, workflow_rules, anti_patterns]
+date: 2026-05-27
+sections_completed:
+  [technology_stack, language_rules, framework_rules, backend_rules, frontend_rules, ux_rules, testing_rules, workflow_rules, anti_patterns]
+status: complete
+rule_count: 78
+optimized_for_llm: true
 ---
 
 # Project Context for AI Agents — infitek_erp
 
-_AI Agent 实现代码时必须遵守的关键规则和模式。重点记录容易遗漏的非显而易见细节。_
+_AI Agent 实现代码前必须阅读。本文只记录容易被漏掉、会导致实现偏离项目的关键规则。_
 
 ---
 
 ## Technology Stack & Versions
 
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| 后端框架 | NestJS | 11.x |
-| ORM | TypeORM + @nestjs/typeorm | 0.3.x / 11.0.x |
-| 数据库 | MySQL | 8.x |
-| 认证 | JWT + Passport（@nestjs/jwt 11, @nestjs/passport 11） | — |
-| 密码加密 | bcrypt | rounds=12 |
-| 前端框架 | React | 19.x |
-| 构建工具 | Vite | 8.x |
-| UI 组件库 | Ant Design | 5.x |
-| Pro 组件 | @ant-design/pro-components | 2.8.x |
-| 服务端状态 | TanStack Query | 5.x |
-| 全局状态 | Zustand | 5.x |
-| 路由 | React Router | 7.x |
-| HTTP 客户端 | Axios | 1.x |
-| 包管理 | pnpm Workspace | — |
-| 共享类型 | packages/shared（@infitek/shared） | workspace:* |
+| 层级 | 技术 | 当前版本/约束 |
+|---|---|---|
+| Monorepo | pnpm workspace | 根目录 `pnpm-workspace.yaml`；根脚本 `pnpm dev` / `pnpm build` |
+| Node | Node.js | `apps/api/package.json` 要求 `>=18.0.0` |
+| 后端框架 | NestJS | `@nestjs/*` 11.x |
+| ORM / DB | TypeORM + MySQL | `typeorm` 0.3.28，`mysql2` 3.22，MySQL 8.x |
+| API 文档 | Swagger | `@nestjs/swagger` 11.2，开发环境 `/api/docs` |
+| 后端日志 | nestjs-pino / pino | 结构化日志，`LoggerModule` 全局注册 |
+| 后端测试 | Jest + ts-jest | Jest 30，`apps/api` 内嵌 Jest 配置 |
+| 后端 TypeScript | TypeScript | 5.7.3；`moduleResolution: nodenext` |
+| 前端框架 | React | 19.2.4 |
+| 前端构建 | Vite | 8.0.4 |
+| 前端 UI | Ant Design / ProComponents | antd 5.24，`@ant-design/pro-components` 2.8 |
+| 前端状态 | TanStack Query / Zustand | Query 5.74，Zustand 5.0 |
+| 前端路由 | React Router | 7.6 |
+| 前端测试 | Playwright | 1.59；配置在 `apps/web/playwright.config.ts` |
+| 前端 TypeScript | TypeScript | web 使用 `~6.0.2`，shared 使用 `^6.0.3` |
+| 共享包 | `@infitek/shared` | `workspace:*`，输出 CJS + ESM + types |
+
+**版本口径以当前 `package.json` 和代码为准。旧架构文档中的 `/api/v1/`、Vite 6、pnpm 9 等历史口径不得覆盖当前实现。**
 
 ---
 
-## 后端实现规则
+## Critical Implementation Rules
 
-### 模块结构（7 文件标准）
+### Language-Specific Rules
 
-每个业务模块必须包含：`module / controller / service / repository / entity / dto / tests`
+- 后端 TS 配置启用 `strictNullChecks`、`isolatedModules`、decorator metadata；处理 nullable 字段时必须显式分支，不能假设 DB 字段永远存在。
+- 后端允许 `any`，但 ESLint 会警告 `no-floating-promises` 和 unsafe argument；异步调用必须 `await`、`return` 或显式处理错误。
+- 前端 TS 开启 `noUnusedLocals`、`noUnusedParameters`、`erasableSyntaxOnly`，避免未使用变量、参数和不可擦除语法。
+- 前端 `tsconfig.app.json` 使用 bundler resolution、`verbatimModuleSyntax`、`jsx: react-jsx`；保持 ESM import，不引入 CommonJS 写法。
+- `@infitek/shared` 是前后端共享枚举/类型唯一来源；禁止在 `apps/api` 或 `apps/web` 中复制业务枚举。
+- 共享枚举采用 `as const` 对象 + union type 模式，禁止新增 TypeScript `enum` 关键字。
+- 金额、数量、ID 从 Entity/SQL 返回时经常是 string/number 混合；Service 层对参与计算和比较的值必须显式 `Number(...)`。
+- 注释只解释业务约束、事务边界、幂等原因；不要添加“给变量赋值”这类无信息注释。
 
-```
-src/modules/{domain}/
-├── {domain}.module.ts
-├── {domain}.controller.ts
-├── {domain}.service.ts
-├── {domain}.repository.ts
-├── entities/{domain}.entity.ts
-├── dto/create-{domain}.dto.ts
-├── dto/update-{domain}.dto.ts
-└── tests/{domain}.service.spec.ts
-```
+### Backend Framework Rules
 
-### Entity 规则
+- 后端模块按业务域组织在 `apps/api/src/modules/{domain}`；常规模块包含 `module/controller/service/repository/entities/dto/tests`。
+- 主数据模块位于 `apps/api/src/modules/master-data/{domain}`；交易模块位于 `sales-orders`、`shipping-demands`、`purchase-orders`、`receipt-orders`、`logistics-orders`、`outbound-orders`、`inventory`。
+- Controller 只做路由、DTO、当前用户注入和调用 Service；业务校验、事务、状态推进必须在 Service/领域动作中完成。
+- Repository 封装 TypeORM 查询和分页，Service 不应散落复杂列表 SQL，除非是事务内必须由 `queryRunner.manager` 执行。
+- 所有 Entity 必须继承 `apps/api/src/common/entities/base.entity.ts` 的 `BaseEntity`，包含 `id/createdAt/updatedAt/createdBy/updatedBy`。
+- Entity 字段必须显式 `@Column({ name: 'snake_case' })` 并配 `@Expose()`；密码等敏感字段用 `@Exclude()`。
+- 使用软删除的实体统一 `@DeleteDateColumn({ name: 'deleted_at' })`；查询必须过滤 `deletedAt: IsNull()` 或等价条件。
+- 新增或调整表结构必须添加 TypeORM migration；生产环境禁止依赖 `synchronize: true`。
+- `AppModule` 已全局注册 `JwtAuthGuard`、`ClassSerializerInterceptor`、`LoggingInterceptor`、`ResponseInterceptor`、`AuditInterceptor`、`HttpExceptionFilter`；不要在单个 Controller 重复包一层响应体。
+- API 前缀是 `app.setGlobalPrefix('api')`，前端 axios `baseURL` 是 `/api`；新增接口路径按 `/api/...` 推导。
+- Controller 直接返回业务数据，`ResponseInterceptor` 自动包装为 `{ success, data, message: 'OK', code: 'OK' }`。
+- 业务异常用 Nest exception 抛对象 `{ code, message, ... }`；前端错误拦截器会读取 `error.response.data.message`。
+- `ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true })` 全局启用；DTO 必须用 class-validator 描述可接受字段。
+- `JwtAuthGuard` 全局鉴权；公开接口只允许显式 `@Public()`，当前核心公开入口是 `/auth/login`。
+- 当前用户统一用 `@CurrentUser()`；不要从 request body 接收操作者身份。
+- 登录停用账号 Token 必须失效；JwtStrategy 每次验证查库检查用户状态。
+- `main.ts` 启动时会运行 `dataSource.runMigrations()`；migration 必须可重复、可排序、无破坏性默认值风险。
+- Swagger 只在非生产环境启用，路径是 `/api/docs`。
 
-- 所有 Entity **必须继承 `BaseEntity`**（含 id/createdAt/updatedAt/createdBy/updatedBy）
-- 每个字段必须同时加 `@Expose()` 和 `@Column({ name: 'snake_case' })` 显式指定列名
-- 密码等敏感字段用 `@Exclude()` 而非 `@Expose()`
-- 软删除统一用 `@DeleteDateColumn({ name: 'deleted_at' })`
-- 查询时必须过滤软删除：`where: { deletedAt: IsNull() }`
+### Transaction & Domain Rules
 
-```typescript
-// 正确示例
-@Column({ name: 'username', type: 'varchar', length: 50 })
-@Expose()
-username: string;
-
-@Column({ name: 'password', type: 'varchar', length: 255 })
-@Exclude()
-password: string;
-```
-
-### 枚举规则
-
-- **所有枚举必须定义在 `packages/shared`**，禁止前后端独立定义
-- 枚举用 `as const` 对象模式（非 TypeScript enum 关键字）
-
-```typescript
-// packages/shared/src/enums/xxx.enum.ts
-export const XxxStatus = { ACTIVE: 'active', INACTIVE: 'inactive' } as const;
-export type XxxStatus = typeof XxxStatus[keyof typeof XxxStatus];
-```
-
-### API 响应格式
-
-统一响应体（通过全局 ResponseInterceptor 自动包装，Controller 直接 return 数据即可）：
-
-```json
-{ "success": true, "data": {}, "message": "OK", "code": "OK" }
-{ "success": false, "data": null, "message": "错误原因", "code": "BUSINESS_ERROR_CODE" }
-```
-
-- API 前缀：`/api`（main.ts 已配置 `setGlobalPrefix('api')`）
-- 分页参数：`page`（默认 1）+ `pageSize`（默认 20），Offset 分页
-- 分页响应：`{ data: [], total: N, page: N, pageSize: N, totalPages: N }`
-
-### 认证规则
-
-- `JwtAuthGuard` 已全局注册，所有接口自动鉴权，无需逐 Controller 添加
-- 豁免接口用 `@Public()` 装饰器（仅 `/auth/login`）
-- 获取当前用户用 `@CurrentUser()` 装饰器（`apps/api/src/common/decorators/current-user.decorator.ts`）
-- 停用账号后 Token 立即失效：JwtStrategy 每次验证时查库检查 `status`
-
-### 库存并发规则（关键）
-
-- 所有库存写操作（锁定/解锁/扣减/增加）**必须使用 TypeORM QueryRunner 事务 + `SELECT ... FOR UPDATE`**
-- `available_quantity` 由 Service 层在事务内维护，不做数据库计算列
-- 库存不足错误必须携带当前可用量：`STOCK_INSUFFICIENT` + `{ available: N }`
-- 死锁重试：指数退避最多 3 次，超限抛 `ConflictException({ code: 'CONCURRENT_UPDATE' })`
-
-### 状态机规则
-
-- 状态变更必须通过专用动作端点：`POST /:id/confirm`、`POST /:id/cancel` 等
-- **禁止**通过通用 `PATCH /:id` 直接修改状态字段
-
-### Epic 5-7 交易流强制上下文（关键）
-
-- 创建或开发 Epic 5-7 后续 Story（5.0、5.2-5.5、6.2-6.6、7.1-7.4）前，必须加载：
+- 状态变更必须通过专用动作端点或领域动作服务，例如确认、作废、收货、出库；禁止通过通用 `PATCH /:id` 直接写状态字段。
+- 前端不得提交“目标状态”来驱动交易流；状态由后端根据动作、数量事实和状态机聚合推进。
+- 库存写操作必须使用 TypeORM `QueryRunner` 事务，并对库存汇总/批次/相关单据行执行行锁或等价并发保护。
+- 库存数量权威来源是 `inventory_summary`、`inventory_batch`、`shipping_demand_inventory_allocations`、`inventory_transactions`；单据明细上的数量字段只作展示缓存或聚合结果。
+- 库存不足错误必须返回明确业务码和当前可用量，例如 `STOCK_INSUFFICIENT` + `{ available: N }`。
+- 交易确认类动作必须有幂等键，当前 DTO 常用 `requestKey`，实体落 `sourceActionKey`；重复提交应返回已有单据，不得重复累计库存或流水。
+- 单据编号生成存在唯一冲突重试逻辑，遵循当前 `MAX_*_CODE_RETRIES` + 退避模式，不要改成无界循环。
+- 操作日志是交易动作验收项；创建、确认、自动锁定、物流跟踪、出库、状态联动都应写 OperationLog / ActivityTimeline 所需数据。
+- 收货入库：采购订单行数量、库存批次、库存流水、收货数量缓存、采购订单状态和发货需求自动锁定必须在同一业务动作中保持一致。
+- 发货出库：出库必须消费 `shipping_demand_inventory_allocations`，同步扣减实际量与锁定量，并回填物流单、发货需求、销售订单状态。
+- 发货需求是履约数量权威枢纽；销售订单、采购订单、物流单、收货单、出库单都围绕发货需求聚合展示。
+- 部分收货、部分发货、部分锁定不能简化成“有动作即完成”；状态推进必须基于剩余量、已锁定量、已出库量、已收货量聚合。
+- 对 Epic 5-8 交易链相关开发，必须优先加载并服从：
   - `_bmad-output/planning-artifacts/flow-cross-document-trigger.md`
   - `_bmad-output/planning-artifacts/flow-state-machine.md`
   - `_bmad-output/planning-artifacts/flow-quantity-data-lineage.md`
-- 若 PRD、Architecture、UX、旧 Epic 文本或已完成 Story 与上述三份 flow 文档冲突，以三份 flow 文档为准。
-- 发货需求是履约数量权威单据；库存数量权威来源是 `inventory_summary`、`inventory_batch`、库存分配表和库存流水；销售订单明细上的履约数量字段只能作为展示缓存或聚合结果。
-- 状态推进必须由领域动作服务在事务内根据数量聚合结果触发，前端不得直接提交目标状态。
-- 跨单据动作必须保留幂等键、库存分配表、上游数量缓存回填和 ActivityTimeline/审计记录，避免重复确认导致数量重复累加。
+- 若 PRD、Architecture、UX、旧 Epic 文本、Story Dev Notes 与三份 flow 文档冲突，以三份 flow 文档和当前已实现代码为准。
+- Epic 6-8 已完成主链：销售订单 -> 发货需求 -> 采购订单 -> 收货入库 -> 自动锁定 -> 物流单 -> 发货出库 -> 状态回填。后续更改不得破坏这条链。
 
-### 数据库迁移
+### Frontend Framework Rules
 
-- 生产环境禁止 `synchronize: true`
-- 每个新 Entity 必须创建对应 TypeORM Migration 文件
+- 前端 API 调用全部放在 `apps/web/src/api/*.api.ts`，统一使用 `apps/web/src/api/request.ts`；组件内禁止直接 `axios`。
+- `request.ts` 已自动注入 `Authorization: Bearer <token>`，401 会清 token 并跳转 `/login`；页面不要重复实现鉴权跳转。
+- `request.ts` 响应拦截器返回 `response.data.data`，因此 API 层函数的返回类型应是业务 data，不是完整响应体。
+- 服务端数据用 TanStack Query 的 `useQuery/useMutation`；禁止用 `useEffect + useState` 手写请求生命周期。
+- 全局 UI 状态用 Zustand，当前 store 在 `apps/web/src/store`；表单状态交给 antd/ProForm，不要复制到全局 store。
+- 页面文件延续 `index.tsx`（列表）、`detail.tsx`（详情）、`form.tsx`（表单）模式；交易模块和主数据模块都按该模式组织。
+- 主数据共享页面构件在 `apps/web/src/pages/master-data/components/page-scaffold.tsx`；新增主数据详情/表单优先复用 `MetaItem`、`SummaryMetaItem`、`SectionCard`、`OperationTimeline` 等模式。
+- 通用搜索表单位于 `apps/web/src/components/common/SearchForm.tsx`；不要为每个列表重新发明筛选布局。
+- 业务组件优先放在 `apps/web/src/components` 或相关模块共享目录；避免在页面文件里堆大段可复用组件。
+- React Router 7 用当前项目路由组织；新增页面必须检查 `App.tsx` 和侧边栏配置，保证入口、面包屑、详情/编辑返回路径一致。
+- 静态 antd message/notification 通过 `apps/web/src/utils/antdStatic.ts`；在 React 上下文外触发提示时必须使用该桥接。
+- 日期展示使用 dayjs，并保持 `zh-cn` 语义；不要混用多个日期库。
 
----
+### Frontend UX Rules
 
-## 前端实现规则
+- 系统是企业 ERP 操作台，界面应信息密集、安静、可扫描；不要做营销式 hero、装饰卡片或大面积插画。
+- 列表页必须包含标题/操作区、快捷搜索、高级筛选、筛选 Tag、固定表头数据表、右侧固定操作列、分页总数。
+- 详情页采用“面包屑 + 摘要区 + 分组内容/Tab + 操作记录”的工作台布局；状态必须用 pill/tag，不得纯文字。
+- 表单页采用独立编辑页；中复杂模块保留分组/Tab，底部固定取消和保存按钮。
+- 状态色彩全系统统一：草稿/待处理灰，进行中/已确认蓝，警告/待处理橙，完成绿，作废/异常红。
+- 每页最多一个 Primary 按钮；次要操作用灰框，表格行操作用 text，危险不可逆操作用 danger。
+- 状态推进用 `Popconfirm`；删除/作废等不可逆操作用 `Modal` + 明确确认。禁止弹窗嵌套。
+- 成功轻提示 `message.success`，重要成功 `notification.success`；失败 `message.error`，重要失败 `notification.error` 并允许手动关闭。
+- 加载态区分首次加载 Skeleton、表格 Spin、按钮 loading；不要让用户在交易动作中看到无反馈点击。
+- 空状态区分无数据和筛选无结果；筛选无结果要提供清除筛选入口。
+- 高频操作不能藏进下拉菜单；下拉只放低频、次要、非阻塞操作。
+- 不要硬编码散乱颜色；优先使用 antd status、项目 CSS 变量或既有样式类。
 
-### 页面结构（3 文件标准）
+### Testing Rules
 
-每个业务模块前端包含：`index.tsx`（列表页）/ `detail.tsx`（详情页）/ `form.tsx`（表单页）
+- 后端测试主要放在 `apps/api/src/modules/{domain}/tests/` 或既有 `__tests__/`；命名沿用 `{domain}.service.spec.ts`、`{domain}.repository.spec.ts`。
+- Service 测试覆盖业务校验、状态变更、事务边界、幂等重复提交、异常码；Repository 测试覆盖查询条件和分页。
+- 库存、收货、出库、状态联动必须有定向测试；涉及并发/幂等时至少覆盖重复请求不重复写库存/流水。
+- Jest 配置把 `@infitek/shared` 映射到 `apps/api/src/__mocks__/infitek-shared`；新增共享枚举后需要同步测试 mock。
+- 全量 API Jest 存在历史失败债；提交交易链变更时至少运行并记录相关定向测试和 build，不要把历史失败伪装成本次引入。
+- 前端 E2E 使用 Playwright，脚本在 `apps/web`；关键主链应覆盖销售订单、发货需求、采购、收货、物流、出库和最终状态展示。
+- 前端改 UI 后必须至少做本地页面检查；涉及响应式/复杂表格时补 Playwright 或手工截图验证。
 
-```
-src/pages/{module}/
-├── index.tsx    ← 列表页（ProTable）
-├── detail.tsx   ← 详情页（ProDescriptions）
-└── form.tsx     ← 表单页（ProForm）
-```
+### Code Quality & Style Rules
 
-### API 调用规则
+- 后端 ESLint 使用 `typescript-eslint` typed config + Prettier；格式化按 `apps/api/package.json` 的 `pnpm format`。
+- 后端文件名使用 kebab-case，类名使用 PascalCase，DTO 文件用 `create-*.dto.ts`、`update-*.dto.ts`、`query-*.dto.ts`。
+- TypeORM column name 使用 snake_case，TS 属性使用 camelCase；不要把 DB snake_case 泄漏到前端 DTO，除非已有接口契约如此。
+- 分页请求统一 `page` + `pageSize`，默认 page=1、pageSize=20；分页响应统一 `{ data, total, page, pageSize, totalPages }`。
+- 查询 DTO 负责 transform/validation，Repository 负责 where/order/pagination，Service 负责业务语义。
+- 新增错误码必须稳定、英文大写下划线，并可被前端用于精确提示。
+- 共享包变更后先 `pnpm --filter @infitek/shared build`；api/web 的 dev/build 脚本已有 prebuild/predev，但独立测试时要手动注意。
+- 不要把 generated/dist 文件提交为源代码变更，除非任务明确要求发布构建产物。
 
-- **禁止**在组件内直接调用 axios
-- 所有 API 调用必须通过 `src/api/` 层函数
-- axios 实例在 `src/api/client.ts` 统一配置（Token 注入、401 跳转）
-- 服务端状态用 TanStack Query（`useQuery` / `useMutation`），禁止手写 `useEffect` 请求
+### Development Workflow Rules
 
-### 组件选型规则
+- 本仓库使用 BMAD 工作流；`start story {epic-story}` 时读取 `workflow/story-dev-workflow-single-repo.md`。
+- Story 状态源是 `_bmad-output/implementation-artifacts/sprint-status.yaml`；Story 完成后必须同步状态。
+- Epic 5-8 相关 Story 的 Dev Notes 必须明确记录三份 flow 文档已加载并作为冲突裁决依据。
+- 分支命名优先 `story/{epic}-{story}-{slug}`；Codex 创建一般工作分支时使用 `codex/` 前缀，按用户或工作流要求优先。
+- Commit 使用 Conventional Commits：`feat(scope): subject`、`fix(scope): subject` 等。
+- 并行开发必须使用 git worktree 隔离，避免多个 agent 改同一工作树。
+- 当前工作树可能有用户/其他 agent 的未提交改动；不要 revert、reset 或覆盖无关文件。
+- 端到端交易链变更完成后，应更新相关 implementation artifact、测试记录和必要的复盘/状态文档。
 
-| 场景 | 必用组件 |
-|------|---------|
-| 列表页 | `ProTable`（@ant-design/pro-components） |
-| 表单页 | `ProForm` + `ProFormItem` 系列 |
-| 详情页 | `ProDescriptions` |
-| 全局布局 | `ProLayout` |
-| 关联实体选择 | `EntitySearchSelect`（自定义，`components/business/`） |
+### Critical Don't-Miss Rules
 
-**禁止**用原生 HTML table、手写 `<input>`、手写分页逻辑替代上述 Pro 组件。
-
-### 状态管理规则
-
-- 服务端数据（接口数据）：TanStack Query
-- 全局 UI 状态（当前用户、侧边栏折叠）：Zustand
-- 表单状态：ProForm 内部管理，禁止用 useState 手写表单状态
-
----
-
-## 前端 UX 规范（必须遵守）
-
-### Design Token（全局主题）
-
-```typescript
-// antd ConfigProvider theme
-token: {
-  colorPrimary: '#4C6FFF',
-  colorPrimaryHover: '#3D5CE0',
-  borderRadius: 10,
-  colorBgContainer: '#FFFFFF',
-  colorBgLayout: '#F5F7FA',
-}
-```
-
-侧边导航背景色：`#1B2A4A`（深蓝，非 antd 默认）
-
-### 列表页标准（UX-DR04）
-
-必须包含以下所有元素：
-1. 页面标题 + 右侧操作按钮（Primary 蓝色实心，每页最多 1 个）
-2. 快捷搜索框（debounce 300ms）+ 可折叠高级筛选区
-3. 已选筛选条件 Tag 化展示（可单独删除 + "清除全部"）
-4. 固定表头数据表格（行高 48px，首列单据编号蓝色链接，状态列彩色 Tag，操作列固定右侧）
-5. 底部分页器（10/20/50 可切换）+ "共 N 条记录"
-
-### 详情页标准（UX-DR05）— 已升级
-
-> 完整规范见 `_bmad-output/planning-artifacts/ux-std-detail-edit-page.md`
-> 原型参考 `_bmad-output/prototypes/sku-detail-edit-prototype.html`
-
-1. Topbar 面包屑导航（`模块名 › 列表名 › 记录标识`）
-2. 摘要卡片（Summary Card）：编码 + 状态 pill + 3-5 个核心摘要字段 + 操作按钮组
-3. Tab 分组内容区（info-card + tabs-bar + tab-body）
-4. 数据展示使用三列 `meta-grid` 网格（替代原两列 ProDescriptions）
-5. 子表数据使用 `data-table` 展示
-6. 只读关联 Tab 附 `info-tip` 说明数据来源
-7. 所有状态字段使用 pill/tag 样式，禁止纯文字
-
-### 表单页标准（UX-DR06）— 已升级
-
-> 完整规范见 `_bmad-output/planning-artifacts/ux-std-detail-edit-page.md`
-
-- 整页编辑模式：独立编辑页（`/:id/edit`），保留 Tab 分组，去掉只读关联 Tab
-- 表单默认两列布局（`form-row`），三级联动用三列（`form-row col3`），长文本占满整行（`form-row full`）
-- 条件显示字段使用 `cond-block` 虚线边框样式
-- 子表使用可编辑表格（`editable-table`），支持增删行
-- 底部固定"取消 + 保存"按钮
-- 简单模块（<10 字段）：无需 Tab，单卡片即可
-- 中等模块（10-30 字段）：2-3 个 Tab
-- 复杂模块（>30 字段）：4-6 个 Tab
-
-### 状态色彩映射（全系统统一，UX-DR07）
-
-| 状态 | antd status | 色彩 |
-|------|-------------|------|
-| 草稿 / 待处理 | `default` | 灰色 |
-| 已确认 / 进行中 | `processing` | 蓝色 |
-| 警告 / 待处理 | `warning` | 橙色 |
-| 已完成 / 已收货 | `success` | 绿色 |
-| 已作废 / 异常 | `error` | 红色 |
-
-状态必须**色彩 + 文字双重编码**，禁止纯文字状态。
-
-### 按钮层级（UX-DR15）
-
-- Primary 蓝色实心：每页最多 1 个
-- Secondary 白底灰框：次要操作
-- Text 蓝色无框：表格行操作
-- Danger 红色：不可逆操作（最左侧）
-- Dashed 虚线：添加类操作
-
-### 反馈机制（UX-DR17）
-
-- 轻量成功：`message.success` 3 秒
-- 重要成功：`notification.success` 5 秒（含关联单据链接）
-- 失败：`message.error` 5 秒
-- 重要失败：`notification.error` 手动关闭
-- 表单校验：内联红色提示（ProForm 自动处理）
-
-### 二次确认规则（UX-DR16）
-
-- 创建/保存：无需确认
-- 状态推进：`Popconfirm` 气泡
-- 不可逆操作（删除/作废）：`Modal` + 输入确认
-
-### 加载状态（UX-DR21）
-
-- 首次加载：Skeleton 骨架屏
-- 表格加载：Spin 遮罩
-- 按钮操作中：loading 旋转 + 禁用
-
-### 空状态（UX-DR22）
-
-- 无数据（无筛选）：空插图 + "暂无数据" + 新建按钮
-- 无数据（有筛选）：空插图 + "未找到匹配记录" + "清除筛选条件"链接
-
-### 弹窗规则（UX-DR24）
-
-- 严禁弹窗嵌套（弹窗中不能再弹弹窗）
-- Modal 最大宽度 720px，Drawer 最大宽度 520px
-- ESC 可关闭（危险操作除外）
-
-### 自定义业务组件（放在 `components/business/`）
-
-| 组件 | 用途 |
-|------|------|
-| `FlowProgress` | 发货需求 7 步流程进度条 |
-| `SmartButton` | 关联单据计数器（采购订单 N \| 物流单 N） |
-| `InventoryIndicator` | SKU 库存状态 Pill（绿/橙/红） |
-| `PurchaseGroupPreview` | 采购分组预览 Drawer（520px） |
-| `StatCard` | KPI 统计卡片 |
-| `ActivityTimeline` | 操作记录时间线 |
-| `EntitySearchSelect` | 关联实体搜索选择器 |
+- 禁止把旧架构文档中的 `/api/v1/` 当成当前事实；当前实际前后端 API 前缀是 `/api`。
+- 禁止在前后端重复定义状态、类型或枚举；必须从 `@infitek/shared` 引入。
+- 禁止 Controller/组件直接修改交易状态；状态只能由后端领域动作和数量事实推进。
+- 禁止库存写操作不加事务、不加行锁、不写库存流水。
+- 禁止忽略 `sourceActionKey/requestKey` 幂等；确认类动作重复提交必须安全。
+- 禁止用“存在下游单据”替代数量聚合判断完成状态。
+- 禁止出库只改物流单状态而不消费 allocation、不扣库存、不回填发货需求和销售订单。
+- 禁止收货只生成收货单而不增加库存批次/流水、不回填采购订单和发货需求。
+- 禁止直接把 Entity 返回给前端前添加敏感字段；依赖 `ClassSerializerInterceptor` 和 `@Exclude()` 保护敏感属性。
+- 禁止生产环境 `synchronize: true`；所有 schema 变化必须 migration 化。
+- 禁止组件内直接 `axios`，禁止绕过 `request.ts` 的 token/401/错误处理。
+- 禁止手写原生表格替代既有 antd/ProComponents/项目表格模式，除非已有模块已这样实现且任务要求延续。
+- 禁止弹窗嵌套、每页多个 Primary、高频操作藏在更多菜单、纯文字状态。
+- 禁止把全量测试历史失败归因到本次修改；必须区分既有债和新增回归。
 
 ---
 
-## 测试规则
+## Usage Guidelines
 
-- 后端测试分层：单元测试（Service）+ 集成测试（Controller）+ 并发测试（仅库存模块）
-- 测试文件放在 `src/modules/{domain}/tests/` 或 `src/modules/{domain}/__tests__/`
-- 测试文件命名：`{domain}.service.spec.ts`
-- 前端 MVP 阶段：关键表单组件渲染快照测试（Vitest + Testing Library）
-- E2E 测试：Playwright（`apps/web/e2e/`）
+**For AI Agents**
 
----
+- 写代码前先读本文，再读对应 Story、flow 文档、当前模块代码和测试。
+- 当文档冲突时，优先级为：当前代码事实 > 三份 flow 文档 > 最新 Story/复盘 > 旧 PRD/Architecture。
+- 对交易链、库存、状态机、幂等、审计相关代码，选择更保守的实现。
+- 新规则只有在代码或流程已经形成稳定事实后再加入本文，保持文档短而硬。
 
-## 开发工作流规则
+**For Humans**
 
-- 分支命名：`story/{epic}-{story}-{slug}`（如 `story/2-1-crud-template`）
-- Commit 格式：Conventional Commits（`feat(scope): subject`）
-- 每个 Story 完成后更新 `_bmad-output/implementation-artifacts/sprint-status.yaml`
-- 并行开发必须使用 git worktree 隔离（`../worktrees/<BRANCH>`）
-- Epic 5-7 Story 文件的 Dev Notes 必须包含“三份 flow 文档已加载并作为冲突裁决依据”的明确记录；缺失时不得进入实现。
+- 技术栈升级、API 契约改变、状态机改变、交易链新增动作后更新本文。
+- 定期删除已经显而易见或不再适用的规则。
+- 后续建议补独立文档：交易单据“状态 × 动作 × 可编辑字段矩阵”和交易动作幂等键规范。
 
----
-
-## 禁止事项（Anti-Patterns）
-
-### 后端
-
-- ❌ 禁止在 Entity 中省略 `@Column({ name })` 显式列名
-- ❌ 禁止在 Entity 中省略 `@Expose()` / `@Exclude()`
-- ❌ 禁止在前后端各自定义枚举（必须在 packages/shared）
-- ❌ 禁止通过 PATCH 修改状态字段（必须用专用动作端点）
-- ❌ 禁止库存写操作不加事务和行锁
-- ❌ 禁止生产环境 `synchronize: true`
-
-### 前端
-
-- ❌ 禁止在组件内直接调用 axios（必须通过 api/ 层）
-- ❌ 禁止用原生 HTML table 替代 ProTable
-- ❌ 禁止用手写 useState 管理服务端数据（必须用 TanStack Query）
-- ❌ 禁止弹窗嵌套（超过一层改用页面跳转）
-- ❌ 禁止纯文字状态（必须用彩色 Tag）
-- ❌ 禁止硬编码颜色值（必须用 Design Token 或 antd status 语义色）
-- ❌ 禁止每页超过 1 个 Primary 按钮
-- ❌ 禁止把高频操作藏在下拉菜单里
+Last Updated: 2026-05-27
