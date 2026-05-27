@@ -1228,6 +1228,56 @@ So that 我可以从枢纽页一键操作，作废后系统状态干净彻底，
 **When** 查看详情页
 **Then** 不展示"作废"按钮（FR49 规则：离开待分配库存后不允许作废）
 
+### Story 5.7: 库存管理菜单拆分与页面边界整理
+
+As a 仓库人员和系统管理员,
+I want 将期初库存录入、可用库存查询、批次库存明细和库存变动流水拆分为独立菜单,
+So that 我可以按实际任务快速进入对应页面，避免在一个混合页面中查找操作入口。
+
+**Acceptance Criteria:**
+
+**Given** 授权用户打开左侧 `库存管理` 菜单
+**When** 菜单展开
+**Then** 展示独立子菜单：`期初库存录入`、`可用库存查询`、`批次库存明细`、`库存变动流水`、`收货入库`、`发货出库`
+
+**Given** 用户访问旧路径 `/inventory`
+**When** 路由匹配
+**Then** 系统不返回空白页或首页兜底，而是进入或重定向到 `可用库存查询`
+
+**Given** 用户进入 `期初库存录入` 页面
+**When** 页面加载完成
+**Then** 页面只承担 SKU、仓库、期初数量、入库日期录入和保存反馈
+**And** 保存仍调用 `POST /api/inventory/opening-balances`
+**And** 不在该页面内展示完整可用库存大表、批次库存明细大表或库存流水表
+
+**Given** 用户进入 `可用库存查询` 页面
+**When** 按 SKU 或仓库筛选
+**Then** 页面展示 SKU+仓库维度的实际库存、锁定量、可用库存
+**And** 查询仍调用 `GET /api/inventory/available`
+**And** 页面支持从结果行跳转到对应批次库存明细和库存变动流水，并携带 SKU/仓库筛选上下文
+
+**Given** 用户进入 `批次库存明细` 页面
+**When** 按 SKU 或仓库筛选
+**Then** 页面展示批次号、SKU、仓库、批次数量、锁定量、批次可用、来源类型/来源单据、入库日期
+**And** 查询优先复用 `GET /api/inventory/batches`
+**And** 如需补充分页或筛选参数，只允许小幅扩展查询 DTO，不改变库存写入逻辑或数量口径
+
+**Given** 用户进入 `库存变动流水` 页面
+**When** 页面从可用库存查询或批次库存明细跳转进入
+**Then** 页面可读取 URL 查询参数或等价路由状态，自动带入 SKU/仓库筛选
+**And** 页面继续调用 `GET /api/inventory/transactions`
+
+**Given** 本 Story 实现过程中涉及库存相关代码
+**When** 开发者修改页面、路由、菜单或 API 类型
+**Then** 不改变 `inventory_summary`、`inventory_batch`、`inventory_transactions` 数据模型
+**And** 不改变库存写入、锁定、解锁、入库、出库和流水幂等逻辑
+**And** 前端 API 调用继续通过 `apps/web/src/api/inventory.api.ts` 和 TanStack Query，不允许组件内直接 axios
+
+**Given** 开发完成
+**When** 运行验证
+**Then** `pnpm --filter web build` 通过
+**And** 若扩展后端批次查询接口，则补充相关定向测试并运行 `pnpm --filter api build`
+
 ## Epic 6: 采购订单与收货入库
 
 库存双层数据模型、期初录入和可用库存查询接口已在 Epic 5 Story 5.0 前置落地。Epic 6 不再重复创建库存基础表和查询接口，而是在采购订单、收货入库、请购型收货自动锁定、库存变动流水中消费同一 InventoryModule。采购分组预览面板（按供应商分组确认）同时落地。
