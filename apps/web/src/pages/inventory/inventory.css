@@ -266,8 +266,18 @@
 }
 
 .inventory-source-text {
-  color: #1d4ed8;
+  color: #475569;
   font-weight: 700;
+}
+
+.inventory-source-link {
+  color: #1d4ed8;
+  font-weight: 400;
+}
+
+.inventory-source-link:hover {
+  color: #1e40af;
+  text-decoration: underline;
 }
 
 .inventory-ledger-drawer {

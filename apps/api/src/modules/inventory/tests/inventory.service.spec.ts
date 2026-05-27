@@ -13,6 +13,9 @@ describe('InventoryService', () => {
     findBatchesForUpdate: jest.fn(),
     sumBatchQuantities: jest.fn(),
     findTransactions: jest.fn(),
+    findSourceDocumentInfo: jest.fn(),
+    buildSourceDocumentFallback: jest.fn(),
+    buildSourceDocumentKey: jest.fn(),
   };
   const skusService = { findById: jest.fn() };
   const warehousesService = { findById: jest.fn() };
@@ -84,6 +87,19 @@ describe('InventoryService', () => {
       actualQuantity: 10,
       lockedQuantity: 0,
     });
+    inventoryRepository.findSourceDocumentInfo.mockResolvedValue(new Map());
+    inventoryRepository.buildSourceDocumentKey.mockImplementation(
+      (type, id) => `${type}:${id}`,
+    );
+    inventoryRepository.buildSourceDocumentFallback.mockImplementation(
+      (type, id) => ({
+        type,
+        id,
+        code: null,
+        label: type,
+        path: null,
+      }),
+    );
   });
 
   afterEach(() => {
@@ -284,6 +300,20 @@ describe('InventoryService', () => {
 
   it('findTransactions maps delta fields and fallback quantityChange', async () => {
     const operatedAt = new Date('2026-04-29T08:00:00Z');
+    inventoryRepository.findSourceDocumentInfo.mockResolvedValue(
+      new Map([
+        [
+          'shipping_demand:500',
+          {
+            type: 'shipping_demand',
+            id: 500,
+            code: 'SD202604290001',
+            label: '发货需求',
+            path: '/shipping-demands/500',
+          },
+        ],
+      ]),
+    );
     inventoryRepository.findTransactions.mockResolvedValue({
       data: [
         {
@@ -326,6 +356,14 @@ describe('InventoryService', () => {
       warehouseId: 22,
       changeType: InventoryChangeType.LOCK,
     });
+    expect(inventoryRepository.findSourceDocumentInfo).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceDocumentType: 'shipping_demand',
+          sourceDocumentId: '500',
+        }),
+      ]),
+    );
     expect(result.data).toEqual([
       {
         id: 31,
@@ -346,11 +384,67 @@ describe('InventoryService', () => {
         sourceDocumentType: 'shipping_demand',
         sourceDocumentId: 500,
         sourceDocumentItemId: 700,
+        sourceDocumentCode: 'SD202604290001',
+        sourceDocumentLabel: '发货需求',
+        sourceDocumentPath: '/shipping-demands/500',
         sourceActionKey: 'shipping-demand:500:item:700:lock',
         operatedBy: 'admin',
         operatedAt,
       },
     ]);
+  });
+
+  it('findTransactions falls back when source document is missing', async () => {
+    const operatedAt = new Date('2026-04-29T08:00:00Z');
+    inventoryRepository.findTransactions.mockResolvedValue({
+      data: [
+        {
+          id: '32',
+          skuId: '11',
+          warehouseId: '22',
+          inventoryBatchId: '90',
+          changeType: InventoryChangeType.PURCHASE_RECEIPT,
+          actualQuantityDelta: '3',
+          lockedQuantityDelta: '0',
+          availableQuantityDelta: '3',
+          beforeActualQuantity: '10',
+          afterActualQuantity: '13',
+          beforeLockedQuantity: '0',
+          afterLockedQuantity: '0',
+          beforeAvailableQuantity: '10',
+          afterAvailableQuantity: '13',
+          sourceDocumentType: 'receipt_order',
+          sourceDocumentId: '800',
+          sourceDocumentItemId: null,
+          sourceActionKey: 'inventory:purchase_receipt:doc:800:sku:11:warehouse:22:increase',
+          operatedBy: null,
+          operatedAt,
+        },
+      ],
+      total: 1,
+      page: 1,
+      pageSize: 20,
+      totalPages: 1,
+    });
+    inventoryRepository.buildSourceDocumentFallback.mockReturnValue({
+      type: 'receipt_order',
+      id: 800,
+      code: null,
+      label: '收货单',
+      path: null,
+    });
+
+    const result = await service.findTransactions({});
+
+    expect(result.data[0]).toEqual(
+      expect.objectContaining({
+        sourceDocumentType: 'receipt_order',
+        sourceDocumentId: 800,
+        sourceDocumentCode: null,
+        sourceDocumentLabel: '收货单',
+        sourceDocumentPath: null,
+      }),
+    );
   });
 
   it('recordOpeningBalance creates initial batch and summary inside a transaction', async () => {

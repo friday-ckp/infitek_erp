@@ -98,9 +98,11 @@ function signedNumber(value: number) {
 }
 
 function sourceDocumentNode(record: InventoryTransactionRow) {
-  const text = `${record.sourceDocumentType} #${record.sourceDocumentId}`;
-  if (record.sourceDocumentType === 'shipping_demand') {
-    return <Link to={`/shipping-demands/${record.sourceDocumentId}`}>{text}</Link>;
+  const label = record.sourceDocumentLabel ?? record.sourceDocumentType;
+  const code = record.sourceDocumentCode ?? `#${record.sourceDocumentId}`;
+  const text = `${label} ${code}`;
+  if (record.sourceDocumentPath) {
+    return <Link className="inventory-source-link" to={record.sourceDocumentPath}>{text}</Link>;
   }
   return <span className="inventory-source-text">{text}</span>;
 }

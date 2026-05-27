@@ -43,6 +43,9 @@ export interface InventoryTransactionItem {
   sourceDocumentType: string;
   sourceDocumentId: number | string;
   sourceDocumentItemId: number | string | null;
+  sourceDocumentCode?: string | null;
+  sourceDocumentLabel?: string;
+  sourceDocumentPath?: string | null;
   sourceActionKey: string;
   operatedBy: string | null;
   operatedAt: string;
