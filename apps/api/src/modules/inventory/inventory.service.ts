@@ -14,7 +14,10 @@ import { QueryInventoryTransactionDto } from './dto/query-inventory-transaction.
 import { InventoryBatch } from './entities/inventory-batch.entity';
 import { InventorySummary } from './entities/inventory-summary.entity';
 import { InventoryTransaction } from './entities/inventory-transaction.entity';
-import { InventoryRepository } from './inventory.repository';
+import {
+  InventoryRepository,
+  type InventorySourceDocumentInfo,
+} from './inventory.repository';
 
 const MAX_DEADLOCK_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 25;
@@ -102,6 +105,9 @@ export interface InventoryTransactionItem {
   sourceDocumentType: string;
   sourceDocumentId: number;
   sourceDocumentItemId: number | null;
+  sourceDocumentCode: string | null;
+  sourceDocumentLabel: string;
+  sourceDocumentPath: string | null;
   sourceActionKey: string;
   operatedBy: string | null;
   operatedAt: Date;
@@ -185,10 +191,12 @@ export class InventoryService {
     totalPages: number;
   }> {
     const result = await this.inventoryRepository.findTransactions(query);
+    const sourceDocumentInfo =
+      await this.inventoryRepository.findSourceDocumentInfo(result.data);
     return {
       ...result,
       data: result.data.map((transaction) =>
-        this.toTransactionItem(transaction),
+        this.toTransactionItem(transaction, sourceDocumentInfo),
       ),
     };
   }
@@ -738,9 +746,22 @@ export class InventoryService {
 
   private toTransactionItem(
     transaction: InventoryTransaction,
+    sourceDocumentInfo: Map<string, InventorySourceDocumentInfo>,
   ): InventoryTransactionItem {
     const actualQuantityDelta = Number(transaction.actualQuantityDelta ?? 0);
     const lockedQuantityDelta = Number(transaction.lockedQuantityDelta ?? 0);
+    const sourceDocumentId = Number(transaction.sourceDocumentId);
+    const sourceDocument =
+      sourceDocumentInfo.get(
+        this.inventoryRepository.buildSourceDocumentKey(
+          transaction.sourceDocumentType,
+          sourceDocumentId,
+        ),
+      ) ??
+      this.inventoryRepository.buildSourceDocumentFallback(
+        transaction.sourceDocumentType,
+        sourceDocumentId,
+      );
     return {
       id: Number(transaction.id),
       skuId: Number(transaction.skuId),
@@ -764,11 +785,14 @@ export class InventoryService {
       ),
       afterAvailableQuantity: Number(transaction.afterAvailableQuantity ?? 0),
       sourceDocumentType: transaction.sourceDocumentType,
-      sourceDocumentId: Number(transaction.sourceDocumentId),
+      sourceDocumentId,
       sourceDocumentItemId:
         transaction.sourceDocumentItemId === null
           ? null
           : Number(transaction.sourceDocumentItemId),
+      sourceDocumentCode: sourceDocument.code,
+      sourceDocumentLabel: sourceDocument.label,
+      sourceDocumentPath: sourceDocument.path,
       sourceActionKey: transaction.sourceActionKey,
       operatedBy: transaction.operatedBy,
       operatedAt: transaction.operatedAt,

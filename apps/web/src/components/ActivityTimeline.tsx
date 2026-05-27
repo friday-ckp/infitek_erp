@@ -20,6 +20,7 @@ import {
   type OperationLogAction,
   type OperationLogChangeItem,
 } from "../api/operation-logs.api";
+import { OUTBOUND_ORDER_TYPE_LABELS } from "../api/outbound-orders.api";
 import { getPortById } from "../api/ports.api";
 import { getProductCategoryById } from "../api/product-categories.api";
 import { getSkuById } from "../api/skus.api";
@@ -305,6 +306,7 @@ const RESOURCE_ENUM_VALUE_LABELS: Record<
     status: {
       confirmed: "已确认",
     },
+    outboundType: OUTBOUND_ORDER_TYPE_LABELS,
   },
   "logistics-providers": {
     status: {

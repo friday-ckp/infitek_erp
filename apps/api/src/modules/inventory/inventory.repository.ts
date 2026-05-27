@@ -1,10 +1,74 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, EntityManager, In, Repository } from 'typeorm';
+import { LogisticsOrder } from '../logistics-orders/entities/logistics-order.entity';
+import { OutboundOrder } from '../outbound-orders/entities/outbound-order.entity';
+import { PurchaseOrder } from '../purchase-orders/entities/purchase-order.entity';
+import { ReceiptOrder } from '../receipt-orders/entities/receipt-order.entity';
+import { SalesOrder } from '../sales-orders/entities/sales-order.entity';
+import { ShippingDemand } from '../shipping-demands/entities/shipping-demand.entity';
 import { QueryInventoryTransactionDto } from './dto/query-inventory-transaction.dto';
 import { InventoryBatch } from './entities/inventory-batch.entity';
 import { InventorySummary } from './entities/inventory-summary.entity';
 import { InventoryTransaction } from './entities/inventory-transaction.entity';
+
+export interface InventorySourceDocumentInfo {
+  type: string;
+  id: number;
+  code: string | null;
+  label: string;
+  path: string | null;
+}
+
+interface SourceDocumentConfig {
+  entity?: Parameters<DataSource['getRepository']>[0];
+  codeField?: string;
+  label: string;
+  pathBase: string | null;
+}
+
+const SOURCE_DOCUMENT_CONFIG: Record<string, SourceDocumentConfig> = {
+  opening_inventory: {
+    label: '期初库存',
+    pathBase: null,
+  },
+  shipping_demand: {
+    entity: ShippingDemand,
+    codeField: 'demandCode',
+    label: '发货需求',
+    pathBase: '/shipping-demands',
+  },
+  receipt_order: {
+    entity: ReceiptOrder,
+    codeField: 'receiptCode',
+    label: '收货单',
+    pathBase: '/receipt-orders',
+  },
+  outbound_order: {
+    entity: OutboundOrder,
+    codeField: 'outboundCode',
+    label: '出库单',
+    pathBase: '/outbound-orders',
+  },
+  sales_order: {
+    entity: SalesOrder,
+    codeField: 'erpSalesOrderCode',
+    label: '销售订单',
+    pathBase: '/sales-orders',
+  },
+  purchase_order: {
+    entity: PurchaseOrder,
+    codeField: 'poCode',
+    label: '采购订单',
+    pathBase: '/purchase-orders',
+  },
+  logistics_order: {
+    entity: LogisticsOrder,
+    codeField: 'orderCode',
+    label: '物流单',
+    pathBase: '/logistics-orders',
+  },
+};
 
 @Injectable()
 export class InventoryRepository {
@@ -118,6 +182,73 @@ export class InventoryRepository {
       pageSize,
       totalPages: Math.ceil(total / pageSize),
     };
+  }
+
+  async findSourceDocumentInfo(
+    transactions: InventoryTransaction[],
+  ): Promise<Map<string, InventorySourceDocumentInfo>> {
+    const idsByType = new Map<string, Set<number>>();
+
+    transactions.forEach((transaction) => {
+      const type = transaction.sourceDocumentType;
+      const id = Number(transaction.sourceDocumentId);
+      if (!SOURCE_DOCUMENT_CONFIG[type] || !Number.isFinite(id)) {
+        return;
+      }
+      const ids = idsByType.get(type) ?? new Set<number>();
+      ids.add(id);
+      idsByType.set(type, ids);
+    });
+
+    const infoMap = new Map<string, InventorySourceDocumentInfo>();
+
+    await Promise.all(
+      [...idsByType.entries()].map(async ([type, ids]) => {
+        const config = SOURCE_DOCUMENT_CONFIG[type];
+        if (!config?.entity || !config.codeField) return;
+
+        const rows = await this.dataSource
+          .getRepository(config.entity)
+          .createQueryBuilder('sourceDocument')
+          .select('sourceDocument.id', 'id')
+          .addSelect(`sourceDocument.${config.codeField}`, 'code')
+          .where('sourceDocument.id IN (:...ids)', { ids: [...ids] })
+          .getRawMany<{ id: string | number; code: string | null }>();
+
+        rows.forEach((row) => {
+          const id = Number(row.id);
+          if (!Number.isFinite(id)) return;
+
+          infoMap.set(this.buildSourceDocumentKey(type, id), {
+            type,
+            id,
+            code: row.code,
+            label: config.label,
+            path: config.pathBase ? `${config.pathBase}/${id}` : null,
+          });
+        });
+      }),
+    );
+
+    return infoMap;
+  }
+
+  buildSourceDocumentFallback(
+    type: string,
+    id: number,
+  ): InventorySourceDocumentInfo {
+    const config = SOURCE_DOCUMENT_CONFIG[type];
+    return {
+      type,
+      id,
+      code: null,
+      label: config?.label ?? type,
+      path: null,
+    };
+  }
+
+  buildSourceDocumentKey(type: string, id: number): string {
+    return `${type}:${id}`;
   }
 
   findSummaryForUpdate(
