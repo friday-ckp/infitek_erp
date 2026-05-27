@@ -41,6 +41,10 @@ export interface InventoryBatchItem {
   batchAvailableQuantity: number;
   sourceType: InventoryBatchSourceType;
   sourceDocumentId: number | null;
+  sourceDocumentType: string | null;
+  sourceDocumentCode: string | null;
+  sourceDocumentLabel: string | null;
+  sourceDocumentPath: string | null;
   receiptDate: string;
   updatedAt?: Date;
 }
@@ -180,7 +184,11 @@ export class InventoryService {
       skuIds,
       query.warehouseId,
     );
-    return batches.map((batch) => this.toBatchItem(batch));
+    const sourceDocumentInfo =
+      await this.inventoryRepository.findBatchSourceDocumentInfo(batches);
+    return batches.map((batch) =>
+      this.toBatchItem(batch, sourceDocumentInfo),
+    );
   }
 
   async findTransactions(query: QueryInventoryTransactionDto): Promise<{
@@ -725,9 +733,31 @@ export class InventoryService {
     };
   }
 
-  private toBatchItem(batch: InventoryBatch): InventoryBatchItem {
+  private toBatchItem(
+    batch: InventoryBatch,
+    sourceDocumentInfo: Map<string, InventorySourceDocumentInfo>,
+  ): InventoryBatchItem {
     const batchQuantity = Number(batch.batchQuantity);
     const batchLockedQuantity = Number(batch.batchLockedQuantity);
+    const sourceDocumentId =
+      batch.sourceDocumentId === null ? null : Number(batch.sourceDocumentId);
+    const sourceDocumentType =
+      sourceDocumentId === null
+        ? null
+        : this.toSourceDocumentType(batch.sourceType);
+    const sourceDocument =
+      sourceDocumentId === null || sourceDocumentType === null
+        ? null
+        : sourceDocumentInfo.get(
+            this.inventoryRepository.buildSourceDocumentKey(
+              sourceDocumentType,
+              sourceDocumentId,
+            ),
+          ) ??
+          this.inventoryRepository.buildSourceDocumentFallback(
+            sourceDocumentType,
+            sourceDocumentId,
+          );
     return {
       id: Number(batch.id),
       batchNo: batch.batchNo,
@@ -737,8 +767,11 @@ export class InventoryService {
       batchLockedQuantity,
       batchAvailableQuantity: batchQuantity - batchLockedQuantity,
       sourceType: batch.sourceType,
-      sourceDocumentId:
-        batch.sourceDocumentId === null ? null : Number(batch.sourceDocumentId),
+      sourceDocumentId,
+      sourceDocumentType,
+      sourceDocumentCode: sourceDocument?.code ?? null,
+      sourceDocumentLabel: sourceDocument?.label ?? null,
+      sourceDocumentPath: sourceDocument?.path ?? null,
       receiptDate: batch.receiptDate,
       updatedAt: batch.updatedAt,
     };

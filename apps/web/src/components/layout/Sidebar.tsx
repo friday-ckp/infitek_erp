@@ -95,10 +95,12 @@ const menuItems = [
       </svg>
     ),
     children: [
-      { key: '/inventory', label: '库存查询', exact: true },
+      { key: '/inventory/opening-balances', label: '期初库存录入' },
+      { key: '/inventory/available', label: '可用库存查询' },
+      { key: '/inventory/batches', label: '批次库存明细' },
+      { key: '/inventory/transactions', label: '库存变动流水' },
       { key: '/receipt-orders', label: '收货入库' },
       { key: '/outbound-orders', label: '发货出库' },
-      { key: '/inventory/transactions', label: '库存变动流水' },
     ],
   },
   {
@@ -234,7 +236,7 @@ export default function Sidebar() {
   const systemItems = menuItems.filter(i => i.section === SECTION_SYSTEM);
 
   const renderMenuGroup = (item: typeof menuItems[0]) => {
-    const hasActiveChild = item.children.some((c) => isChildRouteActive(location.pathname, c.key));
+    const hasActiveChild = item.children.some((c) => isChildRouteActive(location.pathname, c.key, isExactChild(c)));
     const isOpen = openKeys.includes(item.key);
 
     if (item.disabled) {

@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Button, DatePicker, Empty, Select, Tag } from 'antd';
+import { Alert, Button, DatePicker, Empty, Select } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import dayjs, { type Dayjs } from 'dayjs';
 import { InventoryChangeType } from '@infitek/shared';
 import {
@@ -12,6 +12,19 @@ import {
 } from '../../api/inventory.api';
 import { getSkus, type Sku } from '../../api/skus.api';
 import { getWarehouses, type Warehouse } from '../../api/warehouses.api';
+import { InventoryChangeTypeTag } from './components/InventoryChangeTypeTag';
+import { SourceDocumentLink } from './components/SourceDocumentLink';
+import {
+  buildSkuMap,
+  buildSkuOptions,
+  buildWarehouseMap,
+  buildWarehouseOptions,
+  inventoryChangeTypeOptions,
+  parseNumberSearchParam,
+  signedNumber,
+  skuDisplayName,
+  toNumberId,
+} from './components/inventory-page-utils';
 import '../master-data/master-page.css';
 import './inventory.css';
 
@@ -28,50 +41,10 @@ interface InventoryTransactionRow extends InventoryTransactionItem {
   warehouseName?: string | null;
 }
 
-const inventoryChangeTypeOptions = [
-  { label: '期初录入', value: InventoryChangeType.INITIAL },
-  { label: '采购入库', value: InventoryChangeType.PURCHASE_RECEIPT },
-  { label: '发货出库', value: InventoryChangeType.OUTBOUND },
-  { label: '锁定', value: InventoryChangeType.LOCK },
-  { label: '解锁', value: InventoryChangeType.UNLOCK },
-];
-
-const inventoryChangeTypeColor: Record<string, string> = {
-  [InventoryChangeType.INITIAL]: 'blue',
-  [InventoryChangeType.PURCHASE_RECEIPT]: 'green',
-  [InventoryChangeType.OUTBOUND]: 'red',
-  [InventoryChangeType.LOCK]: 'gold',
-  [InventoryChangeType.UNLOCK]: 'purple',
-};
-
-function toNumberId(value: number | string | null | undefined) {
-  if (value === null || value === undefined) return null;
-  const id = Number(value);
-  return Number.isFinite(id) ? id : null;
-}
-
-function changeTypeLabel(value: string) {
-  return inventoryChangeTypeOptions.find((item) => item.value === value)?.label ?? value;
-}
-
-function signedNumber(value: number) {
-  if (value > 0) return `+${value}`;
-  return String(value);
-}
-
-function sourceDocumentNode(record: InventoryTransactionRow) {
-  const label = record.sourceDocumentLabel ?? record.sourceDocumentType;
-  const code = record.sourceDocumentCode ?? `#${record.sourceDocumentId}`;
-  const text = `${label} ${code}`;
-  if (record.sourceDocumentPath) {
-    return <Link className="inventory-source-link" to={record.sourceDocumentPath}>{text}</Link>;
-  }
-  return <span className="inventory-source-text">{text}</span>;
-}
-
 export default function InventoryTransactionsPage() {
-  const [selectedSkuId, setSelectedSkuId] = useState<number | undefined>();
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | undefined>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedSkuId, setSelectedSkuId] = useState<number | undefined>(() => parseNumberSearchParam(searchParams.get('skuId')));
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | undefined>(() => parseNumberSearchParam(searchParams.get('warehouseId')));
   const [selectedChangeType, setSelectedChangeType] = useState<InventoryChangeType | undefined>();
   const [dateRange, setDateRange] = useState<[Dayjs | null, Dayjs | null] | null>(null);
   const [page, setPage] = useState(1);
@@ -111,49 +84,10 @@ export default function InventoryTransactionsPage() {
       }),
   });
 
-  const skuMap = useMemo(() => {
-    const map = new Map<number, Sku>();
-    skusQuery.data?.list.forEach((sku) => {
-      const skuId = toNumberId(sku.id);
-      if (skuId !== null) map.set(skuId, sku);
-    });
-    return map;
-  }, [skusQuery.data]);
-
-  const warehouseMap = useMemo(() => {
-    const map = new Map<number, Warehouse>();
-    warehousesQuery.data?.list.forEach((warehouse) => {
-      const warehouseId = toNumberId(warehouse.id);
-      if (warehouseId !== null) map.set(warehouseId, warehouse);
-    });
-    return map;
-  }, [warehousesQuery.data]);
-
-  const skuOptions = useMemo(
-    () =>
-      (skusQuery.data?.list ?? []).flatMap((sku) => {
-        const skuId = toNumberId(sku.id);
-        if (skuId === null) return [];
-        return [{
-          label: `${sku.skuCode} ${sku.nameCn ?? sku.specification ?? ''}`,
-          value: skuId,
-        }];
-      }),
-    [skusQuery.data],
-  );
-
-  const warehouseOptions = useMemo(
-    () =>
-      (warehousesQuery.data?.list ?? []).flatMap((warehouse) => {
-        const warehouseId = toNumberId(warehouse.id);
-        if (warehouseId === null) return [];
-        return [{
-          label: warehouse.name,
-          value: warehouseId,
-        }];
-      }),
-    [warehousesQuery.data],
-  );
+  const skuMap = useMemo(() => buildSkuMap(skusQuery.data?.list as Sku[] | undefined), [skusQuery.data]);
+  const warehouseMap = useMemo(() => buildWarehouseMap(warehousesQuery.data?.list as Warehouse[] | undefined), [warehousesQuery.data]);
+  const skuOptions = useMemo(() => buildSkuOptions(skusQuery.data?.list), [skusQuery.data]);
+  const warehouseOptions = useMemo(() => buildWarehouseOptions(warehousesQuery.data?.list), [warehousesQuery.data]);
 
   const rows: InventoryTransactionRow[] = useMemo(
     () =>
@@ -176,7 +110,7 @@ export default function InventoryTransactionsPage() {
           sourceDocumentId,
           sourceDocumentItemId,
           skuCode: sku?.skuCode,
-          skuName: sku?.nameCn ?? sku?.nameEn ?? sku?.specification,
+          skuName: skuDisplayName(sku),
           warehouseName: warehouse?.name ?? `仓库 #${warehouseId}`,
         };
       }),
@@ -189,6 +123,16 @@ export default function InventoryTransactionsPage() {
     setSelectedChangeType(undefined);
     setDateRange(null);
     setPage(1);
+    setSearchParams(new URLSearchParams(), { replace: true });
+  };
+
+  const updateContextSearch = (skuId: number | undefined, warehouseId: number | undefined) => {
+    const next = new URLSearchParams(searchParams);
+    if (skuId) next.set('skuId', String(skuId));
+    else next.delete('skuId');
+    if (warehouseId) next.set('warehouseId', String(warehouseId));
+    else next.delete('warehouseId');
+    setSearchParams(next, { replace: true });
   };
 
   const columns: ProColumns<InventoryTransactionRow>[] = [
@@ -196,11 +140,7 @@ export default function InventoryTransactionsPage() {
       title: '变动类型',
       dataIndex: 'changeType',
       width: 105,
-      render: (_, record) => (
-        <Tag color={inventoryChangeTypeColor[record.changeType]}>
-          {changeTypeLabel(record.changeType)}
-        </Tag>
-      ),
+      render: (_, record) => <InventoryChangeTypeTag value={record.changeType} />,
     },
     {
       title: 'SKU',
@@ -266,7 +206,15 @@ export default function InventoryTransactionsPage() {
       title: '来源单据',
       dataIndex: 'sourceDocumentType',
       width: 180,
-      render: (_, record) => sourceDocumentNode(record),
+      render: (_, record) => (
+        <SourceDocumentLink
+          sourceDocumentType={record.sourceDocumentType}
+          sourceDocumentId={record.sourceDocumentId}
+          sourceDocumentCode={record.sourceDocumentCode}
+          sourceDocumentLabel={record.sourceDocumentLabel}
+          sourceDocumentPath={record.sourceDocumentPath}
+        />
+      ),
     },
     {
       title: '操作人',
@@ -314,6 +262,7 @@ export default function InventoryTransactionsPage() {
               value={selectedSkuId}
               onChange={(value) => {
                 setSelectedSkuId(value);
+                updateContextSearch(value, selectedWarehouseId);
                 setPage(1);
               }}
               style={{ width: '100%' }}
@@ -330,6 +279,7 @@ export default function InventoryTransactionsPage() {
               value={selectedWarehouseId}
               onChange={(value) => {
                 setSelectedWarehouseId(value);
+                updateContextSearch(selectedSkuId, value);
                 setPage(1);
               }}
               style={{ width: '100%' }}
@@ -364,6 +314,16 @@ export default function InventoryTransactionsPage() {
             清除筛选
           </Button>
         </div>
+
+        {transactionsQuery.isError ? (
+          <Alert
+            type="error"
+            showIcon
+            message="库存变动流水查询失败"
+            description="请检查筛选条件或稍后重试。"
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
 
         <div className="master-table-shell">
           <ProTable<InventoryTransactionRow>

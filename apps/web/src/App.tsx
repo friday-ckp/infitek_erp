@@ -74,6 +74,9 @@ import OutboundOrdersListPage from "./pages/outbound-orders/index";
 import OutboundOrderDetailPage from "./pages/outbound-orders/detail";
 import OutboundOrderFormPage from "./pages/outbound-orders/form";
 import InventoryPage from "./pages/inventory/index";
+import InventoryOpeningBalancesPage from "./pages/inventory/opening-balances";
+import InventoryAvailablePage from "./pages/inventory/available";
+import InventoryBatchesPage from "./pages/inventory/batches";
 import InventoryTransactionsPage from "./pages/inventory/transactions";
 import HomePage from "./pages/home/index";
 import "./App.css";
@@ -519,11 +522,23 @@ function App() {
                     element={<OutboundOrderFormPage />}
                   />
                   <Route
+                    path="/inventory/opening-balances"
+                    element={<InventoryOpeningBalancesPage />}
+                  />
+                  <Route
+                    path="/inventory/available"
+                    element={<InventoryAvailablePage />}
+                  />
+                  <Route
+                    path="/inventory/batches"
+                    element={<InventoryBatchesPage />}
+                  />
+                  <Route
                     path="/inventory/transactions"
                     element={<InventoryTransactionsPage />}
                   />
                   <Route path="/inventory" element={<InventoryPage />} />
-                  <Route path="/inventory/*" element={<InventoryPage />} />
+                  <Route path="/inventory/*" element={<Navigate to="/inventory/available" replace />} />
                 </Route>
 
                 {/* 兜底重定向 */}

@@ -14,6 +14,7 @@ describe('InventoryService', () => {
     sumBatchQuantities: jest.fn(),
     findTransactions: jest.fn(),
     findSourceDocumentInfo: jest.fn(),
+    findBatchSourceDocumentInfo: jest.fn(),
     buildSourceDocumentFallback: jest.fn(),
     buildSourceDocumentKey: jest.fn(),
   };
@@ -88,6 +89,7 @@ describe('InventoryService', () => {
       lockedQuantity: 0,
     });
     inventoryRepository.findSourceDocumentInfo.mockResolvedValue(new Map());
+    inventoryRepository.findBatchSourceDocumentInfo.mockResolvedValue(new Map());
     inventoryRepository.buildSourceDocumentKey.mockImplementation(
       (type, id) => `${type}:${id}`,
     );
@@ -281,6 +283,13 @@ describe('InventoryService', () => {
     const result = await service.findBatches({ skuIds: [11], warehouseId: 22 });
 
     expect(inventoryRepository.findBatches).toHaveBeenCalledWith([11], 22);
+    expect(inventoryRepository.findBatchSourceDocumentInfo).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          batchNo: 'INV-INIT-20260401-000100',
+        }),
+      ]),
+    );
     expect(result).toEqual([
       {
         id: 100,
@@ -292,10 +301,56 @@ describe('InventoryService', () => {
         batchAvailableQuantity: 10,
         sourceType: InventoryBatchSourceType.INITIAL,
         sourceDocumentId: null,
+        sourceDocumentType: null,
+        sourceDocumentCode: null,
+        sourceDocumentLabel: null,
+        sourceDocumentPath: null,
         receiptDate: '2026-04-01',
         updatedAt: undefined,
       },
     ]);
+  });
+
+  it('findBatches maps purchase receipt source document to receipt order link info', async () => {
+    inventoryRepository.findBatches.mockResolvedValue([
+      {
+        id: '101',
+        batchNo: 'INV-REC-20260403-000101',
+        skuId: '11',
+        warehouseId: '22',
+        batchQuantity: '8',
+        batchLockedQuantity: '1',
+        sourceType: InventoryBatchSourceType.PURCHASE_RECEIPT,
+        sourceDocumentId: '9001',
+        receiptDate: '2026-04-03',
+      },
+    ]);
+    inventoryRepository.findBatchSourceDocumentInfo.mockResolvedValue(
+      new Map([
+        [
+          'receipt_order:9001',
+          {
+            type: 'receipt_order',
+            id: 9001,
+            code: 'RO202604030001',
+            label: '收货单',
+            path: '/receipt-orders/9001',
+          },
+        ],
+      ]),
+    );
+
+    const result = await service.findBatches({ skuIds: [11], warehouseId: 22 });
+
+    expect(result[0]).toEqual(
+      expect.objectContaining({
+        sourceDocumentType: 'receipt_order',
+        sourceDocumentId: 9001,
+        sourceDocumentCode: 'RO202604030001',
+        sourceDocumentLabel: '收货单',
+        sourceDocumentPath: '/receipt-orders/9001',
+      }),
+    );
   });
 
   it('findTransactions maps delta fields and fallback quantityChange', async () => {

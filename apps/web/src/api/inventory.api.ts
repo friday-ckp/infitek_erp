@@ -20,6 +20,10 @@ export interface InventoryBatchItem {
   batchAvailableQuantity: number;
   sourceType: string;
   sourceDocumentId: number | string | null;
+  sourceDocumentType?: string | null;
+  sourceDocumentCode?: string | null;
+  sourceDocumentLabel?: string | null;
+  sourceDocumentPath?: string | null;
   receiptDate: string;
   updatedAt?: string;
 }
