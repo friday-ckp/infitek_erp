@@ -12,6 +12,7 @@ import {
 import { getSkus } from '../../api/skus.api';
 import { getWarehouses } from '../../api/warehouses.api';
 import { InventoryAvailabilityTag } from './components/InventoryAvailabilityTag';
+import { SourceDocumentLink } from './components/SourceDocumentLink';
 import {
   buildInventoryContextSearch,
   buildSkuMap,
@@ -33,6 +34,7 @@ interface InventoryBatchRow extends InventoryBatchItem {
   skuId: number;
   warehouseId: number;
   sourceDocumentId: number | null;
+  sourceDocumentType?: string | null;
   skuCode?: string;
   skuName?: string | null;
   warehouseName?: string | null;
@@ -132,8 +134,16 @@ export default function InventoryBatchesPage() {
     {
       title: '来源单据',
       dataIndex: 'sourceDocumentId',
-      width: 120,
-      render: (_, record) => (record.sourceDocumentId ? `#${record.sourceDocumentId}` : '-'),
+      width: 180,
+      render: (_, record) => (
+        <SourceDocumentLink
+          sourceDocumentType={record.sourceDocumentType ?? record.sourceType}
+          sourceDocumentId={record.sourceDocumentId}
+          sourceDocumentCode={record.sourceDocumentCode}
+          sourceDocumentLabel={record.sourceDocumentLabel}
+          sourceDocumentPath={record.sourceDocumentPath}
+        />
+      ),
     },
     {
       title: '入库日期',

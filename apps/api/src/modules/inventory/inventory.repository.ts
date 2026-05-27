@@ -200,6 +200,36 @@ export class InventoryRepository {
       idsByType.set(type, ids);
     });
 
+    return this.findSourceInfoByTypeAndIds(idsByType);
+  }
+
+  async findBatchSourceDocumentInfo(
+    batches: InventoryBatch[],
+  ): Promise<Map<string, InventorySourceDocumentInfo>> {
+    const idsByType = new Map<string, Set<number>>();
+
+    batches.forEach((batch) => {
+      const type = this.toBatchSourceDocumentType(batch.sourceType);
+      const id =
+        batch.sourceDocumentId === null ? null : Number(batch.sourceDocumentId);
+      if (
+        id === null ||
+        !SOURCE_DOCUMENT_CONFIG[type] ||
+        !Number.isFinite(id)
+      ) {
+        return;
+      }
+      const ids = idsByType.get(type) ?? new Set<number>();
+      ids.add(id);
+      idsByType.set(type, ids);
+    });
+
+    return this.findSourceInfoByTypeAndIds(idsByType);
+  }
+
+  private async findSourceInfoByTypeAndIds(
+    idsByType: Map<string, Set<number>>,
+  ): Promise<Map<string, InventorySourceDocumentInfo>> {
     const infoMap = new Map<string, InventorySourceDocumentInfo>();
 
     await Promise.all(
@@ -231,6 +261,16 @@ export class InventoryRepository {
     );
 
     return infoMap;
+  }
+
+  private toBatchSourceDocumentType(sourceType: string): string {
+    if (sourceType === 'purchase_receipt') {
+      return 'receipt_order';
+    }
+    if (sourceType === 'initial') {
+      return 'opening_inventory';
+    }
+    return sourceType;
   }
 
   buildSourceDocumentFallback(
