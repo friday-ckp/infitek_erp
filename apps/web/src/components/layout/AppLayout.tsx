@@ -15,7 +15,7 @@ const PRODUCT_SECTION_PATH = "/master-data/product-categories";
 const SALES_SECTION_PATH = "/sales-orders";
 const COMMERCE_SECTION_PATH = "/shipping-demands";
 const PURCHASE_SECTION_PATH = "/purchase-orders";
-const INVENTORY_SECTION_PATH = "/inventory";
+const INVENTORY_SECTION_PATH = "/inventory/available";
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -193,18 +193,41 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     createLabel: "新建采购订单",
     detailLabel: "采购订单详情",
   }),
-  ...createCrudBreadcrumbRoutes({
-    basePath: "/inventory",
-    sectionLabel: "库存管理",
-    sectionPath: INVENTORY_SECTION_PATH,
-    listLabel: "库存查询",
-  }),
-  ...createCrudBreadcrumbRoutes({
-    basePath: "/inventory/transactions",
-    sectionLabel: "库存管理",
-    sectionPath: INVENTORY_SECTION_PATH,
-    listLabel: "库存变动流水",
-  }),
+  {
+    pattern: /^\/inventory$/,
+    items: [
+      { title: "库存管理", path: INVENTORY_SECTION_PATH },
+      { title: "可用库存查询", path: "/inventory/available" },
+    ],
+  },
+  {
+    pattern: /^\/inventory\/opening-balances$/,
+    items: [
+      { title: "库存管理", path: INVENTORY_SECTION_PATH },
+      { title: "期初库存录入" },
+    ],
+  },
+  {
+    pattern: /^\/inventory\/available$/,
+    items: [
+      { title: "库存管理", path: INVENTORY_SECTION_PATH },
+      { title: "可用库存查询" },
+    ],
+  },
+  {
+    pattern: /^\/inventory\/batches$/,
+    items: [
+      { title: "库存管理", path: INVENTORY_SECTION_PATH },
+      { title: "批次库存明细" },
+    ],
+  },
+  {
+    pattern: /^\/inventory\/transactions$/,
+    items: [
+      { title: "库存管理", path: INVENTORY_SECTION_PATH },
+      { title: "库存变动流水" },
+    ],
+  },
   ...createCrudBreadcrumbRoutes({
     basePath: "/receipt-orders",
     sectionLabel: "库存管理",
