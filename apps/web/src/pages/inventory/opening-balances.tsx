@@ -50,6 +50,7 @@ export default function InventoryOpeningBalancesPage() {
         queryClient.invalidateQueries({ queryKey: ['inventory-available'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory-batches'] }),
         queryClient.invalidateQueries({ queryKey: ['inventory-transactions'] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory-transactions-page'] }),
       ]);
       formRef.current?.resetFields();
       const search = buildInventoryContextSearch({

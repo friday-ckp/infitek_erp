@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Empty, Result, Select, Skeleton } from 'antd';
+import { Alert, Button, Empty, Result, Select, Skeleton } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -259,6 +259,16 @@ export default function InventoryAvailablePage() {
               <InventoryMetric label="锁定量" value={totals.lockedQuantity} tone="locked" />
               <InventoryMetric label="可用库存" value={totals.availableQuantity} tone="available" />
             </div>
+
+            {availableQuery.isError ? (
+              <Alert
+                type="error"
+                showIcon
+                message="可用库存查询失败"
+                description="请检查筛选条件或稍后重试。"
+                style={{ marginBottom: 16 }}
+              />
+            ) : null}
 
             <div className="master-table-shell">
               <ProTable<InventoryRow>

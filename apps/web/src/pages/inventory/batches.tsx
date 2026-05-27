@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, Empty, Result, Select, Skeleton, Tag } from 'antd';
+import { Alert, Button, Empty, Result, Select, Skeleton, Tag } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -258,6 +258,16 @@ export default function InventoryBatchesPage() {
               </Button>
               <span className="inventory-section-badge">{rows.length} 个批次</span>
             </div>
+
+            {batchesQuery.isError ? (
+              <Alert
+                type="error"
+                showIcon
+                message="批次库存明细查询失败"
+                description="请检查筛选条件或稍后重试。"
+                style={{ marginBottom: 16 }}
+              />
+            ) : null}
 
             <div className="master-table-shell">
               <ProTable<InventoryBatchRow>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, DatePicker, Empty, Select } from 'antd';
+import { Alert, Button, DatePicker, Empty, Select } from 'antd';
 import { ProTable } from '@ant-design/pro-components';
 import type { ProColumns } from '@ant-design/pro-components';
 import { useQuery } from '@tanstack/react-query';
@@ -314,6 +314,16 @@ export default function InventoryTransactionsPage() {
             清除筛选
           </Button>
         </div>
+
+        {transactionsQuery.isError ? (
+          <Alert
+            type="error"
+            showIcon
+            message="库存变动流水查询失败"
+            description="请检查筛选条件或稍后重试。"
+            style={{ marginBottom: 16 }}
+          />
+        ) : null}
 
         <div className="master-table-shell">
           <ProTable<InventoryTransactionRow>
