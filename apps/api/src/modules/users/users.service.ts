@@ -1,10 +1,12 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { UsersRepository } from './users.repository';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { BindDingtalkDto } from './dto/bind-dingtalk.dto';
 import * as bcrypt from 'bcrypt';
 import { UserStatus } from '@infitek/shared';
+import { QueryFailedError } from 'typeorm';
 
 @Injectable()
 export class UsersService {
@@ -76,6 +78,78 @@ export class UsersService {
     return this.usersRepository.update(id, {
       status: UserStatus.INACTIVE,
       updatedBy: updatedBy,
+    });
+  }
+
+  async bindDingtalkIdentity(
+    userId: number,
+    dto: BindDingtalkDto,
+    operatorUsername: string,
+  ): Promise<User> {
+    if (operatorUsername !== 'admin') {
+      throw new ForbiddenException('只有管理员可以执行钉钉绑定操作');
+    }
+
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    const existingUser = await this.usersRepository.findByDingtalkUnionId(dto.dingtalkUnionId);
+    if (existingUser && existingUser.id !== userId) {
+      throw new BadRequestException({
+        statusCode: 400,
+        code: 'DINGTALK_IDENTITY_ALREADY_BOUND',
+        message: '该钉钉账号已绑定其他 ERP 用户',
+      });
+    }
+
+    const updateData: Partial<User> = {
+      dingtalkUnionId: dto.dingtalkUnionId,
+      dingtalkUserId: dto.dingtalkUserId ?? user.dingtalkUserId,
+      dingtalkOpenId: dto.dingtalkOpenId ?? user.dingtalkOpenId,
+      dingtalkNick: dto.dingtalkNick ?? user.dingtalkNick,
+      dingtalkAvatar: dto.dingtalkAvatar ?? user.dingtalkAvatar,
+      dingtalkBoundAt: new Date(),
+      updatedBy: operatorUsername,
+    };
+
+    try {
+      return await this.usersRepository.update(userId, updateData);
+    } catch (err) {
+      if (err instanceof QueryFailedError && (err as any).code === '23505') {
+        throw new BadRequestException({
+          statusCode: 400,
+          code: 'DINGTALK_IDENTITY_ALREADY_BOUND',
+          message: '该钉钉账号已绑定其他 ERP 用户',
+        });
+      }
+      throw err;
+    }
+  }
+
+  async unbindDingtalkIdentity(userId: number, operatorUsername: string): Promise<User> {
+    if (operatorUsername !== 'admin') {
+      throw new ForbiddenException('只有管理员可以执行钉钉解绑操作');
+    }
+
+    const user = await this.usersRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException('用户不存在');
+    }
+
+    if (!user.dingtalkUnionId) {
+      return user;
+    }
+
+    return this.usersRepository.update(userId, {
+      dingtalkUnionId: null,
+      dingtalkUserId: null,
+      dingtalkOpenId: null,
+      dingtalkNick: null,
+      dingtalkAvatar: null,
+      dingtalkBoundAt: null,
+      updatedBy: operatorUsername,
     });
   }
 }

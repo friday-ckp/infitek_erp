@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from '../users.service';
 import { UsersRepository } from '../users.repository';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { UserStatus } from '@infitek/shared';
 import * as bcrypt from 'bcrypt';
 
@@ -368,6 +368,213 @@ describe('UsersService - Story 1-4 自动化测试', () => {
 
       expect(user.status).toBe(UserStatus.INACTIVE);
       // JwtStrategy 应该拒绝这个用户
+    });
+  });
+});
+
+describe('Story 9.4: DingTalk binding management', () => {
+  let service: UsersService;
+
+  const mockRepository = {
+    findByUsername: jest.fn(),
+    findById: jest.fn(),
+    findAll: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    softDelete: jest.fn(),
+    findByDingtalkUnionId: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UsersService,
+        {
+          provide: UsersRepository,
+          useValue: mockRepository,
+        },
+      ],
+    }).compile();
+
+    service = module.get<UsersService>(UsersService);
+    jest.clearAllMocks();
+  });
+
+  describe('bindDingtalkIdentity', () => {
+    const bindDto = {
+      dingtalkUnionId: 'union-123',
+      dingtalkUserId: 'user-456',
+      dingtalkNick: 'TestNick',
+    };
+
+    it('admin should bind successfully', async () => {
+      const mockUser = { id: 1, username: 'testuser', dingtalkUnionId: null };
+      const updatedUser = {
+        ...mockUser,
+        dingtalkUnionId: 'union-123',
+        dingtalkUserId: 'user-456',
+        dingtalkNick: 'TestNick',
+        dingtalkBoundAt: expect.any(Date),
+        updatedBy: 'admin',
+      };
+
+      mockRepository.findById.mockResolvedValue(mockUser);
+      mockRepository.findByDingtalkUnionId.mockResolvedValue(null);
+      mockRepository.update.mockResolvedValue(updatedUser);
+
+      const result = await service.bindDingtalkIdentity(1, bindDto, 'admin');
+
+      expect(result.dingtalkUnionId).toBe('union-123');
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          dingtalkUnionId: 'union-123',
+          dingtalkUserId: 'user-456',
+          dingtalkNick: 'TestNick',
+          dingtalkBoundAt: expect.any(Date),
+          updatedBy: 'admin',
+        }),
+      );
+      const updatePayload = mockRepository.update.mock.calls[0][1];
+      expect(updatePayload).not.toHaveProperty('password');
+      expect(updatePayload).not.toHaveProperty('username');
+      expect(updatePayload).not.toHaveProperty('id');
+    });
+
+    it('should reject when unionId bound to other user', async () => {
+      const mockUser = { id: 1, username: 'testuser' };
+      const otherUser = { id: 2, username: 'otheruser' };
+
+      mockRepository.findById.mockResolvedValue(mockUser);
+      mockRepository.findByDingtalkUnionId.mockResolvedValue(otherUser);
+
+      await expect(
+        service.bindDingtalkIdentity(1, bindDto, 'admin'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should expose stable error code DINGTALK_IDENTITY_ALREADY_BOUND in payload', async () => {
+      const mockUser = { id: 1, username: 'testuser' };
+      const otherUser = { id: 2, username: 'otheruser' };
+
+      mockRepository.findById.mockResolvedValue(mockUser);
+      mockRepository.findByDingtalkUnionId.mockResolvedValue(otherUser);
+
+      try {
+        await service.bindDingtalkIdentity(1, bindDto, 'admin');
+        fail('expected BadRequestException');
+      } catch (err) {
+        expect(err).toBeInstanceOf(BadRequestException);
+        const response = (err as BadRequestException).getResponse() as Record<string, unknown>;
+        expect(response.code).toBe('DINGTALK_IDENTITY_ALREADY_BOUND');
+        expect(response.statusCode).toBe(400);
+      }
+    });
+
+    it('should idempotently update when unionId bound to same user', async () => {
+      const mockUser = { id: 1, username: 'testuser', dingtalkUnionId: 'union-123', dingtalkUserId: 'old-user', dingtalkNick: 'OldNick' };
+      mockRepository.findById.mockResolvedValue(mockUser);
+      mockRepository.findByDingtalkUnionId.mockResolvedValue(mockUser);
+      mockRepository.update.mockResolvedValue({ ...mockUser, dingtalkUserId: 'user-456', dingtalkNick: 'TestNick', updatedBy: 'admin' });
+
+      const result = await service.bindDingtalkIdentity(1, bindDto, 'admin');
+
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          dingtalkUnionId: 'union-123',
+          dingtalkUserId: 'user-456',
+          dingtalkNick: 'TestNick',
+          updatedBy: 'admin',
+        }),
+      );
+      expect(result.updatedBy).toBe('admin');
+    });
+
+    it('non-admin should get 403', async () => {
+      await expect(
+        service.bindDingtalkIdentity(1, bindDto, 'user1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw 404 when user not found', async () => {
+      mockRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.bindDingtalkIdentity(999, bindDto, 'admin'),
+      ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('unbindDingtalkIdentity', () => {
+    it('admin should unbind successfully', async () => {
+      const mockUser = {
+        id: 1,
+        username: 'testuser',
+        dingtalkUnionId: 'union-123',
+        dingtalkUserId: 'user-456',
+        dingtalkOpenId: 'open-789',
+        dingtalkNick: 'Nick',
+        dingtalkAvatar: 'https://avatar.url',
+        dingtalkBoundAt: new Date(),
+      };
+
+      mockRepository.findById.mockResolvedValue(mockUser);
+      mockRepository.update.mockResolvedValue({
+        ...mockUser,
+        dingtalkUnionId: null,
+        dingtalkUserId: null,
+        dingtalkOpenId: null,
+        dingtalkNick: null,
+        dingtalkAvatar: null,
+        dingtalkBoundAt: null,
+        updatedBy: 'admin',
+      });
+
+      const result = await service.unbindDingtalkIdentity(1, 'admin');
+
+      expect(result.dingtalkUnionId).toBeNull();
+      expect(result.dingtalkUserId).toBeNull();
+      expect(result.dingtalkOpenId).toBeNull();
+      expect(result.dingtalkNick).toBeNull();
+      expect(result.dingtalkAvatar).toBeNull();
+      expect(result.dingtalkBoundAt).toBeNull();
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          dingtalkUnionId: null,
+          dingtalkUserId: null,
+          dingtalkOpenId: null,
+          dingtalkNick: null,
+          dingtalkAvatar: null,
+          dingtalkBoundAt: null,
+          updatedBy: 'admin',
+        }),
+      );
+    });
+
+    it('non-admin should get 403', async () => {
+      await expect(
+        service.unbindDingtalkIdentity(1, 'user1'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should be idempotent when already unbound', async () => {
+      const mockUser = { id: 1, username: 'testuser', dingtalkUnionId: null };
+      mockRepository.findById.mockResolvedValue(mockUser);
+
+      const result = await service.unbindDingtalkIdentity(1, 'admin');
+
+      expect(result).toEqual(mockUser);
+      expect(mockRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should throw 404 when user not found on unbind', async () => {
+      mockRepository.findById.mockResolvedValue(null);
+
+      await expect(
+        service.unbindDingtalkIdentity(999, 'admin'),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });

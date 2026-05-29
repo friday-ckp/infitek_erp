@@ -3,6 +3,7 @@ import { UsersController } from '../users.controller';
 import { UsersService } from '../users.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
+import { BindDingtalkDto } from '../dto/bind-dingtalk.dto';
 import { UserStatus } from '@infitek/shared';
 import { NotFoundException } from '@nestjs/common';
 
@@ -251,5 +252,60 @@ describe('UsersController - Story 1-4 自动化测试', () => {
 
       expect(result.status).toBe(UserStatus.INACTIVE);
     });
+  });
+});
+
+describe('UsersController - Story 9.4 DingTalk binding', () => {
+  let controller: UsersController;
+
+  const mockUsersService = {
+    findAll: jest.fn(),
+    findById: jest.fn(),
+    create: jest.fn(),
+    update: jest.fn(),
+    deactivate: jest.fn(),
+    bindDingtalkIdentity: jest.fn(),
+    unbindDingtalkIdentity: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [UsersController],
+      providers: [
+        {
+          provide: UsersService,
+          useValue: mockUsersService,
+        },
+      ],
+    }).compile();
+
+    controller = module.get<UsersController>(UsersController);
+    jest.clearAllMocks();
+  });
+
+  it('POST /users/:id/dingtalk-binding should call service.bindDingtalkIdentity', async () => {
+    const bindDto: BindDingtalkDto = {
+      dingtalkUnionId: 'union-123',
+      dingtalkUserId: 'user-456',
+    };
+    const expectedResult = { id: 1, dingtalkUnionId: 'union-123' };
+
+    mockUsersService.bindDingtalkIdentity.mockResolvedValue(expectedResult);
+
+    const result = await controller.bindDingtalk(1, bindDto, { username: 'admin' });
+
+    expect(result).toEqual(expectedResult);
+    expect(mockUsersService.bindDingtalkIdentity).toHaveBeenCalledWith(1, bindDto, 'admin');
+  });
+
+  it('DELETE /users/:id/dingtalk-binding should call service.unbindDingtalkIdentity', async () => {
+    const expectedResult = { id: 1, dingtalkUnionId: null };
+
+    mockUsersService.unbindDingtalkIdentity.mockResolvedValue(expectedResult);
+
+    const result = await controller.unbindDingtalk(1, { username: 'admin' });
+
+    expect(result).toEqual(expectedResult);
+    expect(mockUsersService.unbindDingtalkIdentity).toHaveBeenCalledWith(1, 'admin');
   });
 });

@@ -44,8 +44,13 @@ export class User extends BaseEntity {
   dingtalkAvatar: string | null;
 
   @Column({ name: 'dingtalk_bound_at', type: 'timestamp', nullable: true })
-  @Exclude()
+  @Expose()
   dingtalkBoundAt: Date | null;
+
+  @Expose()
+  get dingtalkBindingStatus(): 'BOUND' | 'UNBOUND' {
+    return this.dingtalkUnionId ? 'BOUND' : 'UNBOUND';
+  }
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;

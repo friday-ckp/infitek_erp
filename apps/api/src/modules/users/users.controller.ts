@@ -2,16 +2,17 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
   Patch,
   Param,
   Body,
   Query,
-  UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { BindDingtalkDto } from './dto/bind-dingtalk.dto';
 import { User } from './entities/user.entity';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -51,5 +52,22 @@ export class UsersController {
   @Post(':id/deactivate')
   async deactivate(@Param('id', ParseIntPipe) id: number, @CurrentUser() user: any) {
     return this.usersService.deactivate(id, user.username);
+  }
+
+  @Post(':id/dingtalk-binding')
+  async bindDingtalk(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() bindDingtalkDto: BindDingtalkDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.bindDingtalkIdentity(id, bindDingtalkDto, user.username);
+  }
+
+  @Delete(':id/dingtalk-binding')
+  async unbindDingtalk(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() user: any,
+  ) {
+    return this.usersService.unbindDingtalkIdentity(id, user.username);
   }
 }

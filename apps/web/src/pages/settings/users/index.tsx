@@ -96,6 +96,16 @@ export default function UsersList() {
       ),
     },
     {
+      title: '钉钉绑定',
+      dataIndex: 'dingtalkBindingStatus',
+      key: 'dingtalkBindingStatus',
+      render: (status: string | undefined, record: User) => (
+        status === 'BOUND'
+          ? <span><Tag color="success">已绑定</Tag>{record.dingtalkBoundAt ? <span style={{ fontSize: 12, color: '#999', marginLeft: 4 }}>{new Date(record.dingtalkBoundAt).toLocaleDateString()}</span> : null}</span>
+          : <Tag>未绑定</Tag>
+      ),
+    },
+    {
       title: '创建时间',
       dataIndex: 'createdAt',
       key: 'createdAt',

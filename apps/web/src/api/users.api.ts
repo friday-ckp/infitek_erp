@@ -5,6 +5,9 @@ export interface User {
   username: string;
   name: string;
   status: 'active' | 'inactive';
+  dingtalkBindingStatus?: 'BOUND' | 'UNBOUND';
+  dingtalkBoundAt?: string;
+  dingtalkNick?: string | null;
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -71,4 +74,26 @@ export const updateUser = (id: string, data: UpdateUserRequest): Promise<User> =
  */
 export const deactivateUser = (id: string): Promise<User> => {
   return request.post(`/users/${id}/deactivate`);
+};
+
+export interface BindDingtalkRequest {
+  dingtalkUnionId: string;
+  dingtalkUserId?: string;
+  dingtalkOpenId?: string;
+  dingtalkNick?: string;
+  dingtalkAvatar?: string;
+}
+
+/**
+ * 绑定钉钉账号
+ */
+export const bindUserDingtalk = (id: string, data: BindDingtalkRequest): Promise<User> => {
+  return request.post(`/users/${id}/dingtalk-binding`, data);
+};
+
+/**
+ * 解绑钉钉账号
+ */
+export const unbindUserDingtalk = (id: string): Promise<User> => {
+  return request.delete(`/users/${id}/dingtalk-binding`);
 };
