@@ -144,3 +144,13 @@ development_status:
   epic-8: done
   8-1-发货需求状态自动流转: done
   epic-8-retrospective: done
+
+  # ─────────────────────────────────────────────────
+  # Epic 9: 企业 SSO 与钉钉扫码登录
+  # ─────────────────────────────────────────────────
+  epic-9: backlog
+  9-2-后端钉钉OAuth回调与JWT签发: backlog
+  9-3-前端登录页与钉钉回调页: backlog
+  9-4-用户管理钉钉绑定能力: backlog
+  9-5-联调测试与上线校验: backlog
+  epic-9-retrospective: optional
