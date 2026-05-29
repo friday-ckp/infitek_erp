@@ -227,7 +227,6 @@ NEW:
 建议 story 拆分：
 
 ```md
-9-1-钉钉应用配置与用户模型扩展
 9-2-后端钉钉OAuth回调与JWT签发
 9-3-前端登录页与钉钉回调页
 9-4-用户管理钉钉绑定能力
@@ -245,7 +244,6 @@ Target: `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ```yaml
   epic-9: backlog
-  9-1-钉钉应用配置与用户模型扩展: backlog
   9-2-后端钉钉OAuth回调与JWT签发: backlog
   9-3-前端登录页与钉钉回调页: backlog
   9-4-用户管理钉钉绑定能力: backlog
@@ -261,7 +259,7 @@ Rationale:
 1. 批准本 proposal
 2. 更新 `epics.md`，新增 Epic 9
 3. 更新 `sprint-status.yaml`，新增 Epic 9 backlog 条目
-4. 基于技术研究文档创建 `9-1` 或完整 `Epic 9` story 集
+4. 基于技术研究文档创建 `Epic 9` 的后续 story 集
 5. 按顺序实施：
    - 用户表字段与 migration
    - 后端 OAuth 回调与 ticket 交换
