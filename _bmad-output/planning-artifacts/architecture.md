@@ -232,13 +232,20 @@ export class InventoryRecord extends BaseEntity {
 
 | 决策项 | 选定方案 | 理由 |
 |--------|---------|------|
-| Token 策略 | Access Token（8h，无 Refresh Token） | 直接满足 NFR-S3 8h 自动登出，Token 到期即强制登出，实现最简；ERP 内部系统无需 Refresh Token |
+| Token 策略 | Access Token（8h，无 Refresh Token） | 继续作为系统内部统一登录态；密码登录与钉钉扫码登录最终都签发同一种系统 JWT |
 | 密码加密 | bcrypt（rounds=12） | 满足 NFR-S2 不可逆存储，rounds=12 为安全/性能平衡点 |
-| 接口鉴权 | NestJS `JwtAuthGuard` 全局注册，白名单豁免 `/auth/login` | 满足 NFR-S4 全接口鉴权，无遗漏风险 |
+| 外部身份接入 | 钉钉 OAuth2（企业内部应用 + 网页应用能力） | 钉钉只负责身份认证，系统继续维护本地用户与权限语义 |
+| 接口鉴权 | NestJS `JwtAuthGuard` 全局注册，白名单豁免 `/auth/login`、`/auth/dingtalk/callback`、`/auth/dingtalk/exchange` | 满足 NFR-S4 全接口鉴权，无遗漏风险 |
 | HTTPS | Nginx 反向代理终止 TLS | 满足 NFR-S1，容器内走 HTTP，TLS 统一在 Nginx 层处理 |
 | CORS | `enableCors` 配置前端域名白名单 | 防止未授权跨域请求 |
 
 **影响模块：** `apps/api/src/common/guards/`、`apps/api/src/modules/auth/`
+
+**外部身份绑定模型：**
+- 在 `users` 表增加 `dingtalk_union_id`、`dingtalk_user_id`、`dingtalk_open_id`、`dingtalk_nick`、`dingtalk_avatar`、`dingtalk_bound_at`
+- `dingtalk_union_id` 设唯一索引，作为运行时稳定外部身份键
+- 后端 OAuth 回调完成后，不直接把系统 JWT 放在 URL 上，而是生成一次性 `loginTicket`
+- 前端通过 `ticket` 换取正式 JWT，降低 token 暴露风险
 
 ---
 
