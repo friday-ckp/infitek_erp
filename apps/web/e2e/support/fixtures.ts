@@ -26,7 +26,7 @@ export const test = base.extend<TestFixtures>({
     await page.click('button[type="submit"]');
 
     // 等待登录完成并稳定
-    await page.waitForURL('**/settings/users');
+    await page.waitForURL((url) => url.pathname !== '/login');
     await page.waitForLoadState('networkidle');
 
     // 使用 page

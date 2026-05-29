@@ -12,6 +12,18 @@ interface AuthState {
   logout: () => void;
 }
 
+export function isValidAuthToken(token: string | null): boolean {
+  if (!token || typeof token !== 'string' || token.trim() === '') {
+    return false;
+  }
+
+  if (token.length < 10 || token.length > 2048) {
+    return false;
+  }
+
+  return /^[A-Za-z0-9\-_.~+/]+=*$/.test(token);
+}
+
 function loadUser(): AuthUser | null {
   try {
     const raw = localStorage.getItem('user');

@@ -1,34 +1,62 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Button, Form, Input, Typography } from 'antd';
 import { ArrowRightOutlined, LockOutlined, SafetyCertificateOutlined, UserOutlined } from '@ant-design/icons';
-import { Navigate, useNavigate } from 'react-router-dom';
-import request from '../../api/request';
-import { useAuthStore } from '../../store/auth.store';
-import antdStatic from '../../utils/antdStatic';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { loginWithPassword } from '../../api/auth.api';
+import { isValidAuthToken, useAuthStore } from '../../store/auth.store';
+import {
+  clearStoredPostLoginRedirect,
+  resolvePostLoginRedirect,
+  storePostLoginRedirect,
+} from '../../utils/auth-redirect';
 import './login.css';
 
 const { Title, Text } = Typography;
+type LoginError = { message?: string };
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { token, login } = useAuthStore();
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
+  const redirectTarget = useMemo(
+    () => resolvePostLoginRedirect(searchParams, { useStored: true }),
+    [searchParams],
+  );
 
-  if (token) return <Navigate to="/" replace />;
+  if (isValidAuthToken(token)) return <Navigate to={redirectTarget} replace />;
 
   const handleFinish = async (values: { username: string; password: string }) => {
     setError('');
-    setLoading(true);
+    setPasswordLoading(true);
     try {
-      const data = await request.post('/auth/login', values) as any;
+      const data = await loginWithPassword(values);
       login(data.accessToken, { username: values.username, name: data.user?.name || values.username });
-      navigate('/');
-    } catch (err: any) {
-      setError(err?.message || '用户名或密码错误');
+      clearStoredPostLoginRedirect();
+      navigate(redirectTarget, { replace: true });
+    } catch (err: unknown) {
+      const message =
+        typeof err === 'object' && err !== null && 'message' in err
+          ? (err as LoginError).message
+          : undefined;
+      setError(message || '用户名或密码错误');
+      setSsoLoading(false);
     } finally {
-      setLoading(false);
+      setPasswordLoading(false);
     }
+  };
+
+  const handleDingtalkLogin = () => {
+    if (ssoLoading) {
+      return;
+    }
+
+    setError('');
+    setSsoLoading(true);
+    storePostLoginRedirect(redirectTarget);
+    window.location.assign('/api/auth/dingtalk/login');
   };
 
   return (
@@ -128,9 +156,15 @@ export default function LoginPage() {
               </button>
             </div>
 
-            <Button htmlType="submit" type="primary" className="btn-submit" loading={loading}>
-              <span>{loading ? '验证中...' : '登录系统'}</span>
-              {!loading && <ArrowRightOutlined />}
+            <Button
+              htmlType="submit"
+              type="primary"
+              className="btn-submit"
+              loading={passwordLoading}
+              disabled={ssoLoading}
+            >
+              <span>{passwordLoading ? '验证中...' : '登录系统'}</span>
+              {!passwordLoading && <ArrowRightOutlined />}
             </Button>
 
             <div className="divider">或者</div>
@@ -138,10 +172,12 @@ export default function LoginPage() {
             <button
               type="button"
               className="sso-btn"
-              onClick={() => antdStatic.message?.info('该功能暂未开发')}
+              onClick={handleDingtalkLogin}
+              disabled={ssoLoading}
+              aria-label="钉钉扫码登录"
             >
               <SafetyCertificateOutlined />
-              <span>通过企业 SSO 登录</span>
+              <span>{ssoLoading ? '正在跳转到钉钉...' : '钉钉扫码登录'}</span>
             </button>
           </Form>
         </div>

@@ -1,5 +1,13 @@
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 import antdStatic from '../utils/antdStatic';
+import { buildLoginRedirectUrl } from '../utils/auth-redirect';
+
+declare module 'axios' {
+  interface AxiosRequestConfig {
+    suppressErrorToast?: boolean;
+    suppressAuthRedirect?: boolean;
+  }
+}
 
 const request = axios.create({
   baseURL: '/api',
@@ -22,13 +30,24 @@ request.interceptors.request.use(
 request.interceptors.response.use(
   (response) => response.data.data,
   (error) => {
+    const config = error.config as
+      | (AxiosRequestConfig & {
+          suppressErrorToast?: boolean;
+          suppressAuthRedirect?: boolean;
+        })
+      | undefined;
+    const suppressAuthRedirect = config?.suppressAuthRedirect === true;
+    const suppressErrorToast = config?.suppressErrorToast === true;
+
     if (
       error.response?.status === 401 &&
-      !error.config?.url?.includes('/auth/login')
+      !config?.url?.includes('/auth/login') &&
+      !suppressAuthRedirect
     ) {
       localStorage.removeItem('token');
-      window.location.href = '/login';
-    } else {
+      localStorage.removeItem('user');
+      window.location.href = buildLoginRedirectUrl();
+    } else if (!suppressErrorToast) {
       const rawMsg = error.response?.data?.message;
       const msg = Array.isArray(rawMsg) ? rawMsg.join('；') : (rawMsg ?? '操作失败');
       antdStatic.message?.error(msg);

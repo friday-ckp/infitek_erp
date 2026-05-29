@@ -535,9 +535,42 @@ body {
   gap: 10px;
 }
 
+.sso-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+  background: #f3f4f6;
+  color: var(--text-muted);
+}
+
 .sso-btn:hover {
   background: var(--bg-gray);
   border-color: #d1d5db;
+}
+
+.sso-btn:hover:disabled {
+  background: #f3f4f6;
+  border-color: var(--border-color);
+}
+
+.login-callback-loading,
+.login-callback-result {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.login-callback-loading {
+  min-height: 280px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.login-callback-loading .ant-typography {
+  margin-bottom: 0 !important;
+}
+
+.login-callback-result .ant-result {
+  padding: 12px 0 0;
 }
 
 @media (max-width: 992px) {
@@ -567,5 +600,9 @@ body {
     padding: 2rem;
     align-items: flex-start;
     padding-top: 3rem;
+  }
+
+  .login-callback-loading {
+    min-height: 220px;
   }
 }

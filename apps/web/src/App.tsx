@@ -4,6 +4,7 @@ import { App as AntdApp, ConfigProvider } from "antd";
 import zhCN from "antd/locale/zh_CN";
 import React, { type ReactNode } from "react";
 import LoginPage from "./pages/login/index";
+import DingtalkCallbackPage from "./pages/login/dingtalk-callback";
 import AppLayout from "./components/layout/AppLayout";
 import { AntdInitializer } from "./components/AntdInitializer";
 import UsersList from "./pages/settings/users/index";
@@ -178,6 +179,10 @@ function App() {
               <Routes>
                 {/* 公开路由 */}
                 <Route path="/login" element={<LoginPage />} />
+                <Route
+                  path="/login/dingtalk/callback"
+                  element={<DingtalkCallbackPage />}
+                />
 
                 {/* 受保护路由：包裹在 AppLayout 内 */}
                 <Route element={<AppLayout />}>

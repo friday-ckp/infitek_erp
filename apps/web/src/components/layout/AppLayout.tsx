@@ -2,7 +2,8 @@ import { Layout, Breadcrumb } from "antd";
 import { Outlet, useNavigate, Navigate, useLocation } from "react-router-dom";
 import { BellOutlined } from "@ant-design/icons";
 import DOMPurify from "dompurify";
-import { useAuthStore } from "../../store/auth.store";
+import { isValidAuthToken, useAuthStore } from "../../store/auth.store";
+import { buildLoginRedirectUrl } from "../../utils/auth-redirect";
 import Sidebar from "./Sidebar";
 
 const { Content } = Layout;
@@ -397,12 +398,6 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
   }),
 ];
 
-function isValidToken(token: string | null): boolean {
-  if (!token || typeof token !== "string" || token.trim() === "") return false;
-  if (token.length < 10 || token.length > 2048) return false;
-  return /^[A-Za-z0-9\-_.~+/]+=*$/.test(token);
-}
-
 function getBreadcrumbItems(pathname: string): BreadcrumbItem[] {
   if (!pathname || typeof pathname !== "string") return [];
 
@@ -430,7 +425,9 @@ export default function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!isValidToken(token)) return <Navigate to="/login" replace />;
+  if (!isValidAuthToken(token)) {
+    return <Navigate to={buildLoginRedirectUrl(`${location.pathname}${location.search}${location.hash}`)} replace />;
+  }
 
   const breadcrumbItems = getBreadcrumbItems(location.pathname);
   const displayName = sanitizeText(user?.name || "用户");
