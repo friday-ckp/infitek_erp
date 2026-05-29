@@ -1,10 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthService } from '../auth.service';
 import { UsersService } from '../../users/users.service';
 import { User } from '../../users/entities/user.entity';
 import { UserStatus } from '@infitek/shared';
+import { DingtalkAuthClient } from '../dingtalk-auth.client';
+import { DingtalkLoginSessionStore } from '../dingtalk-login-session.store';
 
 // mock bcrypt 整个模块，避免 native addon 不可重定义问题
 jest.mock('bcrypt', () => ({
@@ -35,6 +38,9 @@ describe('AuthService', () => {
   let service: AuthService;
   let usersService: jest.Mocked<UsersService>;
   let jwtService: jest.Mocked<JwtService>;
+  let configService: jest.Mocked<ConfigService>;
+  let dingtalkAuthClient: jest.Mocked<DingtalkAuthClient>;
+  let dingtalkLoginSessionStore: jest.Mocked<DingtalkLoginSessionStore>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -42,11 +48,44 @@ describe('AuthService', () => {
         AuthService,
         {
           provide: UsersService,
-          useValue: { findByUsername: jest.fn() },
+          useValue: { findByUsername: jest.fn(), findByDingtalkUnionId: jest.fn(), findById: jest.fn() },
         },
         {
           provide: JwtService,
           useValue: { sign: jest.fn().mockReturnValue('mock.jwt.token') },
+        },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) => {
+              if (key === 'dingtalk') {
+                return {
+                  clientId: 'client-id',
+                  clientSecret: 'client-secret',
+                  redirectUri: 'https://api.example.com/api/auth/dingtalk/callback',
+                  frontendCallbackUri: 'https://web.example.com/login/dingtalk/callback',
+                };
+              }
+
+              return undefined;
+            }),
+          },
+        },
+        {
+          provide: DingtalkAuthClient,
+          useValue: {
+            buildAuthorizationUrl: jest.fn(),
+            exchangeCodeForIdentity: jest.fn(),
+          },
+        },
+        {
+          provide: DingtalkLoginSessionStore,
+          useValue: {
+            createState: jest.fn(),
+            consumeState: jest.fn(),
+            createLoginTicket: jest.fn(),
+            consumeLoginTicket: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -54,6 +93,9 @@ describe('AuthService', () => {
     service = module.get<AuthService>(AuthService);
     usersService = module.get(UsersService);
     jwtService = module.get(JwtService);
+    configService = module.get(ConfigService);
+    dingtalkAuthClient = module.get(DingtalkAuthClient);
+    dingtalkLoginSessionStore = module.get(DingtalkLoginSessionStore);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -113,6 +155,155 @@ describe('AuthService', () => {
 
       expect(result).toEqual({ accessToken: 'mock.jwt.token' });
       expect(jwtService.sign).toHaveBeenCalledWith({ sub: 1, username: 'admin' });
+    });
+  });
+
+  describe('getDingtalkLoginRedirectUrl', () => {
+    it('应生成 state 并返回授权地址', () => {
+      dingtalkLoginSessionStore.createState.mockReturnValue('state-1');
+      dingtalkAuthClient.buildAuthorizationUrl.mockReturnValueOnce('https://login.dingtalk.com/oauth2/auth?state=state-1');
+
+      const result = service.getDingtalkLoginRedirectUrl();
+
+      expect(dingtalkLoginSessionStore.createState).toHaveBeenCalled();
+      expect(dingtalkAuthClient.buildAuthorizationUrl).toHaveBeenCalledWith('state-1');
+      expect(result).toBe('https://login.dingtalk.com/oauth2/auth?state=state-1');
+    });
+  });
+
+  describe('handleDingtalkCallback', () => {
+    it('已绑定且启用用户应重定向到带 ticket 的前端地址', async () => {
+      dingtalkLoginSessionStore.consumeState.mockReturnValue();
+      dingtalkAuthClient.exchangeCodeForIdentity.mockResolvedValue({
+        unionId: 'union-1',
+        userId: 'user-1',
+        openId: 'open-1',
+        nick: '张三',
+        avatar: null,
+      });
+      usersService.findByDingtalkUnionId.mockResolvedValue(mockUser);
+      dingtalkLoginSessionStore.createLoginTicket.mockReturnValue('ticket-1');
+
+      const result = await service.handleDingtalkCallback('oauth-code', 'state-1');
+
+      expect(dingtalkLoginSessionStore.consumeState).toHaveBeenCalledWith('state-1');
+      expect(dingtalkAuthClient.exchangeCodeForIdentity).toHaveBeenCalledWith('oauth-code');
+      expect(usersService.findByDingtalkUnionId).toHaveBeenCalledWith('union-1');
+      expect(configService.get).toHaveBeenCalledWith('dingtalk');
+      expect(result).toContain('ticket=ticket-1');
+    });
+
+    it('未绑定用户应跳转带 DINGTALK_ACCOUNT_UNBOUND 错误码', async () => {
+      dingtalkLoginSessionStore.consumeState.mockReturnValue();
+      dingtalkAuthClient.exchangeCodeForIdentity.mockResolvedValue({
+        unionId: 'union-missing',
+        userId: null,
+        openId: null,
+        nick: null,
+        avatar: null,
+      });
+      usersService.findByDingtalkUnionId.mockResolvedValue(null);
+
+      const result = await service.handleDingtalkCallback('oauth-code', 'state-1');
+
+      expect(result).toContain('error=DINGTALK_ACCOUNT_UNBOUND');
+    });
+
+    it('停用账号应跳转带 DINGTALK_ACCOUNT_DISABLED 错误码', async () => {
+      dingtalkLoginSessionStore.consumeState.mockReturnValue();
+      dingtalkAuthClient.exchangeCodeForIdentity.mockResolvedValue({
+        unionId: 'union-1',
+        userId: 'user-1',
+        openId: null,
+        nick: null,
+        avatar: null,
+      });
+      usersService.findByDingtalkUnionId.mockResolvedValue({ ...mockUser, status: UserStatus.INACTIVE });
+
+      const result = await service.handleDingtalkCallback('oauth-code', 'state-1');
+
+      expect(result).toContain('error=DINGTALK_ACCOUNT_DISABLED');
+    });
+
+    it('缺少 code 时应跳转带 DINGTALK_OAUTH_FAILED 错误码', async () => {
+      const result = await service.handleDingtalkCallback(undefined, 'state-1');
+
+      expect(result).toContain('error=DINGTALK_OAUTH_FAILED');
+      expect(dingtalkLoginSessionStore.consumeState).toHaveBeenCalledWith('state-1');
+      expect(dingtalkAuthClient.exchangeCodeForIdentity).not.toHaveBeenCalled();
+    });
+
+    it('缺少 state 时应跳转带 DINGTALK_STATE_INVALID 错误码', async () => {
+      const result = await service.handleDingtalkCallback('oauth-code', undefined);
+
+      expect(result).toContain('error=DINGTALK_STATE_INVALID');
+      expect(dingtalkLoginSessionStore.consumeState).not.toHaveBeenCalled();
+      expect(dingtalkAuthClient.exchangeCodeForIdentity).not.toHaveBeenCalled();
+    });
+
+    it('无效 state 应跳转带 DINGTALK_STATE_INVALID 错误码', async () => {
+      dingtalkLoginSessionStore.consumeState.mockImplementation(() => {
+        throw new UnauthorizedException({ code: 'DINGTALK_STATE_INVALID', message: '钉钉登录状态无效或已过期' });
+      });
+
+      const result = await service.handleDingtalkCallback('oauth-code', 'bad-state');
+
+      expect(result).toContain('error=DINGTALK_STATE_INVALID');
+      expect(dingtalkAuthClient.exchangeCodeForIdentity).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('exchangeDingtalkTicket', () => {
+    it('应返回正式 JWT 和最小用户信息', async () => {
+      dingtalkLoginSessionStore.consumeLoginTicket.mockReturnValue({ userId: 1, username: 'admin' });
+      usersService.findById.mockResolvedValue(mockUser);
+
+      const result = await service.exchangeDingtalkTicket('ticket-1');
+
+      expect(dingtalkLoginSessionStore.consumeLoginTicket).toHaveBeenCalledWith('ticket-1');
+      expect(result).toEqual({
+        accessToken: 'mock.jwt.token',
+        user: { id: 1, username: 'admin', name: '系统管理员' },
+      });
+      expect(jwtService.sign).toHaveBeenCalledWith({ sub: 1, username: 'admin' });
+    });
+
+    it('ticket 过期时应抛出 DINGTALK_TICKET_EXPIRED', async () => {
+      dingtalkLoginSessionStore.consumeLoginTicket.mockImplementation(() => {
+        throw new UnauthorizedException({ code: 'DINGTALK_TICKET_EXPIRED', message: '登录 ticket 已过期' });
+      });
+
+      await expect(service.exchangeDingtalkTicket('expired-ticket')).rejects.toThrow(
+        expect.objectContaining({ response: { code: 'DINGTALK_TICKET_EXPIRED', message: '登录 ticket 已过期' } }),
+      );
+    });
+
+    it('ticket 重复使用时应抛出 DINGTALK_TICKET_USED', async () => {
+      dingtalkLoginSessionStore.consumeLoginTicket.mockImplementation(() => {
+        throw new UnauthorizedException({ code: 'DINGTALK_TICKET_USED', message: '登录 ticket 已被使用' });
+      });
+
+      await expect(service.exchangeDingtalkTicket('used-ticket')).rejects.toThrow(
+        expect.objectContaining({ response: { code: 'DINGTALK_TICKET_USED', message: '登录 ticket 已被使用' } }),
+      );
+    });
+
+    it('ticket 对应用户不存在时应抛出 DINGTALK_TICKET_INVALID', async () => {
+      dingtalkLoginSessionStore.consumeLoginTicket.mockReturnValue({ userId: 999, username: 'ghost' });
+      usersService.findById.mockResolvedValue(null);
+
+      await expect(service.exchangeDingtalkTicket('ticket-missing-user')).rejects.toThrow(
+        expect.objectContaining({ response: { code: 'DINGTALK_TICKET_INVALID', message: '登录 ticket 无效' } }),
+      );
+    });
+
+    it('ticket 对应用户已停用时应抛出 DINGTALK_ACCOUNT_DISABLED', async () => {
+      dingtalkLoginSessionStore.consumeLoginTicket.mockReturnValue({ userId: 1, username: 'admin' });
+      usersService.findById.mockResolvedValue({ ...mockUser, status: UserStatus.INACTIVE });
+
+      await expect(service.exchangeDingtalkTicket('ticket-disabled-user')).rejects.toThrow(
+        expect.objectContaining({ response: { code: 'DINGTALK_ACCOUNT_DISABLED', message: '账号已停用' } }),
+      );
     });
   });
 });

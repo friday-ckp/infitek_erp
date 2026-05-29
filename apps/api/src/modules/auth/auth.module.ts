@@ -7,6 +7,8 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
+import { DingtalkAuthClient } from './dingtalk-auth.client';
+import { DingtalkLoginSessionStore } from './dingtalk-login-session.store';
 
 @Module({
   imports: [
@@ -31,6 +33,6 @@ import { UsersModule } from '../users/users.module';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, DingtalkAuthClient, DingtalkLoginSessionStore],
 })
 export class AuthModule {}

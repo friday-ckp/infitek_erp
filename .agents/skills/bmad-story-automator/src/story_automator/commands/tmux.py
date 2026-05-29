@@ -149,6 +149,9 @@ def _spawn(args: list[str]) -> int:
         print("--command is required", file=__import__("sys").stderr)
         return 1
     session = generate_session_name(step, epic, story_id, cycle)
+    if tmux_has_session(session):
+        print(f"session already exists: {session}", file=__import__("sys").stderr)
+        return 1
     out, code = spawn_session(session, command, agent, root, mode=runtime_mode())
     if code != 0:
         print(out.strip(), file=__import__("sys").stderr)
@@ -208,13 +211,9 @@ def _build_cmd(args: list[str]) -> int:
         cli = "codex exec"
     quoted_prompt = shlex.quote(prompt)
     if agent == "codex" and not ai_command:
-        codex_home = f"/tmp/sa-codex-home-{project_hash(root)}"
-        auth_src = os.path.expanduser("~/.codex/auth.json")
         model_flag = f" --model {shlex.quote(model)}" if model else ""
         print(
-            f'mkdir -p "{codex_home}"'
-            + f' && if [ -f "{auth_src}" ]; then ln -sf "{auth_src}" "{codex_home}/auth.json"; fi'
-            + f' && CODEX_HOME="{codex_home}" codex exec -s workspace-write -c \'approval_policy="never"\''
+            "codex exec -s workspace-write -c 'approval_policy=\"never\"'"
             + f' -c \'model_reasoning_effort="high"\'{model_flag}'
             + f" --disable plugins --disable sqlite --disable shell_snapshot {quoted_prompt}"
         )

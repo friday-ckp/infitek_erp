@@ -1,14 +1,21 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../users/users.service';
 import { UserStatus } from '@infitek/shared';
+import { DingtalkAuthClient } from './dingtalk-auth.client';
+import { DingtalkLoginSessionStore } from './dingtalk-login-session.store';
+import type { DingtalkConfig } from '../../config/dingtalk.config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly dingtalkAuthClient: DingtalkAuthClient,
+    private readonly dingtalkLoginSessionStore: DingtalkLoginSessionStore,
   ) {}
 
   async login(username: string, password: string): Promise<{ accessToken: string }> {
@@ -25,5 +32,102 @@ export class AuthService {
 
     const payload = { sub: user.id, username: user.username };
     return { accessToken: this.jwtService.sign(payload) };
+  }
+
+  getDingtalkLoginRedirectUrl(): string {
+    const state = this.dingtalkLoginSessionStore.createState();
+    return this.dingtalkAuthClient.buildAuthorizationUrl(state);
+  }
+
+  async handleDingtalkCallback(code: string | undefined, state: string | undefined): Promise<string> {
+    const frontendCallbackUri = this.extractFrontendCallbackUri();
+
+    try {
+      if (!state) {
+        throw new UnauthorizedException({ code: 'DINGTALK_STATE_INVALID', message: '钉钉登录状态无效或已过期' });
+      }
+
+      this.dingtalkLoginSessionStore.consumeState(state);
+
+      if (!code) {
+        throw new UnauthorizedException({ code: 'DINGTALK_OAUTH_FAILED', message: '钉钉登录失败' });
+      }
+
+      const identity = await this.dingtalkAuthClient.exchangeCodeForIdentity(code);
+      const user = await this.usersService.findByDingtalkUnionId(identity.unionId);
+
+      if (!user) {
+        throw new UnauthorizedException({ code: 'DINGTALK_ACCOUNT_UNBOUND', message: '当前钉钉账号未绑定系统用户' });
+      }
+
+      if (user.status === UserStatus.INACTIVE) {
+        throw new UnauthorizedException({ code: 'DINGTALK_ACCOUNT_DISABLED', message: '账号已停用' });
+      }
+
+      const loginTicket = this.dingtalkLoginSessionStore.createLoginTicket({
+        userId: user.id,
+        username: user.username,
+      });
+
+      return this.buildFrontendCallbackUrl(frontendCallbackUri, { ticket: loginTicket });
+    } catch (error) {
+      const errorCode = this.extractErrorCode(error);
+      return this.buildFrontendCallbackUrl(frontendCallbackUri, { error: errorCode });
+    }
+  }
+
+  async exchangeDingtalkTicket(ticket: string): Promise<{ accessToken: string; user: { id: number; username: string; name: string } }> {
+    const payload = this.dingtalkLoginSessionStore.consumeLoginTicket(ticket);
+    const user = await this.usersService.findById(payload.userId);
+
+    if (!user) {
+      throw new UnauthorizedException({ code: 'DINGTALK_TICKET_INVALID', message: '登录 ticket 无效' });
+    }
+
+    if (user.status === UserStatus.INACTIVE) {
+      throw new UnauthorizedException({ code: 'DINGTALK_ACCOUNT_DISABLED', message: '账号已停用' });
+    }
+
+    return {
+      accessToken: this.jwtService.sign({ sub: user.id, username: user.username }),
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name,
+      },
+    };
+  }
+
+  private extractFrontendCallbackUri(): string {
+    const config = this.configService.get<DingtalkConfig>('dingtalk');
+
+    if (!config?.frontendCallbackUri) {
+      throw new InternalServerErrorException({ code: 'DINGTALK_CONFIG_MISSING', message: '钉钉登录配置缺失' });
+    }
+
+    return config.frontendCallbackUri;
+  }
+
+  private buildFrontendCallbackUrl(baseUrl: string, params: Record<string, string>): string {
+    const url = new URL(baseUrl);
+
+    for (const [key, value] of Object.entries(params)) {
+      url.searchParams.set(key, value);
+    }
+
+    return url.toString();
+  }
+
+  private extractErrorCode(error: unknown): string {
+    if (error instanceof InternalServerErrorException) {
+      throw error;
+    }
+
+    if (error instanceof UnauthorizedException) {
+      const response = error.getResponse() as { code?: string };
+      return response.code ?? 'DINGTALK_OAUTH_FAILED';
+    }
+
+    return 'DINGTALK_OAUTH_FAILED';
   }
 }

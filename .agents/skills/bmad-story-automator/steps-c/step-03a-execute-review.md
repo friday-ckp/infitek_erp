@@ -100,6 +100,9 @@ Key points:
   # Update Story Progress: mark code-review done
   tmp_state=$(mktemp)
   sed "s/^| ${story_id} |.*$/| ${story_id} | done | done | done | done | - | in-progress |/" "{outputFile}" > "$tmp_state" && mv "$tmp_state" "{outputFile}"
+  # Re-sync from source of truth in case the review session updated sprint-status
+  # before this parent state file was updated.
+  "$scripts" orchestrator-helper state-sync-story "{outputFile}" "{story_id}" >/dev/null
   ```
   Display: `[story {N}/{total}] review -> done`
   → E | `incomplete` → count as failed attempt, retry until maxCycles, then CRITICAL escalate (Trigger #8)

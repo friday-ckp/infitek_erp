@@ -66,6 +66,7 @@ def cmd_orchestrator_helper(args: list[str]) -> int:
         "commit-ready": _commit_ready,
         "normalize-key": _normalize_key,
         "story-file-status": _story_file_status,
+        "state-sync-story": _state_sync_story,
         "verify-step": _verify_step,
         "verify-code-review": _verify_code_review,
         "check-epic-complete": check_epic_complete_action,
@@ -104,6 +105,7 @@ def _usage(code: int) -> int:
     print("  commit-ready <story_id>", file=target)
     print("  normalize-key <input> [--to id|key|prefix|json]", file=target)
     print("  story-file-status <story>", file=target)
+    print("  state-sync-story <state-file> <story>", file=target)
     print("  verify-step <step> <story_or_epic> [--state-file path] [--output-file path]", file=target)
     print("  verify-code-review <story>", file=target)
     print("  check-epic-complete <epic> <story> [--state-file path]", file=target)
@@ -409,6 +411,77 @@ def _story_file_status(args: list[str]) -> int:
         print_json({"ok": False, "error": "story file not found", "prefix": norm.prefix})
         return 1
     print_json({"ok": True, "story_key": norm.key, "file": str(matches[0]), "status": find_frontmatter_value_case(matches[0], "Status") or "unknown", "title": find_frontmatter_value_case(matches[0], "Title")})
+    return 0
+
+
+def _state_sync_story(args: list[str]) -> int:
+    if len(args) < 2:
+        print_json({"ok": False, "error": "state_file_and_story_required"})
+        return 1
+
+    state_path = Path(args[0])
+    story_input = args[1]
+    if not state_path.exists():
+        print_json({"ok": False, "error": "state_file_not_found", "stateFile": str(state_path)})
+        return 1
+
+    norm = normalize_story_key(get_project_root(), story_input)
+    if norm is None:
+        print_json({"ok": False, "error": "could_not_normalize_story_key", "input": story_input})
+        return 1
+
+    sprint = sprint_status_get(get_project_root(), norm.key)
+    story_file_matches = sorted((Path(get_project_root()) / "_bmad-output" / "implementation-artifacts").glob(f"{norm.prefix}-*.md"))
+    story_file_done = False
+    if story_file_matches:
+        story_file_done = (find_frontmatter_value_case(story_file_matches[0], "Status") or "").strip().lower() == "done"
+
+    commit_sha = ""
+    commit_message = ""
+    stdout, _ = run_cmd("git", "-C", get_project_root(), "log", "--grep", f"feat(story-{norm.id})", "-n", "1", "--format=%H%x1f%s")
+    line = stdout.strip().splitlines()[0] if stdout.strip() else ""
+    if line and "\x1f" in line:
+        commit_sha, commit_message = line.split("\x1f", 1)
+
+    automate_status = "skip"
+    state_text = read_text(state_path)
+    match = re.search(rf"(?m)^\| {re.escape(norm.id)} \| ([^|]+)\| ([^|]+)\| ([^|]+)\| ([^|]+)\| ([^|]+)\| ([^|]+)\|?$", state_text)
+    if match:
+        automate_status = match.group(3).strip()
+        if automate_status in {"-", "⏳", "", "pending"}:
+            automate_status = "skip"
+
+    create_status = "done" if story_file_matches else "-"
+    dev_status = "done" if sprint.status in {"review", "done"} else "-"
+    review_status = "done" if sprint.done else "-"
+    git_commit_status = "done" if commit_sha else "-"
+    overall_status = "done" if sprint.done and git_commit_status == "done" else "in-progress"
+
+    replacement = f"| {norm.id} | {create_status} | {dev_status} | {automate_status} | {review_status} | {git_commit_status} | {overall_status} |"
+    updated_text, count = re.subn(
+        rf"(?m)^\| {re.escape(norm.id)} \|.*$",
+        replacement,
+        state_text,
+        count=1,
+    )
+    if count == 0:
+        print_json({"ok": False, "error": "story_row_not_found", "story": norm.id, "stateFile": str(state_path)})
+        return 1
+
+    if updated_text != state_text:
+        atomic_write(state_path, updated_text)
+
+    print_json(
+        {
+            "ok": True,
+            "story": norm.id,
+            "row": replacement,
+            "sprintStatus": sprint.status,
+            "storyFileDone": story_file_done,
+            "commitSha": commit_sha,
+            "commitMessage": commit_message,
+        },
+    )
     return 0
 
 

@@ -18,6 +18,10 @@ export class UsersService {
     return this.usersRepository.findById(id);
   }
 
+  findByDingtalkUnionId(dingtalkUnionId: string): Promise<User | null> {
+    return this.usersRepository.findByDingtalkUnionId(dingtalkUnionId);
+  }
+
   async findAll(page: number = 1, pageSize: number = 10, search?: string, status?: string) {
     const [users, total] = await this.usersRepository.findAll(page, pageSize, search, status);
     return {
@@ -75,4 +79,3 @@ export class UsersService {
     });
   }
 }
-

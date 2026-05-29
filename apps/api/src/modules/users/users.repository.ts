@@ -18,6 +18,10 @@ export class UsersRepository {
     return this.repo.findOne({ where: { id, deletedAt: IsNull() } });
   }
 
+  findByDingtalkUnionId(dingtalkUnionId: string): Promise<User | null> {
+    return this.repo.findOne({ where: { dingtalkUnionId, deletedAt: IsNull() } });
+  }
+
   findAll(page: number = 1, pageSize: number = 10, search?: string, status?: string): Promise<[User[], number]> {
     const query = this.repo.createQueryBuilder('user').where('user.deletedAt IS NULL');
 
@@ -51,4 +55,3 @@ export class UsersRepository {
     return this.repo.softDelete(id).then(() => undefined);
   }
 }
-

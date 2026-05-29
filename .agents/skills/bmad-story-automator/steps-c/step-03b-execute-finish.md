@@ -29,6 +29,8 @@ ok=$(echo "$commit" | jq -r '.ok')
   # Update Story Progress: mark git-commit done
   tmp_state=$(mktemp)
   sed "s/^| ${story_id} |.*$/| ${story_id} | done | done | done | done | done | in-progress |/" "{outputFile}" > "$tmp_state" && mv "$tmp_state" "{outputFile}"
+  # Re-sync from source of truth after commit so commit + sprint-status + row stay aligned.
+  "{scriptsDir}" orchestrator-helper state-sync-story "{outputFile}" "{story_id}" >/dev/null
   ```
   → proceed to F
 - If `ok == false` → log warning and escalate
@@ -62,6 +64,8 @@ echo "- **[$(date -u +%Y-%m-%dT%H:%M:%SZ)]** Story {story_id}: ✅ complete (com
 # Update Story Progress: mark story done
 tmp_state=$(mktemp)
 sed "s/^| ${story_id} |.*$/| ${story_id} | done | done | done | done | done | done |/" "{outputFile}" > "$tmp_state" && mv "$tmp_state" "{outputFile}"
+# Final guard: source-of-truth row sync after story completion.
+"{scriptsDir}" orchestrator-helper state-sync-story "{outputFile}" "{story_id}" >/dev/null
 ```
 Display: `[story {N}/{total}] finalize -> done`
 
