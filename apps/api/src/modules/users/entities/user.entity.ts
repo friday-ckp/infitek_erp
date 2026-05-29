@@ -22,6 +22,31 @@ export class User extends BaseEntity {
   @Expose()
   status: UserStatus;
 
+  @Index('idx_users_dingtalk_union_id', { unique: true })
+  @Column({ name: 'dingtalk_union_id', type: 'varchar', length: 128, nullable: true })
+  @Exclude()
+  dingtalkUnionId: string | null;
+
+  @Column({ name: 'dingtalk_user_id', type: 'varchar', length: 128, nullable: true })
+  @Exclude()
+  dingtalkUserId: string | null;
+
+  @Column({ name: 'dingtalk_open_id', type: 'varchar', length: 128, nullable: true })
+  @Exclude()
+  dingtalkOpenId: string | null;
+
+  @Column({ name: 'dingtalk_nick', type: 'varchar', length: 100, nullable: true })
+  @Expose()
+  dingtalkNick: string | null;
+
+  @Column({ name: 'dingtalk_avatar', type: 'varchar', length: 500, nullable: true })
+  @Exclude()
+  dingtalkAvatar: string | null;
+
+  @Column({ name: 'dingtalk_bound_at', type: 'timestamp', nullable: true })
+  @Exclude()
+  dingtalkBoundAt: Date | null;
+
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt: Date;
 }

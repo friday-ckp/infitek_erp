@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "env PROJECT_ROOT=/Users/chenkangping/ai_study/infitek_erp /Users/chenkangping/ai_study/infitek_erp/.agents/skills/bmad-story-automator/scripts/story-automator stop-hook",
+            "timeout": 10,
+            "statusMessage": "Checking story automator state"
+          }
+        ]
+      }
+    ]
+  }
+}

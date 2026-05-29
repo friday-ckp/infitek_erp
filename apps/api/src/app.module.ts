@@ -40,6 +40,7 @@ import { InventoryModule } from './modules/inventory/inventory.module';
 import { OperationLogsModule } from './modules/operation-logs/operation-logs.module';
 import { OutboundOrdersModule } from './modules/outbound-orders/outbound-orders.module';
 import databaseConfig from './config/database.config';
+import dingtalkConfig from './config/dingtalk.config';
 import { createLoggerConfig } from './config/logger.config';
 
 @Module({
@@ -47,7 +48,7 @@ import { createLoggerConfig } from './config/logger.config';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env', '../../.env'],
-      load: [databaseConfig],
+      load: [databaseConfig, dingtalkConfig],
     }),
     LoggerModule.forRootAsync({
       useFactory: createLoggerConfig,

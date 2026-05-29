@@ -25,4 +25,10 @@ export class UserResponseDto {
 
   @Expose()
   updated_by: string;
+
+  @Expose({ name: 'dingtalk_nick' })
+  dingtalkNick: string | null;
+
+  @Expose({ name: 'dingtalk_bound_at' })
+  dingtalkBoundAt: Date | null;
 }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import shlex
 import tomllib
@@ -66,9 +67,9 @@ def ensure_claude_stop_hook(*, settings_path: Path, command: str, timeout: int) 
 def ensure_codex_stop_hook(*, project_root: Path, command: str, timeout: int) -> dict[str, Any]:
     codex_dir = project_root / ".codex"
     hooks_path = codex_dir / "hooks.json"
-    config_path = codex_dir / "config.toml"
+    project_config_path = codex_dir / "config.toml"
 
-    config_update = _prepare_codex_hooks_feature(config_path)
+    config_update = _prepare_codex_hooks_feature(project_config_path)
     hook_update = _prepare_json_stop_hook(
         hooks_path,
         command=command,
@@ -81,7 +82,7 @@ def ensure_codex_stop_hook(*, project_root: Path, command: str, timeout: int) ->
     hook_result = hook_update.result
     config_result = config_update.result
     changed = hook_result.changed or config_result.changed
-    trusted = _codex_project_is_trusted(config_path, project_root)
+    trusted = _codex_project_is_trusted(project_root)
 
     if changed:
         reason = "codex_hook_configured"
@@ -98,7 +99,7 @@ def ensure_codex_stop_hook(*, project_root: Path, command: str, timeout: int) ->
         "provider": "codex",
         "path": str(hooks_path),
         "hooksPath": str(hooks_path),
-        "configPath": str(config_path),
+        "configPath": str(project_config_path),
         "hooksChanged": hook_result.changed,
         "configChanged": config_result.changed,
         "hooksReason": hook_result.reason,
@@ -347,27 +348,44 @@ def _parse_toml(text: str, path: Path) -> dict[str, Any]:
         raise HookConfigError("invalid_toml", path, str(exc)) from exc
 
 
-def _codex_project_is_trusted(config_path: Path, project_root: Path) -> bool:
-    if not config_path.exists():
-        return False
-    parsed = _parse_toml(config_path.read_text(encoding="utf-8"), config_path)
-    projects = parsed.get("projects", {})
-    if not isinstance(projects, dict):
-        return False
+def _codex_project_is_trusted(project_root: Path) -> bool:
     resolved_root = project_root.resolve()
-    for raw_key, raw_config in projects.items():
-        if not isinstance(raw_key, str) or not isinstance(raw_config, dict):
+    for config_path in _codex_trust_config_candidates(project_root):
+        if not config_path.exists():
             continue
-        try:
-            if Path(raw_key).expanduser().resolve() != resolved_root:
+        parsed = _parse_toml(config_path.read_text(encoding="utf-8"), config_path)
+        projects = parsed.get("projects", {})
+        if not isinstance(projects, dict):
+            continue
+        for raw_key, raw_config in projects.items():
+            if not isinstance(raw_key, str) or not isinstance(raw_config, dict):
                 continue
-        except OSError:
-            if raw_key != str(resolved_root):
-                continue
-        trust_level = str(raw_config.get("trust_level") or "").strip().lower()
-        if trust_level == "trusted":
-            return True
+            try:
+                if Path(raw_key).expanduser().resolve() != resolved_root:
+                    continue
+            except OSError:
+                if raw_key != str(resolved_root):
+                    continue
+            trust_level = str(raw_config.get("trust_level") or "").strip().lower()
+            if trust_level == "trusted":
+                return True
     return False
+
+
+def _codex_trust_config_candidates(project_root: Path) -> list[Path]:
+    candidates = [project_root / ".codex" / "config.toml"]
+    codex_home = Path(os.environ.get("CODEX_HOME") or (Path.home() / ".codex")).expanduser()
+    candidates.append(codex_home / "config.toml")
+
+    unique: list[Path] = []
+    seen: set[Path] = set()
+    for candidate in candidates:
+        resolved = candidate.resolve(strict=False)
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(resolved)
+    return unique
 
 
 def _set_features_hooks(text: str) -> str:

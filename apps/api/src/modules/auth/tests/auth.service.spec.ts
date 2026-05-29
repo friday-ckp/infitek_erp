@@ -23,6 +23,12 @@ const mockUser: User = {
   createdBy: 'system',
   updatedBy: null,
   deletedAt: null,
+  dingtalkUnionId: null,
+  dingtalkUserId: null,
+  dingtalkOpenId: null,
+  dingtalkNick: null,
+  dingtalkAvatar: null,
+  dingtalkBoundAt: null,
 };
 
 describe('AuthService', () => {
@@ -88,6 +94,25 @@ describe('AuthService', () => {
       await expect(service.login('admin', 'Admin@123')).rejects.toThrow(
         expect.objectContaining({ response: { code: 'ACCOUNT_DISABLED', message: '账号已停用' } }),
       );
+    });
+
+    it('已绑定钉钉的用户仍可通过密码登录', async () => {
+      const boundUser = {
+        ...mockUser,
+        dingtalkUnionId: 'union_abc123',
+        dingtalkUserId: 'user_xyz789',
+        dingtalkOpenId: 'open_def456',
+        dingtalkNick: 'Zhang San',
+        dingtalkAvatar: 'https://example.com/avatar.png',
+        dingtalkBoundAt: new Date('2024-06-01T10:00:00Z'),
+      };
+      usersService.findByUsername.mockResolvedValue(boundUser);
+      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+
+      const result = await service.login('admin', 'Admin@123');
+
+      expect(result).toEqual({ accessToken: 'mock.jwt.token' });
+      expect(jwtService.sign).toHaveBeenCalledWith({ sub: 1, username: 'admin' });
     });
   });
 });

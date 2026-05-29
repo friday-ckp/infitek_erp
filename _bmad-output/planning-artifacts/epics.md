@@ -268,6 +268,206 @@ FR49: Epic 5 - 发货需求作废完整实现于 Story 5.5（UI 入口+释放锁
 **NFRs addressed:** NFR-S1, NFR-S3, NFR-S4, NFR-U2
 **UX-DRs addressed:** UX-DR01, UX-DR15, UX-DR17, UX-DR20, UX-DR23
 
+### Story 9.1: 钉钉应用配置与用户模型扩展
+
+As a 开发者,
+I want 先完成钉钉应用接入所需的基础配置、数据模型与迁移准备,
+So that 后续 OAuth 登录、绑定管理和联调故事可以建立在稳定一致的身份模型之上。
+
+**Acceptance Criteria:**
+
+**Given** 团队准备接入钉钉扫码登录
+**When** 查看技术方案与项目配置
+**Then** 明确采用“企业内部应用 + 网页应用 + 后端 OAuth 回调 + 本地 JWT 签发 + 管理员预绑定”的接入模式
+**And** 继续保留现有用户名密码登录作为兜底链路
+
+**Given** 查看钉钉应用配置约定
+**When** 检查环境变量与回调地址设计
+**Then** 系统定义 `DINGTALK_CLIENT_ID`、`DINGTALK_CLIENT_SECRET`、`DINGTALK_REDIRECT_URI`、`DINGTALK_FRONTEND_CALLBACK_URI`
+**And** 生产回调地址指向后端钉钉回调接口
+**And** 前端登录完成页使用独立的钉钉回调路由
+**And** 开发环境回调地址仅用于联调，不作为正式开放平台配置
+
+**Given** 现有用户表只包含本地账号字段
+**When** 设计钉钉身份落库模型
+**Then** 在 `users` 表新增 `dingtalk_union_id`、`dingtalk_user_id`、`dingtalk_open_id`、`dingtalk_nick`、`dingtalk_avatar`、`dingtalk_bound_at`
+**And** `dingtalk_union_id` 作为运行时唯一外部身份主键
+**And** `dingtalk_union_id` 具备唯一索引
+
+**Given** 系统需要把钉钉身份映射到本地用户
+**When** 确认匹配与绑定策略
+**Then** 默认采用“管理员预绑定，扫码只做认证，不自动开户”
+**And** 未绑定用户扫码登录时被拒绝并提示联系管理员
+**And** 如需初始化导入，可允许基于手机号的一次性预匹配，但最终绑定仍需人工确认
+
+**Given** 后续故事需要依赖数据库结构与配置
+**When** 查看后端代码与迁移资产
+**Then** 存在对应的实体字段扩展与数据库 migration 方案
+**And** 不破坏现有本地登录、用户管理与审计字段逻辑
+
+**Given** 团队评审 Epic 9 的基础设计
+**When** 检查安全与演进边界
+**Then** 明确后续登录成功后不直接把 JWT 放在 URL 上
+**And** 后续通过一次性 `loginTicket` 交换正式 JWT
+**And** 当前单租户阶段不额外拆分独立身份绑定表
+**And** 后续若引入多个外部 IdP，再评估演进为独立 `user_identities` 模型
+
+### Story 9.2: 后端钉钉 OAuth 回调与 JWT 签发
+
+As a 企业员工,
+I want 通过钉钉扫码完成身份认证并换取系统 JWT,
+So that 我可以在不输入本地密码的情况下安全登录 ERP，同时复用现有权限与审计体系。
+
+**Acceptance Criteria:**
+
+**Given** 钉钉网页应用配置完成且前端点击“钉钉扫码登录”
+**When** 浏览器跳转到后端提供的钉钉登录入口
+**Then** 后端返回正确的钉钉授权地址或重定向到钉钉授权页
+**And** 请求包含用于防重放校验的 `state`
+
+**Given** 用户在钉钉完成授权
+**When** 钉钉回调 `GET /api/v1/auth/dingtalk/callback?code=...&state=...`
+**Then** 后端校验 `state`、使用 `code` 换取钉钉身份信息
+**And** 根据 `dingtalk_union_id` 查找本地用户绑定关系
+
+**Given** 钉钉身份已绑定本地用户且用户账号处于启用状态
+**When** 回调处理成功
+**Then** 后端不直接在 URL 上返回 JWT
+**And** 生成一次性 `loginTicket`
+**And** 302 跳转到前端 `DINGTALK_FRONTEND_CALLBACK_URI?ticket=...`
+
+**Given** 前端持有有效的一次性 `loginTicket`
+**When** 调用 `POST /api/v1/auth/dingtalk/exchange`
+**Then** 后端签发与密码登录一致的系统 JWT（有效期 8 小时）
+**And** 响应格式遵循统一成功响应结构
+**And** `loginTicket` 只能成功使用一次
+
+**Given** 钉钉身份未绑定任何本地用户
+**When** 用户完成钉钉授权回调
+**Then** 后端拒绝登录
+**And** 返回或跳转到前端可识别的未绑定错误结果
+**And** 提示“当前钉钉账号尚未绑定 ERP 用户，请联系管理员”
+
+**Given** 用户账号已停用、`state` 无效、ticket 过期或重复使用
+**When** 调用钉钉登录相关接口
+**Then** 后端返回统一错误响应
+**And** 不暴露钉钉 access token、系统 JWT 或内部堆栈信息
+
+**Given** 查看数据库与配置
+**When** 检查用户模型与环境变量
+**Then** `users` 表新增 `dingtalk_union_id`、`dingtalk_user_id`、`dingtalk_open_id`、`dingtalk_nick`、`dingtalk_avatar`、`dingtalk_bound_at`
+**And** `dingtalk_union_id` 具有唯一索引
+**And** 环境变量包含 `DINGTALK_CLIENT_ID`、`DINGTALK_CLIENT_SECRET`、`DINGTALK_REDIRECT_URI`、`DINGTALK_FRONTEND_CALLBACK_URI`
+
+### Story 9.3: 前端登录页与钉钉回调页
+
+As a 企业员工,
+I want 在登录页选择账号密码或钉钉扫码登录，并在授权返回后自动完成登录,
+So that 我的登录体验更贴近企业日常工作流，同时保留原有密码登录兜底。
+
+**Acceptance Criteria:**
+
+**Given** 用户未登录并访问系统
+**When** 进入登录页
+**Then** 页面同时展示“账号密码登录”和“钉钉扫码登录”入口
+**And** 现有用户名/密码登录表单保持可用
+
+**Given** 用户点击“钉钉扫码登录”
+**When** 前端触发登录动作
+**Then** 浏览器跳转到后端提供的钉钉登录入口
+**And** 不再显示“该功能暂未开发”的占位提示
+
+**Given** 钉钉授权成功后跳转回前端 `/login/dingtalk/callback?ticket=...`
+**When** 回调页加载
+**Then** 页面自动调用 ticket 交换接口换取系统 JWT
+**And** 将登录态写入现有认证 store
+**And** 自动跳转到系统主页或原目标页面
+
+**Given** 回调页缺少 ticket、ticket 已过期、ticket 已使用或后端返回未绑定错误
+**When** 前端处理失败
+**Then** 页面展示清晰可操作的错误提示
+**And** 未绑定场景明确提示联系管理员完成钉钉绑定
+**And** 用户可返回登录页重新尝试密码登录
+
+**Given** 用户通过钉钉成功登录
+**When** 刷新页面或访问受保护路由
+**Then** 前端后续请求继续自动携带 JWT
+**And** 受保护页面行为与密码登录保持一致
+
+**Given** 登录页和回调页处于加载或失败状态
+**When** 用户观察页面反馈
+**Then** 页面提供符合现有 UX 规范的 loading、错误提示和可访问性语义
+**And** 不暴露原始异常对象或技术堆栈
+
+### Story 9.4: 用户管理钉钉绑定能力
+
+As a 系统管理员,
+I want 在用户管理中查看并维护钉钉绑定关系,
+So that 我可以控制哪些企业员工可以通过钉钉扫码登录系统。
+
+**Acceptance Criteria:**
+
+**Given** 管理员已登录并进入用户管理列表
+**When** 查看用户列表或详情
+**Then** 页面显示钉钉绑定状态、绑定时间
+**And** 绑定状态至少区分“未绑定”和“已绑定”
+
+**Given** 管理员查看某个已绑定钉钉账号的用户
+**When** 查看绑定信息
+**Then** 可看到用于识别的钉钉展示信息，如昵称或头像
+**And** 不暴露不必要的敏感凭据
+
+**Given** 管理员需要为某个本地用户建立钉钉绑定
+**When** 调用绑定接口或在页面完成绑定动作
+**Then** 系统保存 `dingtalk_union_id` 及相关辅助字段
+**And** 绑定成功后该用户可通过钉钉扫码登录
+
+**Given** 一个钉钉身份已绑定到其他用户
+**When** 管理员尝试重复绑定
+**Then** 系统拒绝操作
+**And** 返回统一业务错误提示说明该钉钉账号已被占用
+
+**Given** 管理员对已绑定用户执行解绑
+**When** 操作确认完成
+**Then** 系统清除该用户的钉钉绑定字段
+**And** 该钉钉身份后续不能再直接扫码登录
+**And** 页面提示解绑成功
+
+**Given** 非管理员用户尝试访问钉钉绑定管理接口
+**When** 发起请求
+**Then** 系统返回未授权或禁止访问错误
+**And** 保持现有用户管理权限边界不变
+
+### Story 9.5: 联调测试与上线校验
+
+As a 团队交付负责人,
+I want 对钉钉扫码登录链路完成联调、回归和上线前校验,
+So that Epic 9 可以在真实企业环境中稳定上线，而不会破坏现有密码登录与用户管理能力。
+
+**Acceptance Criteria:**
+
+**Given** Epic 9 的后端、前端和绑定能力均已完成
+**When** 使用真实或等效的钉钉测试应用执行联调
+**Then** 能覆盖“已绑定登录成功”“未绑定登录失败”“解绑后登录失败”三条主链路
+**And** 结果有明确记录
+
+**Given** 执行回归测试
+**When** 验证现有认证与用户管理能力
+**Then** 用户名密码登录、退出登录、受保护路由校验、用户列表与编辑能力仍正常工作
+
+**Given** 执行安全与配置校验
+**When** 检查部署配置和接口行为
+**Then** 必需的钉钉环境变量均已配置
+**And** 回调地址与前端回调地址与环境一致
+**And** JWT 不会通过 URL 明文暴露
+**And** 未授权接口边界与统一错误响应保持正确
+
+**Given** 执行测试与验收
+**When** 查看仓库中的自动化测试与手工验证记录
+**Then** 关键后端接口至少具备单元或集成测试覆盖
+**And** 前端登录与回调流程具备可复现的验证步骤
+**And** 上线前检查项形成可交付结论
+
 ## Epic 1: 项目基础设施与用户认证
 
 用户可以登录系统、管理账号密码，系统具备完整的技术基础设施（Monorepo、数据库连接、JWT 认证、全局守卫、统一响应格式、错误处理、Docker 部署）和全局 UI 框架（侧边栏导航、面包屑、Design Token 主题），为所有后续模块提供开发基础。
