@@ -8,6 +8,7 @@ import { User } from '../../users/entities/user.entity';
 import { UserStatus } from '@infitek/shared';
 import { DingtalkAuthClient } from '../dingtalk-auth.client';
 import { DingtalkLoginSessionStore } from '../dingtalk-login-session.store';
+import { DingtalkOrgUsersService } from '../../dingtalk-org-users/dingtalk-org-users.service';
 
 // mock bcrypt 整个模块，避免 native addon 不可重定义问题
 jest.mock('bcrypt', () => ({
@@ -41,6 +42,7 @@ describe('AuthService', () => {
   let configService: jest.Mocked<ConfigService>;
   let dingtalkAuthClient: jest.Mocked<DingtalkAuthClient>;
   let dingtalkLoginSessionStore: jest.Mocked<DingtalkLoginSessionStore>;
+  let dingtalkOrgUsersService: jest.Mocked<DingtalkOrgUsersService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -87,6 +89,12 @@ describe('AuthService', () => {
             consumeLoginTicket: jest.fn(),
           },
         },
+        {
+          provide: DingtalkOrgUsersService,
+          useValue: {
+            autoBindForLogin: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -96,6 +104,7 @@ describe('AuthService', () => {
     configService = module.get(ConfigService);
     dingtalkAuthClient = module.get(DingtalkAuthClient);
     dingtalkLoginSessionStore = module.get(DingtalkLoginSessionStore);
+    dingtalkOrgUsersService = module.get(DingtalkOrgUsersService);
   });
 
   afterEach(() => jest.clearAllMocks());
@@ -203,10 +212,39 @@ describe('AuthService', () => {
         avatar: null,
       });
       usersService.findByDingtalkUnionId.mockResolvedValue(null);
+      dingtalkOrgUsersService.autoBindForLogin.mockResolvedValue(null);
 
       const result = await service.handleDingtalkCallback('oauth-code', 'state-1');
 
       expect(result).toContain('error=DINGTALK_ACCOUNT_UNBOUND');
+    });
+
+    it('用户池存在唯一匹配时应自动绑定并返回 ticket', async () => {
+      dingtalkLoginSessionStore.consumeState.mockReturnValue();
+      dingtalkAuthClient.exchangeCodeForIdentity.mockResolvedValue({
+        unionId: 'union-auto-bind',
+        userId: 'dt-user-1',
+        openId: 'open-1',
+        nick: '张三',
+        avatar: 'https://example.com/avatar.png',
+      });
+      usersService.findByDingtalkUnionId.mockResolvedValue(null);
+      dingtalkOrgUsersService.autoBindForLogin.mockResolvedValue({
+        ...mockUser,
+        dingtalkUnionId: 'union-auto-bind',
+      });
+      dingtalkLoginSessionStore.createLoginTicket.mockReturnValue('ticket-auto-bind');
+
+      const result = await service.handleDingtalkCallback('oauth-code', 'state-1');
+
+      expect(dingtalkOrgUsersService.autoBindForLogin).toHaveBeenCalledWith({
+        unionId: 'union-auto-bind',
+        userId: 'dt-user-1',
+        openId: 'open-1',
+        nick: '张三',
+        avatar: 'https://example.com/avatar.png',
+      });
+      expect(result).toContain('ticket=ticket-auto-bind');
     });
 
     it('停用账号应跳转带 DINGTALK_ACCOUNT_DISABLED 错误码', async () => {

@@ -110,6 +110,44 @@ describe('UsersService - Story 1-4 自动化测试', () => {
         }),
       );
     });
+
+    it('P1: 应该为钉钉自动建档生成可用用户名', async () => {
+      (bcrypt.hash as jest.Mock).mockResolvedValue('hashed_password');
+      mockRepository.findByUsername
+        .mockResolvedValueOnce({ id: 1, username: '100526' })
+        .mockResolvedValueOnce(null);
+      mockRepository.create.mockResolvedValue({
+        id: 9,
+        username: '100526_1',
+        name: '陈康平',
+        jobNumber: '100526',
+        status: UserStatus.ACTIVE,
+        createdBy: 'admin',
+        updatedBy: 'admin',
+      });
+
+      const result = await service.createAutoProvisionedDingtalkUser(
+        {
+          nick: '陈康平',
+          mobile: null,
+          email: null,
+          jobNumber: '100526',
+          dingtalkUserId: '620383957',
+          unionId: 'union-100526',
+        },
+        'admin',
+      );
+
+      expect(result.username).toBe('100526_1');
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          username: '100526_1',
+          name: '陈康平',
+          jobNumber: '100526',
+        }),
+      );
+      expect(bcrypt.hash).toHaveBeenCalled();
+    });
   });
 
   describe('AC1: 用户列表', () => {

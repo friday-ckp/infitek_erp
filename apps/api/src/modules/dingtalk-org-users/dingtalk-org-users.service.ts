@@ -162,6 +162,125 @@ export class DingtalkOrgUsersService {
     });
   }
 
+  async autoBindForLogin(identity: {
+    unionId: string;
+    userId: string | null;
+    openId: string | null;
+    nick: string | null;
+    avatar: string | null;
+  }) {
+    const record = await this.repository.findByUnionId(identity.unionId);
+    if (!record) {
+      return null;
+    }
+
+    const existingUser = await this.usersService.findByDingtalkUnionId(identity.unionId);
+    if (existingUser) {
+      await this.repository.update(record.id, {
+        status: DingtalkOrgUserStatus.BOUND,
+        suggestedUserId: existingUser.id,
+        matchReason: 'matched-by-existing-binding',
+        lastProcessedAt: new Date(),
+        processedBy: 'system',
+        updatedBy: 'system',
+      });
+      return existingUser;
+    }
+
+    const match = await this.evaluateMatch(
+      {
+        unionId: identity.unionId,
+        email: record.email,
+        mobile: record.mobile,
+        jobNumber: record.jobNumber,
+        nick: record.nick,
+      },
+      null,
+    );
+
+    if (match.status === DingtalkOrgUserStatus.CONFLICT) {
+      await this.repository.update(record.id, {
+        status: match.status,
+        suggestedUserId: match.suggestedUserId,
+        matchReason: match.matchReason,
+        lastProcessedAt: new Date(),
+        processedBy: 'system',
+        updatedBy: 'system',
+      });
+      return null;
+    }
+
+    let userId = match.suggestedUserId;
+
+    if (!userId) {
+      const createdUser = await this.usersService.createAutoProvisionedDingtalkUser(
+        {
+          nick: identity.nick ?? record.nick,
+          mobile: record.mobile,
+          email: record.email,
+          jobNumber: record.jobNumber,
+          dingtalkUserId: identity.userId ?? record.userId,
+          unionId: identity.unionId,
+        },
+        'admin',
+      );
+      userId = createdUser.id;
+    }
+
+    const user = await this.usersService.findById(userId);
+    if (!user || user.status !== UserStatus.ACTIVE) {
+      await this.repository.update(record.id, {
+        status: DingtalkOrgUserStatus.UNBOUND,
+        suggestedUserId: null,
+        matchReason: 'no-erp-match',
+        lastProcessedAt: new Date(),
+        processedBy: 'system',
+        updatedBy: 'system',
+      });
+      return null;
+    }
+
+    const boundUser = await this.bindIdentityToUser(userId, record, identity);
+
+    await this.repository.update(record.id, {
+      status: DingtalkOrgUserStatus.BOUND,
+      suggestedUserId: userId,
+      matchReason: match.suggestedUserId ? 'auto-bound-on-login' : 'auto-provisioned-on-login',
+      lastProcessedAt: new Date(),
+      processedBy: 'system',
+      updatedBy: 'system',
+      userId: identity.userId ?? record.userId,
+      openId: identity.openId ?? record.openId,
+      nick: identity.nick ?? record.nick,
+    });
+
+    return boundUser;
+  }
+
+  private async bindIdentityToUser(
+    userId: number,
+    record: Pick<DingtalkOrgUser, 'unionId' | 'userId' | 'openId' | 'nick'>,
+    identity: {
+      unionId: string;
+      userId: string | null;
+      openId: string | null;
+      nick: string | null;
+      avatar: string | null;
+    },
+  ) {
+    return this.usersService.bindDingtalkIdentity(
+      userId,
+      {
+        dingtalkUnionId: identity.unionId,
+        dingtalkUserId: identity.userId ?? record.userId ?? undefined,
+        dingtalkOpenId: identity.openId ?? record.openId ?? undefined,
+        dingtalkNick: identity.nick ?? record.nick ?? undefined,
+        dingtalkAvatar: identity.avatar ?? undefined,
+      },
+      'admin',
+    );
+  }
+
   private assertAdmin(operatorUsername: string) {
     if (operatorUsername !== 'admin') {
       throw new ForbiddenException('只有管理员可以执行钉钉组织同步操作');

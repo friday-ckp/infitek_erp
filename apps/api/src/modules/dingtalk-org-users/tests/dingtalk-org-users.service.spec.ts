@@ -27,6 +27,7 @@ describe('DingtalkOrgUsersService', () => {
     findById: jest.fn(),
     findByIds: jest.fn(),
     findActiveMatchCandidates: jest.fn(),
+    createAutoProvisionedDingtalkUser: jest.fn(),
     bindDingtalkIdentity: jest.fn(),
     unbindDingtalkIdentity: jest.fn(),
   };
@@ -261,5 +262,150 @@ describe('DingtalkOrgUsersService', () => {
       }),
     );
     expect(result.status).toBe(DingtalkOrgUserStatus.UNBOUND);
+  });
+
+  it('登录时用户池唯一命中 ERP 用户应自动绑定并回写 BOUND', async () => {
+    repository.findByUnionId.mockResolvedValue({
+      id: 51,
+      unionId: 'union-51',
+      userId: 'dt-user-51',
+      openId: 'open-51',
+      nick: '自动绑定用户',
+      mobile: '13500000000',
+      email: 'autobind@example.com',
+      jobNumber: 'EMP-51',
+    });
+    usersService.findByDingtalkUnionId.mockResolvedValue(null);
+    usersService.findActiveMatchCandidates.mockResolvedValue([
+      {
+        id: 15,
+        username: 'autobind',
+        name: '自动绑定用户',
+        status: UserStatus.ACTIVE,
+        mobile: '13500000000',
+        email: 'autobind@example.com',
+        jobNumber: 'EMP-51',
+      },
+    ]);
+    usersService.findById.mockResolvedValue({
+      id: 15,
+      username: 'autobind',
+      name: '自动绑定用户',
+      status: UserStatus.ACTIVE,
+    });
+    usersService.bindDingtalkIdentity.mockResolvedValue({ id: 15, dingtalkUnionId: 'union-51' });
+    repository.update.mockResolvedValue({ id: 51, status: DingtalkOrgUserStatus.BOUND });
+
+    const result = await service.autoBindForLogin({
+      unionId: 'union-51',
+      userId: 'dt-user-51',
+      openId: 'open-51',
+      nick: '自动绑定用户',
+      avatar: 'https://example.com/avatar.png',
+    });
+
+    expect(usersService.bindDingtalkIdentity).toHaveBeenCalledWith(
+      15,
+      expect.objectContaining({
+        dingtalkUnionId: 'union-51',
+        dingtalkUserId: 'dt-user-51',
+        dingtalkOpenId: 'open-51',
+        dingtalkNick: '自动绑定用户',
+        dingtalkAvatar: 'https://example.com/avatar.png',
+      }),
+      'admin',
+    );
+    expect(repository.update).toHaveBeenCalledWith(
+      51,
+      expect.objectContaining({
+        status: DingtalkOrgUserStatus.BOUND,
+        suggestedUserId: 15,
+        matchReason: 'auto-bound-on-login',
+      }),
+    );
+    expect(result).toEqual({ id: 15, dingtalkUnionId: 'union-51' });
+  });
+
+  it('登录时如果用户池不存在当前用户应直接返回 null', async () => {
+    repository.findByUnionId.mockResolvedValue(null);
+
+    const result = await service.autoBindForLogin({
+      unionId: 'missing-union',
+      userId: null,
+      openId: null,
+      nick: null,
+      avatar: null,
+    });
+
+    expect(result).toBeNull();
+    expect(usersService.bindDingtalkIdentity).not.toHaveBeenCalled();
+  });
+
+  it('登录时用户池存在但无 ERP 匹配应自动创建用户并绑定', async () => {
+    repository.findByUnionId.mockResolvedValue({
+      id: 61,
+      unionId: 'union-61',
+      userId: 'dt-user-61',
+      openId: null,
+      nick: '陈康平',
+      mobile: null,
+      email: null,
+      jobNumber: '100526',
+    });
+    usersService.findByDingtalkUnionId.mockResolvedValue(null);
+    usersService.findActiveMatchCandidates.mockResolvedValue([]);
+    usersService.createAutoProvisionedDingtalkUser.mockResolvedValue({
+      id: 26,
+      username: '100526',
+      name: '陈康平',
+      status: UserStatus.ACTIVE,
+    });
+    usersService.findById.mockResolvedValue({
+      id: 26,
+      username: '100526',
+      name: '陈康平',
+      status: UserStatus.ACTIVE,
+    });
+    usersService.bindDingtalkIdentity.mockResolvedValue({ id: 26, dingtalkUnionId: 'union-61' });
+    repository.update.mockResolvedValue({ id: 61, status: DingtalkOrgUserStatus.BOUND });
+
+    const result = await service.autoBindForLogin({
+      unionId: 'union-61',
+      userId: 'dt-user-61',
+      openId: 'open-61',
+      nick: '陈康平',
+      avatar: null,
+    });
+
+    expect(usersService.createAutoProvisionedDingtalkUser).toHaveBeenCalledWith(
+      {
+        nick: '陈康平',
+        mobile: null,
+        email: null,
+        jobNumber: '100526',
+        dingtalkUserId: 'dt-user-61',
+        unionId: 'union-61',
+      },
+      'admin',
+    );
+    expect(usersService.bindDingtalkIdentity).toHaveBeenCalledWith(
+      26,
+      expect.objectContaining({
+        dingtalkUnionId: 'union-61',
+        dingtalkUserId: 'dt-user-61',
+        dingtalkOpenId: 'open-61',
+        dingtalkNick: '陈康平',
+      }),
+      'admin',
+    );
+    expect(repository.update).toHaveBeenCalledWith(
+      61,
+      expect.objectContaining({
+        status: DingtalkOrgUserStatus.BOUND,
+        suggestedUserId: 26,
+        matchReason: 'auto-provisioned-on-login',
+      }),
+    );
+    expect(result).toEqual({ id: 26, dingtalkUnionId: 'union-61' });
   });
 });
