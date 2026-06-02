@@ -5,6 +5,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { BindDingtalkDto } from './dto/bind-dingtalk.dto';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'node:crypto';
 import { UserStatus } from '@infitek/shared';
 import { QueryFailedError } from 'typeorm';
 
@@ -65,6 +66,33 @@ export class UsersService {
       createdBy: createdBy,
       updatedBy: createdBy,
     });
+  }
+
+  async createAutoProvisionedDingtalkUser(
+    profile: {
+      nick?: string | null;
+      mobile?: string | null;
+      email?: string | null;
+      jobNumber?: string | null;
+      dingtalkUserId?: string | null;
+      unionId: string;
+    },
+    createdBy: string,
+  ): Promise<User> {
+    const username = await this.generateAutoProvisionedUsername(profile);
+    const password = this.generateSystemPassword();
+
+    return this.create(
+      {
+        username,
+        name: profile.nick?.trim() || profile.jobNumber?.trim() || username,
+        mobile: profile.mobile ?? undefined,
+        email: profile.email ?? undefined,
+        jobNumber: profile.jobNumber ?? undefined,
+        password,
+      },
+      createdBy,
+    );
   }
 
   async update(id: number, updateUserDto: UpdateUserDto, updatedBy: string): Promise<User> {
@@ -175,5 +203,32 @@ export class UsersService {
       dingtalkBoundAt: null,
       updatedBy: operatorUsername,
     });
+  }
+
+  private async generateAutoProvisionedUsername(profile: {
+    jobNumber?: string | null;
+    dingtalkUserId?: string | null;
+    unionId: string;
+  }): Promise<string> {
+    const preferredBase =
+      profile.jobNumber?.trim() ||
+      profile.dingtalkUserId?.trim() ||
+      `dingtalk_${profile.unionId.slice(0, 12)}`;
+
+    const base = preferredBase.slice(0, 50);
+    let candidate = base;
+    let suffix = 1;
+
+    while (await this.usersRepository.findByUsername(candidate)) {
+      const suffixText = `_${suffix}`;
+      candidate = `${base.slice(0, Math.max(1, 50 - suffixText.length))}${suffixText}`;
+      suffix += 1;
+    }
+
+    return candidate;
+  }
+
+  private generateSystemPassword(): string {
+    return `Dt#${randomBytes(12).toString('hex')}`;
   }
 }

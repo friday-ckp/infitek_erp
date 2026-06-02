@@ -9,10 +9,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { UsersModule } from '../users/users.module';
 import { DingtalkAuthClient } from './dingtalk-auth.client';
 import { DingtalkLoginSessionStore } from './dingtalk-login-session.store';
+import { DingtalkOrgUsersModule } from '../dingtalk-org-users/dingtalk-org-users.module';
 
 @Module({
   imports: [
     UsersModule,
+    DingtalkOrgUsersModule,
     PassportModule,
     ThrottlerModule.forRoot([
       {

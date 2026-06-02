@@ -8,6 +8,7 @@ import { UserStatus } from '@infitek/shared';
 import { DingtalkAuthClient } from './dingtalk-auth.client';
 import { DingtalkLoginSessionStore } from './dingtalk-login-session.store';
 import type { DingtalkConfig } from '../../config/dingtalk.config';
+import { DingtalkOrgUsersService } from '../dingtalk-org-users/dingtalk-org-users.service';
 
 @Injectable()
 export class AuthService {
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly dingtalkAuthClient: DingtalkAuthClient,
     private readonly dingtalkLoginSessionStore: DingtalkLoginSessionStore,
+    private readonly dingtalkOrgUsersService: DingtalkOrgUsersService,
   ) {}
 
   async login(username: string, password: string): Promise<{ accessToken: string }> {
@@ -64,7 +66,11 @@ export class AuthService {
       }
 
       const identity = await this.dingtalkAuthClient.exchangeCodeForIdentity(code);
-      const user = await this.usersService.findByDingtalkUnionId(identity.unionId);
+      let user = await this.usersService.findByDingtalkUnionId(identity.unionId);
+
+      if (!user) {
+        user = await this.dingtalkOrgUsersService.autoBindForLogin(identity);
+      }
 
       if (!user) {
         this.logger.warn(

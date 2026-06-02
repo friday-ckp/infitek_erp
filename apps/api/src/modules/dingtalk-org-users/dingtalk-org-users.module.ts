@@ -11,5 +11,6 @@ import { DingtalkOrgUsersController } from './dingtalk-org-users.controller';
   imports: [TypeOrmModule.forFeature([DingtalkOrgUser]), UsersModule],
   controllers: [DingtalkOrgUsersController],
   providers: [DingtalkOrgUsersRepository, DingtalkOrgUsersClient, DingtalkOrgUsersService],
+  exports: [DingtalkOrgUsersService],
 })
 export class DingtalkOrgUsersModule {}
