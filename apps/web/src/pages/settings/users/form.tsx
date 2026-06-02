@@ -148,6 +148,28 @@ export default function UserFormPage() {
                   >
                     <Input placeholder="请输入姓名" />
                   </Form.Item>
+
+                  <Form.Item
+                    label="手机号"
+                    name="mobile"
+                  >
+                    <Input placeholder="请输入手机号（选填）" />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="邮箱"
+                    name="email"
+                    rules={[{ type: 'email', message: '请输入正确的邮箱地址' }]}
+                  >
+                    <Input placeholder="请输入邮箱（选填）" />
+                  </Form.Item>
+
+                  <Form.Item
+                    label="工号"
+                    name="jobNumber"
+                  >
+                    <Input placeholder="请输入工号（选填）" />
+                  </Form.Item>
                 </div>
               </div>
             </section>

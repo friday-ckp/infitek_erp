@@ -242,10 +242,22 @@ export class InventoryRecord extends BaseEntity {
 **影响模块：** `apps/api/src/common/guards/`、`apps/api/src/modules/auth/`
 
 **外部身份绑定模型：**
-- 在 `users` 表增加 `dingtalk_union_id`、`dingtalk_user_id`、`dingtalk_open_id`、`dingtalk_nick`、`dingtalk_avatar`、`dingtalk_bound_at`
+- `users` 表继续承载“最终已绑定”的钉钉身份结果：`dingtalk_union_id`、`dingtalk_user_id`、`dingtalk_open_id`、`dingtalk_nick`、`dingtalk_avatar`、`dingtalk_bound_at`
 - `dingtalk_union_id` 设唯一索引，作为运行时稳定外部身份键
+- 新增独立的钉钉组织用户池表（如 `dingtalk_org_users`），用于承载同步得到的钉钉组织用户、匹配建议、状态与同步快照
+- 钉钉用户池至少记录：稳定身份键（优先 `unionId`）、昵称、手机号、邮箱、工号、部门、建议匹配 ERP 用户 ID、匹配依据、状态、最近同步时间、最近处理时间、处理人
 - 后端 OAuth 回调完成后，不直接把系统 JWT 放在 URL 上，而是生成一次性 `loginTicket`
 - 前端通过 `ticket` 换取正式 JWT，降低 token 暴露风险
+- 扫码登录主链路继续只依赖 `users.dingtalk_union_id` 查找正式绑定关系，不直接读取候选池，避免未确认数据进入登录主链路
+
+**钉钉组织用户同步与匹配策略：**
+- 同步由管理员手动触发，当前阶段不要求定时任务
+- 系统从钉钉组织接口拉取用户清单并 upsert 到钉钉用户池
+- 匹配建议首期按手机号、邮箱、工号的唯一命中顺序执行
+- 未命中本地用户时标记为 `UNBOUND`
+- 唯一命中时标记为 `CANDIDATE`，仍需管理员确认
+- 命中多个候选或关键信息冲突时标记为 `CONFLICT`
+- 只有管理员确认绑定后，才把正式绑定结果回写到 `users` 表
 
 ---
 

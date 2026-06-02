@@ -32,7 +32,7 @@ describe('DingtalkAuthClient', () => {
     expect(url.searchParams.get('client_id')).toBe('client-id');
     expect(url.searchParams.get('redirect_uri')).toBe('https://api.example.com/api/auth/dingtalk/callback');
     expect(url.searchParams.get('response_type')).toBe('code');
-    expect(url.searchParams.get('scope')).toBe('openid');
+    expect(url.searchParams.get('scope')).toBe('openid corpid');
     expect(url.searchParams.get('state')).toBe('state-1');
   });
 
@@ -75,7 +75,7 @@ describe('DingtalkAuthClient', () => {
       expect.objectContaining({
         method: 'GET',
         headers: {
-          Authorization: 'Bearer access-token-1',
+          'x-acs-dingtalk-access-token': 'access-token-1',
         },
       }),
     );

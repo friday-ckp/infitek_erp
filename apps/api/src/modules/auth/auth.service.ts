@@ -1,7 +1,8 @@
-import { Injectable, InternalServerErrorException, UnauthorizedException } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { appendFileSync } from 'node:fs';
 import { UsersService } from '../users/users.service';
 import { UserStatus } from '@infitek/shared';
 import { DingtalkAuthClient } from './dingtalk-auth.client';
@@ -10,6 +11,9 @@ import type { DingtalkConfig } from '../../config/dingtalk.config';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+  private readonly debugLogPath = '/Users/chenkangping/ai_study/infitek_erp/_bmad-output/implementation-artifacts/tests/dingtalk-oauth-debug.log';
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -41,6 +45,12 @@ export class AuthService {
 
   async handleDingtalkCallback(code: string | undefined, state: string | undefined): Promise<string> {
     const frontendCallbackUri = this.extractFrontendCallbackUri();
+    this.logger.log(
+      `Handling DingTalk callback; hasCode=${Boolean(code)}; codeLength=${code?.length ?? 0}; hasState=${Boolean(state)}`,
+    );
+    this.debugLog(
+      `Handling DingTalk callback; hasCode=${Boolean(code)}; codeLength=${code?.length ?? 0}; hasState=${Boolean(state)}`,
+    );
 
     try {
       if (!state) {
@@ -57,7 +67,14 @@ export class AuthService {
       const user = await this.usersService.findByDingtalkUnionId(identity.unionId);
 
       if (!user) {
-        throw new UnauthorizedException({ code: 'DINGTALK_ACCOUNT_UNBOUND', message: '当前钉钉账号未绑定系统用户' });
+        this.logger.warn(
+          `DingTalk account is unbound: unionId=${identity.unionId}; userId=${identity.userId ?? ''}; openId=${identity.openId ?? ''}; nick=${identity.nick ?? ''}`,
+        );
+        return this.buildFrontendCallbackUrl(frontendCallbackUri, {
+          error: 'DINGTALK_ACCOUNT_UNBOUND',
+          debugUnionId: identity.unionId,
+          ...(identity.nick ? { debugNick: identity.nick } : {}),
+        });
       }
 
       if (user.status === UserStatus.INACTIVE) {
@@ -72,6 +89,7 @@ export class AuthService {
       return this.buildFrontendCallbackUrl(frontendCallbackUri, { ticket: loginTicket });
     } catch (error) {
       const errorCode = this.extractErrorCode(error);
+      this.debugLog(`DingTalk callback failed; errorCode=${errorCode}`);
       return this.buildFrontendCallbackUrl(frontendCallbackUri, { error: errorCode });
     }
   }
@@ -129,5 +147,13 @@ export class AuthService {
     }
 
     return 'DINGTALK_OAUTH_FAILED';
+  }
+
+  private debugLog(message: string) {
+    try {
+      appendFileSync(this.debugLogPath, `[${new Date().toISOString()}] ${message}\n`);
+    } catch {
+      // ignore file logging failures
+    }
   }
 }

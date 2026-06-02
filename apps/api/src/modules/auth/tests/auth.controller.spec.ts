@@ -79,12 +79,24 @@ describe('AuthController', () => {
     it('应重定向到前端 callback 页面', async () => {
       authService.handleDingtalkCallback.mockResolvedValue('http://localhost:5173/login/dingtalk/callback?ticket=t1');
 
-      await controller.dingtalkCallback('oauth-code', 'state-1', response);
+      await controller.dingtalkCallback('oauth-code', undefined, 'state-1', response);
 
       expect(authService.handleDingtalkCallback).toHaveBeenCalledWith('oauth-code', 'state-1');
       expect(response.redirect).toHaveBeenCalledWith(
         302,
         'http://localhost:5173/login/dingtalk/callback?ticket=t1',
+      );
+    });
+
+    it('应兼容钉钉返回 authCode 参数', async () => {
+      authService.handleDingtalkCallback.mockResolvedValue('http://localhost:5173/login/dingtalk/callback?ticket=t2');
+
+      await controller.dingtalkCallback(undefined, 'oauth-auth-code', 'state-2', response);
+
+      expect(authService.handleDingtalkCallback).toHaveBeenCalledWith('oauth-auth-code', 'state-2');
+      expect(response.redirect).toHaveBeenCalledWith(
+        302,
+        'http://localhost:5173/login/dingtalk/callback?ticket=t2',
       );
     });
   });

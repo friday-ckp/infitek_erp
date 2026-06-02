@@ -39,6 +39,7 @@ import { ReceiptOrdersModule } from './modules/receipt-orders/receipt-orders.mod
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OperationLogsModule } from './modules/operation-logs/operation-logs.module';
 import { OutboundOrdersModule } from './modules/outbound-orders/outbound-orders.module';
+import { DingtalkOrgUsersModule } from './modules/dingtalk-org-users/dingtalk-org-users.module';
 import databaseConfig from './config/database.config';
 import dingtalkConfig from './config/dingtalk.config';
 import { createLoggerConfig } from './config/logger.config';
@@ -75,6 +76,7 @@ import { createLoggerConfig } from './config/logger.config';
     PurchaseOrdersModule,
     ReceiptOrdersModule,
     OutboundOrdersModule,
+    DingtalkOrgUsersModule,
     InventoryModule,
     ProductCategoriesModule,
     SuppliersModule,

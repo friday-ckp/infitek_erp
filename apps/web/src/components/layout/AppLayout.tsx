@@ -124,6 +124,13 @@ const BREADCRUMB_ROUTES: BreadcrumbRoute[] = [
     detailLabel: "用户详情",
     editLabel: "编辑用户",
   }),
+  {
+    pattern: /^\/settings\/dingtalk-org-users$/,
+    items: [
+      { title: "基础数据", path: BASIC_DATA_SECTION_PATH },
+      { title: "钉钉绑定运营" },
+    ],
+  },
   ...createCrudBreadcrumbRoutes({
     basePath: "/sales-orders",
     sectionLabel: "销售管理",

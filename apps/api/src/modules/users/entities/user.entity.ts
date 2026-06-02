@@ -14,6 +14,18 @@ export class User extends BaseEntity {
   @Expose()
   name: string;
 
+  @Column({ name: 'mobile', type: 'varchar', length: 32, nullable: true })
+  @Expose()
+  mobile: string | null;
+
+  @Column({ name: 'email', type: 'varchar', length: 255, nullable: true })
+  @Expose()
+  email: string | null;
+
+  @Column({ name: 'job_number', type: 'varchar', length: 64, nullable: true })
+  @Expose()
+  jobNumber: string | null;
+
   @Column({ name: 'password', type: 'varchar', length: 255 })
   @Exclude()
   password: string;

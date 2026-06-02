@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, In } from 'typeorm';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -22,11 +22,45 @@ export class UsersRepository {
     return this.repo.findOne({ where: { dingtalkUnionId, deletedAt: IsNull() } });
   }
 
+  findByIds(ids: number[]): Promise<User[]> {
+    if (ids.length === 0) {
+      return Promise.resolve([]);
+    }
+
+    return this.repo.find({ where: { id: In(ids), deletedAt: IsNull() } });
+  }
+
+  async findActiveMatchCandidates(identifiers: {
+    mobile?: string | null;
+    email?: string | null;
+    jobNumber?: string | null;
+  }): Promise<User[]> {
+    const { mobile, email, jobNumber } = identifiers;
+    const values = [mobile, email, jobNumber].filter((value): value is string => Boolean(value));
+    if (values.length === 0) {
+      return [];
+    }
+
+    const query = this.repo.createQueryBuilder('user')
+      .where('user.deletedAt IS NULL')
+      .andWhere('user.status = :status', { status: 'active' })
+      .andWhere(
+        '(user.mobile = :mobile OR user.email = :email OR user.jobNumber = :jobNumber)',
+        {
+          mobile: mobile ?? null,
+          email: email ?? null,
+          jobNumber: jobNumber ?? null,
+        },
+      );
+
+    return query.getMany();
+  }
+
   findAll(page: number = 1, pageSize: number = 10, search?: string, status?: string): Promise<[User[], number]> {
     const query = this.repo.createQueryBuilder('user').where('user.deletedAt IS NULL');
 
     if (search) {
-      query.andWhere('(user.username LIKE :search OR user.name LIKE :search)', {
+      query.andWhere('(user.username LIKE :search OR user.name LIKE :search OR user.mobile LIKE :search OR user.email LIKE :search OR user.jobNumber LIKE :search)', {
         search: `%${search}%`,
       });
     }

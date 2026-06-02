@@ -33,6 +33,12 @@ export default defineConfig(({ command }) => ({
     conditions: ['module', 'import', 'default'],
   },
   server: {
+    allowedHosts: [
+      'jeans-systematic-instances-ballet.trycloudflare.com',
+      'courses-apr-sponsor-recall.trycloudflare.com',
+      'infitek-erp-web-20260602.loca.lt',
+      'occurred-eventually-podcast-sense.trycloudflare.com',
+    ],
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

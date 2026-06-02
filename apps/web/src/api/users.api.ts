@@ -4,6 +4,9 @@ export interface User {
   id: string;
   username: string;
   name: string;
+  mobile?: string | null;
+  email?: string | null;
+  jobNumber?: string | null;
   status: 'active' | 'inactive';
   dingtalkBindingStatus?: 'BOUND' | 'UNBOUND';
   dingtalkBoundAt?: string;
@@ -17,11 +20,17 @@ export interface User {
 export interface CreateUserRequest {
   username: string;
   name: string;
+  mobile?: string;
+  email?: string;
+  jobNumber?: string;
   password: string;
 }
 
 export interface UpdateUserRequest {
   name?: string;
+  mobile?: string;
+  email?: string;
+  jobNumber?: string;
   password?: string;
 }
 

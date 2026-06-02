@@ -8,6 +8,7 @@ import DingtalkCallbackPage from "./pages/login/dingtalk-callback";
 import AppLayout from "./components/layout/AppLayout";
 import { AntdInitializer } from "./components/AntdInitializer";
 import UsersList from "./pages/settings/users/index";
+import DingtalkOrgUsersPage from "./pages/settings/dingtalk-org-users/index";
 import UserDetail from "./pages/settings/users/detail";
 import UserForm from "./pages/settings/users/form";
 import UnitsListPage from "./pages/master-data/units/index";
@@ -188,6 +189,7 @@ function App() {
                 <Route element={<AppLayout />}>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/settings/users" element={<UsersList />} />
+                  <Route path="/settings/dingtalk-org-users" element={<DingtalkOrgUsersPage />} />
                   <Route path="/settings/users/create" element={<UserForm />} />
                   <Route path="/settings/users/:id" element={<UserDetail />} />
                   <Route

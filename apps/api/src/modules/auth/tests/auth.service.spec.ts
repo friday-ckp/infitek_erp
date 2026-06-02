@@ -251,6 +251,29 @@ describe('AuthService', () => {
       expect(result).toContain('error=DINGTALK_STATE_INVALID');
       expect(dingtalkAuthClient.exchangeCodeForIdentity).not.toHaveBeenCalled();
     });
+
+    it('解绑后新的扫码登录尝试应返回 DINGTALK_ACCOUNT_UNBOUND', async () => {
+      dingtalkLoginSessionStore.consumeState.mockReturnValue();
+      dingtalkAuthClient.exchangeCodeForIdentity.mockResolvedValue({
+        unionId: 'union-1',
+        userId: 'user-1',
+        openId: 'open-1',
+        nick: '张三',
+        avatar: null,
+      });
+      usersService.findByDingtalkUnionId
+        .mockResolvedValueOnce(mockUser)
+        .mockResolvedValueOnce(null);
+      dingtalkLoginSessionStore.createLoginTicket.mockReturnValue('ticket-1');
+
+      const firstResult = await service.handleDingtalkCallback('oauth-code-1', 'state-1');
+      const secondResult = await service.handleDingtalkCallback('oauth-code-2', 'state-2');
+
+      expect(firstResult).toContain('ticket=ticket-1');
+      expect(secondResult).toContain('error=DINGTALK_ACCOUNT_UNBOUND');
+      expect(usersService.findByDingtalkUnionId).toHaveBeenNthCalledWith(1, 'union-1');
+      expect(usersService.findByDingtalkUnionId).toHaveBeenNthCalledWith(2, 'union-1');
+    });
   });
 
   describe('exchangeDingtalkTicket', () => {

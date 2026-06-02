@@ -36,7 +36,14 @@ describe('UsersService - Story 1-4 自动化测试', () => {
 
   describe('AC3: 创建用户', () => {
     it('P0: 应该创建新用户', async () => {
-      const createUserDto = { username: 'testuser', name: 'Test User', password: 'Password@123' };
+      const createUserDto = {
+        username: 'testuser',
+        name: 'Test User',
+        mobile: '13800000000',
+        email: 'test@example.com',
+        jobNumber: 'EMP-001',
+        password: 'Password@123',
+      };
       const hashedPassword = 'hashed_password';
 
       (bcrypt.hash as jest.Mock).mockResolvedValue(hashedPassword);
@@ -59,6 +66,13 @@ describe('UsersService - Story 1-4 自动化测试', () => {
       expect(result.created_by).toBe('admin');
       expect(bcrypt.hash).toHaveBeenCalledWith(createUserDto.password, expect.any(Number));
       expect(mockRepository.create).toHaveBeenCalled();
+      expect(mockRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mobile: '13800000000',
+          email: 'test@example.com',
+          jobNumber: 'EMP-001',
+        }),
+      );
     });
 
     it('P0: 应该验证用户名唯一性', async () => {
@@ -231,7 +245,13 @@ describe('UsersService - Story 1-4 自动化测试', () => {
 
   describe('AC4: 编辑用户', () => {
     it('P0: 应该编辑用户信息', async () => {
-      const updateUserDto = { name: 'Updated Name', password: 'NewPassword@123' };
+      const updateUserDto = {
+        name: 'Updated Name',
+        mobile: '13900000000',
+        email: 'updated@example.com',
+        jobNumber: 'EMP-002',
+        password: 'NewPassword@123',
+      };
       const hashedPassword = 'hashed_new_password';
 
       mockRepository.findById.mockResolvedValue({
@@ -259,6 +279,14 @@ describe('UsersService - Story 1-4 自动化测试', () => {
       expect(result.name).toBe('Updated Name');
       expect(result.updated_by).toBe('admin');
       expect(mockRepository.update).toHaveBeenCalled();
+      expect(mockRepository.update).toHaveBeenCalledWith(
+        1,
+        expect.objectContaining({
+          mobile: '13900000000',
+          email: 'updated@example.com',
+          jobNumber: 'EMP-002',
+        }),
+      );
     });
 
     it('P1: 应该自动填充 updated_by 字段', async () => {
@@ -383,6 +411,8 @@ describe('Story 9.4: DingTalk binding management', () => {
     update: jest.fn(),
     softDelete: jest.fn(),
     findByDingtalkUnionId: jest.fn(),
+    findByIds: jest.fn(),
+    findActiveMatchCandidates: jest.fn(),
   };
 
   beforeEach(async () => {

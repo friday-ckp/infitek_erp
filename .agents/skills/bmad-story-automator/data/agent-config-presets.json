@@ -1,4 +1,71 @@
 {
   "version": "1.0.0",
-  "presets": []
+  "presets": [
+    {
+      "name": "all-codex",
+      "createdAt": "2026-06-01T07:28:26Z",
+      "config": {
+        "complexityBased": false,
+        "defaultPrimary": "codex",
+        "defaultFallback": false,
+        "defaultModel": null,
+        "complexityOverrides": {
+          "low": {
+            "create": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "dev": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "auto": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "review": {
+              "primary": "codex",
+              "fallback": false
+            }
+          },
+          "medium": {
+            "create": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "dev": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "auto": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "review": {
+              "primary": "codex",
+              "fallback": false
+            }
+          },
+          "high": {
+            "create": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "dev": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "auto": {
+              "primary": "codex",
+              "fallback": false
+            },
+            "review": {
+              "primary": "codex",
+              "fallback": false
+            }
+          }
+        }
+      }
+    }
+  ]
 }

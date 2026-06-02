@@ -1,6 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Story 9.3: 钉钉登录前端链路', () => {
+  test('未登录访问受保护路由时会跳转到登录页并保留 redirect 目标', async ({ page }) => {
+    await page.goto('/settings/users/42');
+
+    await expect(page).toHaveURL(/\/login\?redirect=%2Fsettings%2Fusers%2F42$/);
+    await expect(page.getByRole('heading', { name: '欢迎回来' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '钉钉扫码登录' })).toBeVisible();
+  });
+
   test('登录页钉钉扫码按钮会真实跳转到后端登录入口', async ({ page }) => {
     await page.route('**/api/auth/dingtalk/login', async (route) => {
       await route.fulfill({
@@ -99,6 +107,43 @@ test.describe('Story 9.3: 钉钉登录前端链路', () => {
     await expect(page).toHaveURL(/ticket=ticket-expired/);
   });
 
+  test('解绑后再次扫码时，新的回调尝试会按未绑定流程失败', async ({ page }) => {
+    await page.route('**/api/auth/dingtalk/exchange', async (route) => {
+      const postData = route.request().postDataJSON() as { ticket?: string };
+      expect(postData.ticket).toBe('ticket-after-unbind');
+
+      await route.fulfill({
+        status: 401,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          code: 'DINGTALK_ACCOUNT_UNBOUND',
+          message: '当前钉钉账号未绑定系统用户',
+          data: null,
+        }),
+      });
+    });
+
+    await page.goto('/login?redirect=%2Fsettings%2Fusers%2F1');
+    await page.evaluate(() => {
+      window.sessionStorage.setItem('auth:post-login-redirect', '/settings/users/1');
+    });
+
+    await page.goto('/login/dingtalk/callback?ticket=ticket-after-unbind');
+
+    await expect(page.getByText('钉钉账号未绑定')).toBeVisible();
+    await expect(page.getByText('请联系管理员完成钉钉绑定')).toBeVisible();
+    await expect(page).toHaveURL(/\/login\/dingtalk\/callback\?ticket=ticket-after-unbind$/);
+
+    const token = await page.evaluate(() => window.localStorage.getItem('token'));
+    const storedRedirect = await page.evaluate(() =>
+      window.sessionStorage.getItem('auth:post-login-redirect'),
+    );
+
+    expect(token).toBeNull();
+    expect(storedRedirect).toBe('/settings/users/1');
+  });
+
   test('ticket 交换失败时只展示映射后的友好文案，不泄露原始异常', async ({ page }) => {
     await page.route('**/api/auth/dingtalk/exchange', async (route) => {
       await route.fulfill({
@@ -187,5 +232,116 @@ test.describe('Story 9.3: 钉钉登录前端链路', () => {
     await expect(page).toHaveURL(/\/settings\/users$/);
     const token = await page.evaluate(() => window.localStorage.getItem('token'));
     expect(token).toBe('mock.jwt.token.password');
+  });
+
+  test('用户详情页展示基础信息与钉钉绑定区块，证明用户管理未因 Epic 9 回归破坏', async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem('token', 'mock.jwt.token.detail');
+      window.localStorage.setItem(
+        'user',
+        JSON.stringify({
+          username: 'admin',
+          name: '管理员',
+        }),
+      );
+    });
+
+    await page.route('**/api/users/1', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          code: 'OK',
+          message: 'OK',
+          data: {
+            id: '1',
+            username: 'bound-user',
+            name: '已绑定用户',
+            status: 'active',
+            dingtalkBindingStatus: 'BOUND',
+            dingtalkBoundAt: '2026-05-29T09:30:00.000Z',
+            dingtalkNick: '钉钉小张',
+            createdAt: '2026-05-01T08:00:00.000Z',
+            updatedAt: '2026-05-29T09:30:00.000Z',
+            createdBy: 'system',
+            updatedBy: 'admin',
+          },
+        }),
+      });
+    });
+
+    await page.route('**/api/v1/operation-logs**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          code: 'OK',
+          message: 'OK',
+          data: {
+            list: [],
+            total: 0,
+            page: 1,
+            pageSize: 20,
+            totalPages: 0,
+          },
+        }),
+      });
+    });
+
+    await page.route('**/api/users?page=1&pageSize=20**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          code: 'OK',
+          message: 'OK',
+          data: {
+            list: [
+              {
+                id: '1',
+                username: 'bound-user',
+                name: '已绑定用户',
+                status: 'active',
+                dingtalkBindingStatus: 'BOUND',
+                dingtalkBoundAt: '2026-05-29T09:30:00.000Z',
+                dingtalkNick: '钉钉小张',
+                createdAt: '2026-05-01T08:00:00.000Z',
+                updatedAt: '2026-05-29T09:30:00.000Z',
+                createdBy: 'system',
+                updatedBy: 'admin',
+              },
+            ],
+            total: 1,
+            page: 1,
+            pageSize: 20,
+            totalPages: 1,
+          },
+        }),
+      });
+    });
+
+    await page.goto('/settings/users/1');
+
+    await expect(page.getByText('bound-user')).toBeVisible();
+    await expect(page.getByText('已绑定用户')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '正在接收钉钉授权' })).toHaveCount(0);
+    await expect(page.getByText('钉钉绑定')).toBeVisible();
+    await expect(page.getByText('已绑定')).toBeVisible();
+    await expect(page.getByText('钉钉小张')).toBeVisible();
+    await expect(page.getByRole('button', { name: '解绑钉钉账号' })).toBeVisible();
+    await expect(page.getByText('操作记录')).toBeVisible();
+
+    await page.goto('/settings/users');
+    await expect(page.getByRole('button', { name: '查询' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '重置' })).toBeVisible();
+    await expect(page.getByText('bound-user')).toBeVisible();
+    await page.getByRole('link', { name: '编辑' }).click();
+    await expect(page).toHaveURL(/\/settings\/users\/1\/edit$/);
+    await expect(page.getByRole('heading', { name: '编辑用户' })).toBeVisible();
+    await expect(page.getByLabel('用户名')).toHaveValue('bound-user');
+    await expect(page.getByLabel('姓名')).toHaveValue('已绑定用户');
   });
 });

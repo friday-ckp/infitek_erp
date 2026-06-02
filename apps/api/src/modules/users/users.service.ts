@@ -24,6 +24,18 @@ export class UsersService {
     return this.usersRepository.findByDingtalkUnionId(dingtalkUnionId);
   }
 
+  findByIds(ids: number[]): Promise<User[]> {
+    return this.usersRepository.findByIds(ids);
+  }
+
+  findActiveMatchCandidates(identifiers: {
+    mobile?: string | null;
+    email?: string | null;
+    jobNumber?: string | null;
+  }): Promise<User[]> {
+    return this.usersRepository.findActiveMatchCandidates(identifiers);
+  }
+
   async findAll(page: number = 1, pageSize: number = 10, search?: string, status?: string) {
     const [users, total] = await this.usersRepository.findAll(page, pageSize, search, status);
     return {
@@ -45,6 +57,9 @@ export class UsersService {
     return this.usersRepository.create({
       username: createUserDto.username,
       name: createUserDto.name,
+      mobile: createUserDto.mobile ?? null,
+      email: createUserDto.email ?? null,
+      jobNumber: createUserDto.jobNumber ?? null,
       password: hashedPassword,
       status: UserStatus.ACTIVE,
       createdBy: createdBy,
@@ -64,6 +79,15 @@ export class UsersService {
     }
     if (updateUserDto.status) {
       updateData.status = updateUserDto.status;
+    }
+    if (updateUserDto.mobile !== undefined) {
+      updateData.mobile = updateUserDto.mobile || null;
+    }
+    if (updateUserDto.email !== undefined) {
+      updateData.email = updateUserDto.email || null;
+    }
+    if (updateUserDto.jobNumber !== undefined) {
+      updateData.jobNumber = updateUserDto.jobNumber || null;
     }
 
     return this.usersRepository.update(id, updateData);

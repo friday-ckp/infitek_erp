@@ -1,5 +1,5 @@
 # generated: 2026-04-15
-# last_updated: 2026-05-29 (story-9-4-review)
+# last_updated: 2026-06-01 (story-9-8-create-story)
 # project: infitek_erp
 # project_key: NOKEY
 # tracking_system: file-system
@@ -39,7 +39,7 @@
 #   _bmad-output/planning-artifacts/flow-quantity-data-lineage.md
 
 generated: 2026-04-15
-last_updated: 2026-05-29 (story-9-4-review)
+last_updated: 2026-06-01 (story-9-8-create-story)
 project: infitek_erp
 
 project_key: NOKEY
@@ -153,5 +153,9 @@ development_status:
   9-2-后端钉钉OAuth回调与JWT签发: done
   9-3-前端登录页与钉钉回调页: done
   9-4-用户管理钉钉绑定能力: done
-  9-5-联调测试与上线校验: backlog
+  9-5-联调测试与上线校验: done
+  9-6-钉钉组织用户同步与用户池建模: done
+  9-7-ERP用户匹配建议与冲突状态引擎: done
+  9-8-后台钉钉用户池与绑定处理界面: done
+  9-9-同步绑定运营联调与验收补强: done
   epic-9-retrospective: optional

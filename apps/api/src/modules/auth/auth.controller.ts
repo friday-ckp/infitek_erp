@@ -37,10 +37,11 @@ export class AuthController {
   @ApiOperation({ summary: '钉钉登录回调', description: '处理钉钉 OAuth 回调并重定向到前端 callback 页面' })
   async dingtalkCallback(
     @Query('code') code: string | undefined,
+    @Query('authCode') authCode: string | undefined,
     @Query('state') state: string | undefined,
     @Res() response: Response,
   ) {
-    const redirectUrl = await this.authService.handleDingtalkCallback(code, state);
+    const redirectUrl = await this.authService.handleDingtalkCallback(authCode ?? code, state);
     response.redirect(HttpStatus.FOUND, redirectUrl);
   }
 

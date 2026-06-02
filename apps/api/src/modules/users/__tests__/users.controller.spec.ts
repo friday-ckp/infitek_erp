@@ -169,6 +169,9 @@ describe('UsersController - Story 1-4 自动化测试', () => {
       const createUserDto: CreateUserDto = {
         username: 'newuser',
         name: 'New User',
+        mobile: '13800000000',
+        email: 'new@example.com',
+        jobNumber: 'EMP-100',
         password: 'Password@123',
       };
 
@@ -190,6 +193,7 @@ describe('UsersController - Story 1-4 自动化测试', () => {
       expect(result.username).toBe('newuser');
       expect(result.status).toBe(UserStatus.ACTIVE);
       expect(result.createdBy).toBe('admin');
+      expect(result.mobile).toBe('13800000000');
     });
   });
 
@@ -197,6 +201,9 @@ describe('UsersController - Story 1-4 自动化测试', () => {
     it('P0: 应该编辑用户信息（成功）', async () => {
       const updateUserDto: UpdateUserDto = {
         name: 'Updated Name',
+        mobile: '13900000000',
+        email: 'updated@example.com',
+        jobNumber: 'EMP-200',
         password: 'NewPassword@123',
       };
 
@@ -204,6 +211,9 @@ describe('UsersController - Story 1-4 自动化测试', () => {
         id: 1,
         username: 'admin',
         name: 'Updated Name',
+        mobile: '13900000000',
+        email: 'updated@example.com',
+        jobNumber: 'EMP-200',
         password: 'hashed_new_password',
         status: UserStatus.ACTIVE,
         createdAt: new Date(),
@@ -218,6 +228,7 @@ describe('UsersController - Story 1-4 自动化测试', () => {
 
       expect(result.name).toBe('Updated Name');
       expect(result.updatedBy).toBe('admin');
+      expect(result.mobile).toBe('13900000000');
     });
 
     it('P1: 应该抛出 NotFoundException 当用户不存在', async () => {
